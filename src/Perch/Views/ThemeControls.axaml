@@ -1,0 +1,104 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:v="using:Perch.Views">
+ <Styles.Resources>
+  <v:EqualsConverter x:Key="StrEq"/>
+  <v:BoolChoiceConverter x:Key="BoolChoice"/>
+  <v:PercentConverter x:Key="Percent"/>
+  <v:PickConverter x:Key="Pick"/>
+ </Styles.Resources>
+
+ <!-- Right-click menu: Fluent's menu with rounded corners and the app's colours. -->
+ <Style Selector="ContextMenu"><Setter Property="CornerRadius" Value="12"/><Setter Property="Padding" Value="4"/></Style>
+ <Style Selector="MenuItem"><Setter Property="FontSize" Value="13"/><Setter Property="CornerRadius" Value="9"/></Style>
+
+ <!-- Settings controls: pill switch, segmented choice, thin slider, icon sidebar. -->
+ <Style Selector="CheckBox.Switch">
+  <Setter Property="Focusable" Value="False"/><Setter Property="Cursor" Value="Hand"/><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="HorizontalAlignment" Value="Right"/><Setter Property="MinWidth" Value="0"/><Setter Property="MinHeight" Value="0"/>
+  <Setter Property="Template"><ControlTemplate>
+   <Border x:Name="Track" Width="44" Height="26" CornerRadius="13" Background="{DynamicResource Ui.SwitchOff}">
+    <Ellipse x:Name="Knob" Width="20" Height="20" Fill="White" HorizontalAlignment="Left" Margin="3,0,0,0"/>
+   </Border>
+  </ControlTemplate></Setter>
+ </Style>
+ <Style Selector="CheckBox.Switch:checked /template/ Border#Track"><Setter Property="Background" Value="#FFAE54"/></Style>
+ <Style Selector="CheckBox.Switch:checked /template/ Ellipse#Knob"><Setter Property="HorizontalAlignment" Value="Right"/><Setter Property="Margin" Value="0,0,3,0"/></Style>
+
+ <Style Selector="RadioButton.Segment">
+  <Setter Property="Focusable" Value="False"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Foreground" Value="{DynamicResource Ui.SegText}"/><Setter Property="FontSize" Value="12.5"/><Setter Property="Padding" Value="14,0"/>
+  <Setter Property="Template"><ControlTemplate>
+   <Border x:Name="Pill" Height="28" CornerRadius="8" Background="Transparent" Padding="{TemplateBinding Padding}" Margin="2">
+    <ContentPresenter x:Name="Label" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" FontSize="{TemplateBinding FontSize}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+   </Border>
+  </ControlTemplate></Setter>
+ </Style>
+ <Style Selector="RadioButton.Segment:pointerover /template/ Border#Pill"><Setter Property="Background" Value="{DynamicResource Ui.Hover}"/></Style>
+ <Style Selector="RadioButton.Segment:checked /template/ Border#Pill"><Setter Property="Background" Value="{DynamicResource Ui.SegOn}"/></Style>
+ <Style Selector="RadioButton.Segment:checked /template/ ContentPresenter#Label"><Setter Property="Foreground" Value="{DynamicResource Ui.Text}"/></Style>
+ <Style Selector="Border.Segmented"><Setter Property="Background" Value="{DynamicResource Ui.Seg}"/><Setter Property="CornerRadius" Value="10"/><Setter Property="HorizontalAlignment" Value="Right"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+
+ <Style Selector="Slider.Dotted">
+  <Setter Property="Focusable" Value="False"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Height" Value="24"/><Setter Property="MinHeight" Value="0"/><Setter Property="Width" Value="170"/><Setter Property="VerticalAlignment" Value="Center"/>
+  <Setter Property="Template"><ControlTemplate>
+   <Grid Background="Transparent">
+    <Border Height="4" CornerRadius="2" Background="{DynamicResource Ui.Track}" VerticalAlignment="Center"/>
+    <Track x:Name="PART_Track" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value, Mode=TwoWay}" Orientation="Horizontal">
+     <Track.DecreaseButton><RepeatButton x:Name="PART_DecreaseButton"><RepeatButton.Template><ControlTemplate><Border Height="4" CornerRadius="2" Background="#FFAE54" VerticalAlignment="Center"/></ControlTemplate></RepeatButton.Template></RepeatButton></Track.DecreaseButton>
+     <Track.IncreaseButton><RepeatButton x:Name="PART_IncreaseButton"><RepeatButton.Template><ControlTemplate><Border Background="Transparent" Height="24"/></ControlTemplate></RepeatButton.Template></RepeatButton></Track.IncreaseButton>
+     <Thumb Width="20" Height="20"><Thumb.Template><ControlTemplate><Ellipse Fill="White" Stroke="#40000000" StrokeThickness="1"/></ControlTemplate></Thumb.Template></Thumb>
+    </Track>
+   </Grid>
+  </ControlTemplate></Setter>
+ </Style>
+
+ <Style Selector="RadioButton.SidebarItem">
+  <Setter Property="Focusable" Value="False"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Foreground" Value="{DynamicResource Ui.Muted}"/><Setter Property="Padding" Value="0"/>
+  <Setter Property="Template"><ControlTemplate>
+   <Border x:Name="Pill" Height="40" CornerRadius="10" Background="Transparent" Margin="0,2" Padding="10,0">
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+     <Border x:Name="Tile" Width="26" Height="26" CornerRadius="7" Background="{DynamicResource Ui.Tile}"><TextBlock x:Name="Icon" Text="{TemplateBinding Tag}" FontFamily="Segoe Fluent Icons" FontSize="14" Foreground="{DynamicResource Ui.TileIcon}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+     <ContentPresenter x:Name="Label" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" FontSize="13.5" Margin="11,0,0,0" VerticalAlignment="Center"/>
+    </StackPanel>
+   </Border>
+  </ControlTemplate></Setter>
+ </Style>
+ <Style Selector="RadioButton.SidebarItem:pointerover /template/ Border#Pill"><Setter Property="Background" Value="{DynamicResource Ui.Hover}"/></Style>
+ <Style Selector="RadioButton.SidebarItem:checked /template/ Border#Pill"><Setter Property="Background" Value="{DynamicResource Ui.Selected}"/></Style>
+ <Style Selector="RadioButton.SidebarItem:checked /template/ ContentPresenter#Label"><Setter Property="Foreground" Value="{DynamicResource Ui.Text}"/></Style>
+ <Style Selector="RadioButton.SidebarItem:checked /template/ Border#Tile"><Setter Property="Background" Value="#FFAE54"/></Style>
+ <Style Selector="RadioButton.SidebarItem:checked /template/ TextBlock#Icon"><Setter Property="Foreground" Value="#1A1208"/></Style>
+
+ <Style Selector="Button.Pill">
+  <Setter Property="Foreground" Value="{DynamicResource Ui.Text}"/><Setter Property="FontSize" Value="12.5"/><Setter Property="Padding" Value="14,0"/><Setter Property="Height" Value="32"/><Setter Property="MinHeight" Value="0"/>
+  <Setter Property="Template"><ControlTemplate>
+   <Border x:Name="Pill" Background="{DynamicResource Ui.SegOn}" CornerRadius="9" Padding="{TemplateBinding Padding}">
+    <ContentPresenter Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" FontSize="{TemplateBinding FontSize}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+   </Border>
+  </ControlTemplate></Setter>
+ </Style>
+ <Style Selector="Button.Pill:pointerover /template/ Border#Pill"><Setter Property="Opacity" Value="0.8"/></Style>
+ <Style Selector="Button.Pill:pressed /template/ Border#Pill"><Setter Property="Opacity" Value="0.6"/></Style>
+
+ <!-- A feature in the settings window: icon, name and an on/off switch in the header; options stay folded until opened. -->
+ <Style Selector="Expander.Feature">
+  <Setter Property="Focusable" Value="False"/><Setter Property="Padding" Value="0"/><Setter Property="HorizontalAlignment" Value="Stretch"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+  <Setter Property="Template"><ControlTemplate>
+   <Border Background="{DynamicResource Ui.Card}" BorderBrush="{DynamicResource Ui.CardBorder}" BorderThickness="1" CornerRadius="14" Margin="0,0,0,10">
+    <StackPanel>
+     <ToggleButton Focusable="False" Cursor="Hand" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Content="{TemplateBinding Header}" IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}">
+      <ToggleButton.Template><ControlTemplate>
+       <Border Background="Transparent" Padding="16,0,14,0" MinHeight="62">
+        <Grid ColumnDefinitions="*,Auto">
+         <ContentPresenter Content="{TemplateBinding Content}" VerticalAlignment="Center" HorizontalAlignment="Stretch"/>
+         <Panel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+          <TextBlock Text="&#xE70D;" FontFamily="Segoe Fluent Icons" FontSize="12" Foreground="{DynamicResource Ui.Muted}" IsVisible="{Binding !IsChecked, RelativeSource={RelativeSource TemplatedParent}}"/>
+          <TextBlock Text="&#xE70E;" FontFamily="Segoe Fluent Icons" FontSize="12" Foreground="{DynamicResource Ui.Muted}" IsVisible="{Binding IsChecked, RelativeSource={RelativeSource TemplatedParent}}"/>
+         </Panel>
+        </Grid>
+       </Border>
+      </ControlTemplate></ToggleButton.Template>
+     </ToggleButton>
+     <Border BorderBrush="{DynamicResource Ui.Divider}" BorderThickness="0,1,0,0" IsVisible="{TemplateBinding IsExpanded}"><ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"/></Border>
+    </StackPanel>
+   </Border>
+  </ControlTemplate></Setter>
+ </Style>
+</Styles>

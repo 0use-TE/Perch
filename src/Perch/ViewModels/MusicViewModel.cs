@@ -1,7 +1,7 @@
-﻿using System.IO;
+using System.IO;
 using System.Windows.Input;
-using System.Windows.Media.Imaging;
-using System.Windows.Threading;
+using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using Perch.Platform.Windows;
 using Perch.Services;
 using Windows.Media.Control;
@@ -16,7 +16,7 @@ public sealed class MusicViewModel : Observable
     private GlobalSystemMediaTransportControlsSessionManager? manager;
     private GlobalSystemMediaTransportControlsSession? session;
     private string title = "", artist = "", app = "";
-    private BitmapSource? cover;
+    private Bitmap? cover;
     private bool playing;
     private double position, duration;
     private int version;
@@ -42,7 +42,7 @@ public sealed class MusicViewModel : Observable
     public string Title => title.Length > 0 ? title : Loc.T("Music.Unknown");
     public string Artist => artist;
     public string AppName => app;
-    public BitmapSource? Cover => cover;
+    public Bitmap? Cover => cover;
     public bool HasCover => cover != null;
     public string PlayGlyph => playing ? "" : "";
     public double Progress => duration > 0 ? Math.Clamp(position / duration, 0, 1) : 0;
@@ -80,7 +80,7 @@ public sealed class MusicViewModel : Observable
         }
     }
 
-    private static void OnUi(Action action) => System.Windows.Application.Current?.Dispatcher.BeginInvoke(action);
+    private static void OnUi(Action action) => Dispatcher.UIThread.Post(action);
 
     private void Attach(GlobalSystemMediaTransportControlsSession? next)
     {
@@ -160,7 +160,7 @@ public sealed class MusicViewModel : Observable
         try
         {
             var properties = await current.TryGetMediaPropertiesAsync();
-            BitmapSource? picture = null;
+            Bitmap? picture = null;
             if (properties.Thumbnail is { } thumbnail) picture = await LoadAsync(thumbnail);
             if (mine != version) return; // a newer refresh is already running
             title = properties.Title ?? "";
@@ -182,7 +182,7 @@ public sealed class MusicViewModel : Observable
         Changed(string.Empty);
     }
 
-    private static async Task<BitmapSource?> LoadAsync(Windows.Storage.Streams.IRandomAccessStreamReference reference)
+    private static async Task<Bitmap?> LoadAsync(Windows.Storage.Streams.IRandomAccessStreamReference reference)
     {
         try
         {
@@ -191,13 +191,7 @@ public sealed class MusicViewModel : Observable
             var buffer = new MemoryStream();
             await source.CopyToAsync(buffer);
             buffer.Position = 0;
-            var image = new BitmapImage();
-            image.BeginInit();
-            image.CacheOption = BitmapCacheOption.OnLoad;
-            image.StreamSource = buffer;
-            image.EndInit();
-            image.Freeze();
-            return image;
+            return new Bitmap(buffer);
         }
         catch (Exception)
         {

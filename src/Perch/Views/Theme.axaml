@@ -1,0 +1,99 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <!-- Island styles. Keyed WPF styles became classes: Style="{StaticResource Caption}" is Classes="Caption". -->
+ <Style Selector="TextBlock.Caption"><Setter Property="FontSize" Value="11"/><Setter Property="Foreground" Value="#8A8A90"/></Style>
+ <Style Selector="TextBlock.Glyph"><Setter Property="FontFamily" Value="Segoe Fluent Icons"/><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="HorizontalAlignment" Value="Center"/></Style>
+ <Style Selector="TextBlock.Placeholder"><Setter Property="Foreground" Value="#6E6E74"/><Setter Property="IsHitTestVisible" Value="False"/><Setter Property="FontSize" Value="13"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+ <Style Selector="Border.Card"><Setter Property="Background" Value="{DynamicResource IslandCard}"/><Setter Property="CornerRadius" Value="14"/></Style>
+
+ <Style Selector="Button"><Setter Property="Focusable" Value="False"/><Setter Property="Cursor" Value="Hand"/></Style>
+
+ <Style Selector="Button.Nav">
+  <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="#85858B"/>
+  <Setter Property="Padding" Value="14,9"/><Setter Property="Height" Value="38"/><Setter Property="MinWidth" Value="0"/><Setter Property="MinHeight" Value="0"/>
+  <Setter Property="HorizontalContentAlignment" Value="Center"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+  <Setter Property="Template"><ControlTemplate>
+   <Border x:Name="Pill" Background="{TemplateBinding Background}" CornerRadius="19" Padding="{TemplateBinding Padding}">
+    <ContentPresenter x:Name="Body" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+   </Border>
+  </ControlTemplate></Setter>
+ </Style>
+ <Style Selector="Button.Nav:pointerover /template/ Border#Pill"><Setter Property="Background" Value="#292929"/></Style>
+ <Style Selector="Button.Nav:pressed /template/ Border#Pill"><Setter Property="Opacity" Value="0.65"/></Style>
+ <Style Selector="Button.Nav:disabled /template/ Border#Pill"><Setter Property="Opacity" Value="0.35"/></Style>
+ <Style Selector="Button.Nav.Icon"><Setter Property="Width" Value="38"/><Setter Property="Height" Value="38"/><Setter Property="Padding" Value="0"/></Style>
+ <Style Selector="Button.Nav.Small"><Setter Property="Width" Value="30"/><Setter Property="Height" Value="30"/><Setter Property="Padding" Value="0"/></Style>
+
+ <!-- Text-only pill button. -->
+ <Style Selector="Button.Text">
+  <Setter Property="Foreground" Value="#B4B4BA"/><Setter Property="Height" Value="28"/><Setter Property="MinHeight" Value="0"/><Setter Property="Padding" Value="10,0"/><Setter Property="FontSize" Value="12"/>
+  <Setter Property="Template"><ControlTemplate>
+   <Border x:Name="Pill" Background="Transparent" CornerRadius="14" Padding="{TemplateBinding Padding}">
+    <ContentPresenter x:Name="Label" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" FontSize="{TemplateBinding FontSize}" VerticalAlignment="Center"/>
+   </Border>
+  </ControlTemplate></Setter>
+ </Style>
+ <Style Selector="Button.Text:pointerover /template/ Border#Pill"><Setter Property="Background" Value="#262628"/></Style>
+ <Style Selector="Button.Text:pointerover /template/ ContentPresenter#Label"><Setter Property="Foreground" Value="White"/></Style>
+ <Style Selector="Button.Text:pressed /template/ Border#Pill"><Setter Property="Opacity" Value="0.65"/></Style>
+ <Style Selector="Button.Text:disabled /template/ Border#Pill"><Setter Property="Opacity" Value="0.35"/></Style>
+
+ <!-- Segmented choice chip -->
+ <Style Selector="ToggleButton.Chip">
+  <Setter Property="Focusable" Value="False"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Foreground" Value="#8E8E94"/><Setter Property="Height" Value="28"/><Setter Property="MinHeight" Value="0"/><Setter Property="Padding" Value="9,0"/><Setter Property="FontSize" Value="12"/>
+  <Setter Property="Template"><ControlTemplate>
+   <Border x:Name="Pill" Background="Transparent" CornerRadius="14" Padding="{TemplateBinding Padding}">
+    <ContentPresenter x:Name="Label" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" FontSize="{TemplateBinding FontSize}" VerticalAlignment="Center"/>
+   </Border>
+  </ControlTemplate></Setter>
+ </Style>
+ <Style Selector="ToggleButton.Chip:pointerover /template/ Border#Pill"><Setter Property="Background" Value="#202022"/></Style>
+ <Style Selector="ToggleButton.Chip:checked /template/ Border#Pill"><Setter Property="Background" Value="#2C2C2E"/></Style>
+ <Style Selector="ToggleButton.Chip:checked /template/ ContentPresenter#Label"><Setter Property="Foreground" Value="White"/></Style>
+
+ <Style Selector="Button.Round">
+  <Setter Property="Width" Value="48"/><Setter Property="Height" Value="48"/><Setter Property="Padding" Value="0"/>
+  <Setter Property="Template"><ControlTemplate>
+   <Grid><Ellipse x:Name="Disc" Fill="{DynamicResource IslandAccent}"/><ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid>
+  </ControlTemplate></Setter>
+ </Style>
+ <Style Selector="Button.Round:pointerover /template/ Ellipse#Disc"><Setter Property="Fill" Value="#FFC07A"/></Style>
+ <Style Selector="Button.Round:pressed /template/ Ellipse#Disc"><Setter Property="Opacity" Value="0.7"/></Style>
+
+ <!-- Plain hover tile used for app icons, photos, week columns and month days. -->
+ <Style Selector="Button.Tile">
+  <Setter Property="Background" Value="Transparent"/><Setter Property="Padding" Value="0"/><Setter Property="MinHeight" Value="0"/><Setter Property="MinWidth" Value="0"/>
+  <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="VerticalContentAlignment" Value="Stretch"/>
+  <Setter Property="Template"><ControlTemplate>
+   <Border x:Name="Pill" Background="{TemplateBinding Background}" CornerRadius="10" Padding="{TemplateBinding Padding}">
+    <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+   </Border>
+  </ControlTemplate></Setter>
+ </Style>
+ <Style Selector="Button.Tile:pointerover /template/ Border#Pill"><Setter Property="Background" Value="#202022"/></Style>
+ <Style Selector="Button.Tile:pressed /template/ Border#Pill"><Setter Property="Opacity" Value="0.7"/></Style>
+
+ <!-- Lists without the default chrome. -->
+ <Style Selector="ListBox.Bare"><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Focusable" Value="False"/><Setter Property="Padding" Value="0"/><Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/></Style>
+ <Style Selector="ListBox.Bare > ListBoxItem">
+  <Setter Property="Focusable" Value="False"/><Setter Property="Padding" Value="0"/><Setter Property="MinHeight" Value="0"/><Setter Property="Margin" Value="0,0,0,4"/><Setter Property="Background" Value="Transparent"/>
+  <Setter Property="Template"><ControlTemplate><ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"/></ControlTemplate></Setter>
+ </Style>
+ <Style Selector="ListBox.Selectable > ListBoxItem">
+  <Setter Property="Margin" Value="0,0,0,3"/><Setter Property="Cursor" Value="Hand"/>
+  <Setter Property="Template"><ControlTemplate>
+   <Border x:Name="Pill" Background="Transparent" CornerRadius="10"><ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"/></Border>
+  </ControlTemplate></Setter>
+ </Style>
+ <Style Selector="ListBox.Selectable > ListBoxItem:pointerover /template/ Border#Pill"><Setter Property="Background" Value="#19191B"/></Style>
+ <Style Selector="ListBox.Selectable > ListBoxItem:selected /template/ Border#Pill"><Setter Property="Background" Value="#232325"/></Style>
+
+ <!-- Text boxes: flat field with an orange line when focused. Fluent's template is kept; only its colours change. -->
+ <Style Selector="TextBox.Quiet">
+  <Setter Property="Background" Value="#171717"/><Setter Property="BorderThickness" Value="0"/><Setter Property="CornerRadius" Value="6"/>
+  <Setter Property="Padding" Value="16,12"/><Setter Property="FontSize" Value="14"/><Setter Property="MinHeight" Value="0"/>
+  <Setter Property="SelectionBrush" Value="#80502C"/><Setter Property="CaretBrush" Value="#FFAE54"/>
+ </Style>
+ <Style Selector="TextBox.Quiet:pointerover /template/ Border#PART_BorderElement"><Setter Property="Background" Value="#171717"/><Setter Property="BorderThickness" Value="0"/></Style>
+ <Style Selector="TextBox.Quiet:focus /template/ Border#PART_BorderElement"><Setter Property="Background" Value="#171717"/><Setter Property="BorderBrush" Value="#FFAE54"/><Setter Property="BorderThickness" Value="0,0,0,2"/></Style>
+ <Style Selector="TextBox.Quiet.Compact"><Setter Property="Padding" Value="12,6"/><Setter Property="FontSize" Value="13"/><Setter Property="MinHeight" Value="32"/></Style>
+</Styles>

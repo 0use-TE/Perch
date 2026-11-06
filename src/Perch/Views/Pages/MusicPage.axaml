@@ -1,0 +1,40 @@
+<UserControl x:Class="Perch.Views.Pages.MusicPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <!-- DataContext is the music view model (Windows media controls). -->
+ <Grid>
+  <!-- Nothing registered with the media controls -->
+  <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="8,0,0,0" IsVisible="{Binding Idle}">
+   <Border Width="112" Height="112" Background="#171719" CornerRadius="24"><TextBlock Text="&#xE8D6;" FontSize="40" Foreground="#55555B" Classes="Glyph"/></Border>
+   <StackPanel VerticalAlignment="Center" Margin="28,0,0,0" MaxWidth="400">
+    <TextBlock Text="{DynamicResource Nav.Music}" FontSize="23" FontWeight="SemiBold"/>
+    <TextBlock Text="{DynamicResource Music.Nothing}" Foreground="#85858B" FontSize="13" Margin="0,10,0,0"/>
+    <TextBlock Text="{DynamicResource Music.Hint}" TextWrapping="Wrap" Margin="0,6,0,0" Classes="Caption"/>
+   </StackPanel>
+  </StackPanel>
+
+  <!-- Now playing -->
+  <Grid Margin="8,0,0,0" IsVisible="{Binding HasSession}">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+   <Border Width="144" Height="144" CornerRadius="22" Background="#171719" VerticalAlignment="Center">
+    <Grid>
+     <TextBlock Text="&#xE8D6;" FontSize="42" Foreground="#55555B" Classes="Glyph"/>
+     <Border CornerRadius="22"><Border.Background><ImageBrush Source="{Binding Cover}" Stretch="UniformToFill"/></Border.Background></Border>
+    </Grid>
+   </Border>
+   <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="28,0,16,0">
+    <TextBlock Text="{Binding Title}" FontSize="22" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+    <TextBlock Text="{Binding Artist}" FontSize="14" Foreground="#A9A9AF" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
+    <TextBlock Text="{Binding AppName}" Margin="0,2,0,0" Classes="Caption"/>
+    <ProgressBar Height="4" Minimum="0" Maximum="1" Value="{Binding Progress, Mode=OneWay}" Foreground="{DynamicResource IslandAccent}" Background="#2A2A2E" BorderThickness="0" Margin="0,16,0,0" IsVisible="{Binding HasTimeline}"/>
+    <Grid Margin="0,5,0,0" IsVisible="{Binding HasTimeline}">
+     <TextBlock Text="{Binding PositionText}" Classes="Caption"/>
+     <TextBlock Text="{Binding DurationText}" HorizontalAlignment="Right" Classes="Caption"/>
+    </Grid>
+    <StackPanel Orientation="Horizontal" Margin="-6,8,0,0" IsVisible="{Binding CanControl}">
+     <Button IsVisible="{Binding CanPrevious}" Command="{Binding Previous}" ToolTip.Tip="{DynamicResource Music.Previous}" AutomationProperties.Name="{DynamicResource Music.Previous}" Classes="Nav Icon"><TextBlock Text="&#xE892;" FontSize="16" Foreground="#C9C9CE" Classes="Glyph"/></Button>
+     <Button IsVisible="{Binding CanToggle}" Command="{Binding Toggle}" Margin="8,0" ToolTip.Tip="{DynamicResource Music.PlayPause}" AutomationProperties.Name="{DynamicResource Music.PlayPause}" Classes="Round"><TextBlock Text="{Binding PlayGlyph}" FontSize="18" Foreground="#1A1208" Classes="Glyph"/></Button>
+     <Button IsVisible="{Binding CanNext}" Command="{Binding Next}" ToolTip.Tip="{DynamicResource Music.Next}" AutomationProperties.Name="{DynamicResource Music.Next}" Classes="Nav Icon"><TextBlock Text="&#xE893;" FontSize="16" Foreground="#C9C9CE" Classes="Glyph"/></Button>
+    </StackPanel>
+   </StackPanel>
+  </Grid>
+ </Grid>
+</UserControl>

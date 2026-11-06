@@ -1,0 +1,49 @@
+<UserControl x:Class="Perch.Views.Pages.InfoPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <!-- DataContext is the island view model: weather on the left, battery and network on the right. -->
+ <Grid>
+  <Grid.ColumnDefinitions><ColumnDefinition Width="226"/><ColumnDefinition Width="*"/><ColumnDefinition Width="156"/></Grid.ColumnDefinitions>
+  <StackPanel DataContext="{Binding Weather}" VerticalAlignment="Center" Margin="2,0,0,0">
+   <TextBlock TextTrimming="CharacterEllipsis" Classes="Caption"><Run Text="{Binding Place, Mode=OneWay}"/><Run Text="  "/><Run Text="{Binding Status, Mode=OneWay}"/></TextBlock>
+   <StackPanel Orientation="Horizontal" Margin="0,6,0,0" IsVisible="{Binding HasData}">
+    <TextBlock Text="{Binding Glyph}" FontFamily="Segoe UI Symbol" FontSize="34" Foreground="#FFD08A" VerticalAlignment="Center"/>
+    <TextBlock Text="{Binding Temperature}" FontFamily="Segoe UI Variable Display" FontSize="46" FontWeight="SemiBold" Margin="12,0,0,0" VerticalAlignment="Center"/>
+   </StackPanel>
+   <TextBlock FontSize="13" Margin="0,2,0,0" IsVisible="{Binding HasData}"><Run Text="{Binding Condition, Mode=OneWay}"/><Run Text="  "/><Run Text="{Binding HighLow, Mode=OneWay}" Foreground="#A9A9AF"/></TextBlock>
+   <TextBlock Text="{Binding Details}" Margin="0,6,0,0" TextTrimming="CharacterEllipsis" IsVisible="{Binding HasData}" Classes="Caption"/>
+   <Button Content="{DynamicResource Common.Refresh}" Command="{Binding Refresh}" HorizontalAlignment="Left" Margin="-10,8,0,0" Classes="Text"/>
+  </StackPanel>
+  <ItemsControl Grid.Column="1" DataContext="{Binding Weather}" ItemsSource="{Binding Days}" VerticalAlignment="Center" Margin="8,0">
+   <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="5" Rows="1"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+   <ItemsControl.ItemTemplate><DataTemplate>
+    <Border Margin="3,0" Padding="4,12" Classes="Card">
+     <StackPanel HorizontalAlignment="Center">
+      <TextBlock Text="{Binding Label}" HorizontalAlignment="Center" Classes="Caption"/>
+      <TextBlock Text="{Binding Glyph}" FontFamily="Segoe UI Symbol" FontSize="20" Foreground="#FFD08A" HorizontalAlignment="Center" Margin="0,6,0,2"/>
+      <TextBlock Text="{Binding Text}" FontSize="11" HorizontalAlignment="Center"/>
+      <TextBlock Text="{Binding Range}" FontSize="11" Foreground="#C9C9CE" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+      <TextBlock Text="{Binding Rain}" Foreground="#7FB2FF" HorizontalAlignment="Center" Margin="0,2,0,0" Classes="Caption"/>
+     </StackPanel>
+    </Border>
+   </DataTemplate></ItemsControl.ItemTemplate>
+  </ItemsControl>
+  <StackPanel Grid.Column="2" DataContext="{Binding Status}" VerticalAlignment="Center">
+   <Border Padding="14,10" Classes="Card">
+    <Grid>
+     <StackPanel>
+      <TextBlock Text="{DynamicResource Info.Battery}" Classes="Caption"/>
+      <TextBlock Text="{Binding BatteryText}" FontFamily="Segoe UI Variable Display" FontSize="22" FontWeight="SemiBold" Margin="0,2,0,0"/>
+      <TextBlock Text="{Binding BatteryState}" Classes="Caption"/>
+     </StackPanel>
+     <TextBlock Text="{Binding BatteryGlyph}" FontSize="20" Foreground="#C9C9CE" HorizontalAlignment="Right" VerticalAlignment="Top" Classes="Glyph"/>
+    </Grid>
+   </Border>
+   <Border Padding="14,10" Margin="0,8,0,0" Classes="Card">
+    <StackPanel>
+     <TextBlock Text="{DynamicResource Info.Network}" Classes="Caption"/>
+     <TextBlock FontSize="12" Margin="0,4,0,0"><Run Text="↓ " Foreground="#7FB2FF"/><Run Text="{Binding Download, Mode=OneWay}"/></TextBlock>
+     <TextBlock FontSize="12" Margin="0,2,0,0"><Run Text="↑ " Foreground="#FFAE54"/><Run Text="{Binding Upload, Mode=OneWay}"/></TextBlock>
+    </StackPanel>
+   </Border>
+  </StackPanel>
+ </Grid>
+</UserControl>

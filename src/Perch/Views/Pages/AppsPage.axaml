@@ -1,0 +1,75 @@
+<UserControl x:Class="Perch.Views.Pages.AppsPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <Grid>
+  <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+  <Grid>
+   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+    <ToggleButton Content="{DynamicResource Apps.Apps}" IsChecked="{Binding ShowsApps, Mode=OneWay}" Command="{Binding SetSection}" CommandParameter="apps" Classes="Chip"/>
+    <ToggleButton Content="{DynamicResource Apps.Commands}" IsChecked="{Binding ShowsCommands, Mode=OneWay}" Command="{Binding SetSection}" CommandParameter="commands" Margin="4,0,0,0" Classes="Chip"/>
+   </StackPanel>
+   <StackPanel Grid.Column="2" Orientation="Horizontal" IsVisible="{Binding ShowsApps}">
+    <Grid Width="220">
+     <TextBox MinHeight="30" Text="{Binding Search}" AutomationProperties.Name="{DynamicResource Apps.Search}" Classes="Quiet Compact"/>
+     <TextBlock Text="{DynamicResource Apps.Search}" Margin="13,0,0,0" Classes="Placeholder" IsVisible="{Binding Search, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+    </Grid>
+    <Button Content="{Binding PinModeLabel}" Command="{Binding TogglePinMode}" Margin="6,0,0,0" ToolTip.Tip="{DynamicResource Apps.PinTip}" Classes="Text"/>
+   </StackPanel>
+  </Grid>
+
+  <!-- App grid: pinned apps first -->
+  <Grid Grid.Row="1" Margin="0,8,0,0" IsVisible="{Binding ShowsApps}">
+   <ListBox ItemsSource="{Binding Visible}" Classes="Bare Selectable">
+    <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
+    <ListBox.ItemTemplate><DataTemplate>
+     <Button Width="84" Height="64" Padding="4,6" ToolTip.Tip="{Binding Name}"
+             Command="{Binding DataContext.Launch, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Classes="Tile">
+      <StackPanel>
+       <Grid Width="28" Height="28">
+        <Image Source="{Binding Icon}" Width="28" Height="28" RenderOptions.BitmapInterpolationMode="HighQuality"/>
+        <TextBlock Text="&#xE734;" FontSize="10" Foreground="#C9C9CE" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-8,0"
+                   IsVisible="{Binding DataContext.PinMode, RelativeSource={RelativeSource AncestorType=UserControl}}" Classes="Glyph"/>
+        <TextBlock Text="&#xE735;" FontSize="10" Foreground="#FFAE54" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-8,0"
+                   IsVisible="{Binding Pinned}" Classes="Glyph"/>
+       </Grid>
+       <TextBlock Text="{Binding Name}" FontSize="10.5" Foreground="#C9C9CE" TextTrimming="CharacterEllipsis" TextAlignment="Center" HorizontalAlignment="Center" Margin="0,5,0,0" MaxWidth="76"/>
+      </StackPanel>
+     </Button>
+    </DataTemplate></ListBox.ItemTemplate>
+   </ListBox>
+   <TextBlock Text="{Binding Status}" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding HasStatus}" Classes="Caption"/>
+  </Grid>
+
+  <!-- Custom command lines -->
+  <Grid Grid.Row="1" Margin="0,8,0,0" IsVisible="{Binding ShowsCommands}">
+   <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+   <ListBox ItemsSource="{Binding Commands}" Classes="Bare">
+    <ListBox.ItemTemplate><DataTemplate>
+     <Grid Margin="6,0">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <StackPanel VerticalAlignment="Center">
+       <TextBlock Text="{Binding Name}" FontSize="12.5" TextTrimming="CharacterEllipsis"/>
+       <TextBlock Text="{Binding Command}" FontFamily="Cascadia Mono, Consolas" TextTrimming="CharacterEllipsis" Classes="Caption"/>
+      </StackPanel>
+      <Button Grid.Column="1" Command="{Binding DataContext.RunCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Common.Run}" Classes="Nav Small">
+       <TextBlock Text="&#xE768;" FontSize="12" Foreground="#FFAE54" Classes="Glyph"/>
+      </Button>
+      <Button Grid.Column="2" Command="{Binding DataContext.RemoveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Common.Delete}" Classes="Nav Small">
+       <TextBlock Text="&#xE74D;" FontSize="12" Foreground="#77777D" Classes="Glyph"/>
+      </Button>
+     </Grid>
+    </DataTemplate></ListBox.ItemTemplate>
+   </ListBox>
+   <TextBlock Text="{DynamicResource Apps.CommandsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding NoCommands}" Classes="Caption"/>
+   <Grid Grid.Row="1" Margin="0,6,0,0">
+    <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+    <TextBox Text="{Binding NewName}" AutomationProperties.Name="{DynamicResource Apps.NameField}" Classes="Quiet Compact"/>
+    <TextBlock Text="{DynamicResource Apps.Name}" Margin="13,0,0,0" Classes="Placeholder" IsVisible="{Binding NewName, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+    <TextBox Grid.Column="2" FontFamily="Cascadia Mono, Consolas" Text="{Binding NewCommand}" AutomationProperties.Name="{DynamicResource Apps.Command}" Classes="Quiet Compact">
+     <TextBox.KeyBindings><KeyBinding Gesture="Enter" Command="{Binding AddCommand}"/></TextBox.KeyBindings>
+    </TextBox>
+    <TextBlock Grid.Column="2" Text="{DynamicResource Apps.CommandPlaceholder}" Margin="13,0,0,0" Classes="Placeholder" IsVisible="{Binding NewCommand, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+    <Button Grid.Column="3" Command="{Binding AddCommand}" Margin="6,0,0,0" ToolTip.Tip="{DynamicResource Apps.AddCommand}" AutomationProperties.Name="{DynamicResource Apps.AddCommand}" Classes="Nav Small"><TextBlock Text="&#xE710;" FontSize="14" Classes="Glyph"/></Button>
+   </Grid>
+  </Grid>
+ </Grid>
+</UserControl>

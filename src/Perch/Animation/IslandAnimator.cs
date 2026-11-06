@@ -1,7 +1,6 @@
 using System.Diagnostics;
-using System.Windows.Media;
-using System.Windows;
-using System.Windows.Media.Animation;
+using Avalonia.Controls;
+using Avalonia.Media;
 
 namespace Perch.Animation;
 
@@ -14,6 +13,8 @@ public sealed class IslandAnimator : IDisposable
     private Spring height = new() { Response = 0.46, Damping = 0.86 };
     private double last;
     private bool running;
+    // Frames are driven by the render loop of this window, so it must be set before the first MoveTo.
+    public TopLevel? Host { get; set; }
     public bool ReducedMotion { get; set; }
     public bool Expanding { get; private set; }
     public bool IsRunning => running;
@@ -21,12 +22,29 @@ public sealed class IslandAnimator : IDisposable
     public double StepSeconds { get; private set; }
     // width progress, height progress, settled
     public event Action<double, double, bool>? Frame;
-    public void Reveal(UIElement page, TranslateTransform offset)
+
+    // A short fade and slide when a page opens.
+    public void Reveal(Control page, TranslateTransform offset)
     {
-        var duration = TimeSpan.FromMilliseconds(ReducedMotion ? 0 : 160);
-        page.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, duration));
-        offset.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(5, 0, duration) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } });
+        if (ReducedMotion) { page.Opacity = 1; offset.Y = 0; return; }
+        Tween(160, t => { page.Opacity = t; offset.Y = 5 * (1 - (1 - (1 - t) * (1 - t))); });
     }
+
+    // Runs step(0..1) over the given milliseconds, one call per rendered frame.
+    public void Tween(double milliseconds, Action<double> step)
+    {
+        if (Host == null || milliseconds <= 0) { step(1); return; }
+        var timer = Stopwatch.StartNew();
+        step(0);
+        void Next(TimeSpan _)
+        {
+            var t = Math.Clamp(timer.Elapsed.TotalMilliseconds / milliseconds, 0, 1);
+            step(t);
+            if (t < 1) Host!.RequestAnimationFrame(Next);
+        }
+        Host.RequestAnimationFrame(Next);
+    }
+
     // Targets are progress between the compact (0) and expanded (1) sizes; the wide compact island uses a width between them.
     public void MoveTo(double widthTarget, double heightTarget)
     {
@@ -35,16 +53,25 @@ public sealed class IslandAnimator : IDisposable
         (height.Response, height.Damping) = heightTarget > height.Value ? (0.46, 0.86) : (0.28, 1.0);
         width.Target = widthTarget;
         height.Target = heightTarget;
-        if (ReducedMotion)
+        if (ReducedMotion || Host == null)
         {
             Stop(); width.Snap(); height.Snap(); StepSeconds = 0;
             Frame?.Invoke(width.Value, height.Value, true);
             return;
         }
         if (running) return;
-        running = true; last = 0; clock.Restart(); CompositionTarget.Rendering += Render;
+        running = true; last = 0; clock.Restart();
+        Host.RequestAnimationFrame(OnFrame);
     }
-    private void Render(object? sender, EventArgs e)
+
+    private void OnFrame(TimeSpan _)
+    {
+        if (!running) return;
+        Render();
+        if (running) Host?.RequestAnimationFrame(OnFrame);
+    }
+
+    private void Render()
     {
         var now = clock.Elapsed.TotalSeconds;
         var dt = Math.Min(now - last, 0.032); last = now;
@@ -55,6 +82,7 @@ public sealed class IslandAnimator : IDisposable
         if (settled) { width.Snap(); height.Snap(); Stop(); }
         Frame?.Invoke(width.Value, height.Value, settled);
     }
-    private void Stop() { CompositionTarget.Rendering -= Render; clock.Stop(); running = false; }
+
+    private void Stop() { clock.Stop(); running = false; }
     public void Dispose() => Stop();
 }

@@ -66,7 +66,7 @@ try {
     Assert ([Math]::Abs(($r.Bottom-$r.Top)/$scale - 36) -lt 2) 'Compact host is 36 DIP tall'
     $style = [IslandProbe]::GetStyle($handle,-20).ToInt64()
     Assert (($style -band 0x80) -ne 0 -and ($style -band 0x40000) -eq 0) 'Tool window excludes taskbar and Alt+Tab'
-    Assert (($style -band 0x8000000) -ne 0) 'Passive mode prevents WPF from taking native keyboard focus'
+    Assert (($style -band 0x8000000) -ne 0) 'Passive mode prevents the window from taking native keyboard focus'
     $region = [IslandProbe]::CreateRectRgn(0,0,0,0)
     try {
         [IslandProbe]::GetWindowRgn($handle,$region) | Out-Null

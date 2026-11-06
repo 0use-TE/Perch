@@ -1,0 +1,41 @@
+<UserControl x:Class="Perch.Views.Pages.FocusPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <Grid>
+  <Grid.ColumnDefinitions><ColumnDefinition Width="188"/><ColumnDefinition Width="*"/><ColumnDefinition Width="168"/></Grid.ColumnDefinitions>
+  <Grid Width="132" Height="132" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="8,0,0,0">
+   <Ellipse Stroke="#1E1E20" StrokeThickness="8"/>
+   <Ellipse Stroke="{DynamicResource IslandAccent}" StrokeThickness="8" StrokeDashArray="{Binding Ring}" StrokeLineCap="Round" RenderTransformOrigin="50%,50%">
+    <Ellipse.RenderTransform><RotateTransform Angle="-90"/></Ellipse.RenderTransform>
+   </Ellipse>
+   <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+    <TextBlock Text="{Binding Remaining}" FontFamily="Segoe UI Variable Display" FontSize="30" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+    <TextBlock Text="{Binding PhaseLabel}" HorizontalAlignment="Center" Margin="0,1,0,0" Classes="Caption"/>
+   </StackPanel>
+  </Grid>
+  <StackPanel Grid.Column="1" VerticalAlignment="Center">
+   <StackPanel Orientation="Horizontal">
+    <ToggleButton Content="{DynamicResource Nav.Focus}" IsChecked="{Binding IsFocus, Mode=OneWay}" Command="{Binding Select}" CommandParameter="focus" Classes="Chip"/>
+    <ToggleButton Content="{DynamicResource Focus.Short}" IsChecked="{Binding IsShortBreak, Mode=OneWay}" Command="{Binding Select}" CommandParameter="short" Margin="4,0,0,0" Classes="Chip"/>
+    <ToggleButton Content="{DynamicResource Focus.Long}" IsChecked="{Binding IsLongBreak, Mode=OneWay}" Command="{Binding Select}" CommandParameter="long" Margin="4,0,0,0" Classes="Chip"/>
+   </StackPanel>
+   <StackPanel Orientation="Horizontal" Margin="4,18,0,0">
+    <Button Command="{Binding Toggle}" ToolTip.Tip="{DynamicResource Focus.StartPause}" AutomationProperties.Name="{DynamicResource Focus.StartPauseName}" Classes="Round">
+     <TextBlock Text="{Binding PlayGlyph}" FontSize="18" Foreground="#1A1208" Classes="Glyph"/>
+    </Button>
+    <Button Command="{Binding Reset}" Margin="12,0,0,0" ToolTip.Tip="{DynamicResource Common.Reset}" AutomationProperties.Name="{DynamicResource Common.Reset}" Classes="Nav Icon">
+     <TextBlock Text="&#xE72C;" FontSize="15" Foreground="#AAAAAF" Classes="Glyph"/>
+    </Button>
+    <Button Command="{Binding Skip}" Margin="4,0,0,0" ToolTip.Tip="{DynamicResource Common.Skip}" AutomationProperties.Name="{DynamicResource Common.Skip}" Classes="Nav Icon">
+     <TextBlock Text="&#xE893;" FontSize="15" Foreground="#AAAAAF" Classes="Glyph"/>
+    </Button>
+   </StackPanel>
+   <TextBlock Text="{Binding RoundText}" Margin="6,14,0,0" Classes="Caption"/>
+  </StackPanel>
+  <Border Grid.Column="2" Padding="16,14" VerticalAlignment="Center" Classes="Card">
+   <StackPanel>
+    <TextBlock Text="{DynamicResource Focus.Today}" Classes="Caption"/>
+    <TextBlock FontFamily="Segoe UI Variable Display" FontSize="34" FontWeight="SemiBold" Margin="0,4,0,0"><Run Text="{Binding TodaySessions, Mode=OneWay}"/><Run Text="{DynamicResource Focus.RoundsUnit}" FontSize="13" Foreground="#A9A9AF"/></TextBlock>
+    <TextBlock Text="{Binding TodayMinutes}" FontSize="12" Foreground="#A9A9AF" Margin="0,2,0,0"/>
+   </StackPanel>
+  </Border>
+ </Grid>
+</UserControl>

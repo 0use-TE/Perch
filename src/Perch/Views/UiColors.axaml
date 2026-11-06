@@ -1,0 +1,62 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Chrome colours for the settings window and menus follow the theme variant. The island itself is always black. -->
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Dark">
+    <SolidColorBrush x:Key="Ui.Tint" Color="#70000000"/>
+    <SolidColorBrush x:Key="Ui.Fallback" Color="#FF141416"/>
+    <SolidColorBrush x:Key="Ui.Sidebar" Color="#40000000"/>
+    <SolidColorBrush x:Key="Ui.Text" Color="#F5F5F7"/>
+    <SolidColorBrush x:Key="Ui.Muted" Color="#9A9AA4"/>
+    <SolidColorBrush x:Key="Ui.Desc" Color="#8A8A94"/>
+    <SolidColorBrush x:Key="Ui.Card" Color="#14FFFFFF"/>
+    <SolidColorBrush x:Key="Ui.CardBorder" Color="#1AFFFFFF"/>
+    <SolidColorBrush x:Key="Ui.Divider" Color="#1CFFFFFF"/>
+    <SolidColorBrush x:Key="Ui.Seg" Color="#26000000"/>
+    <SolidColorBrush x:Key="Ui.SegOn" Color="#3EFFFFFF"/>
+    <SolidColorBrush x:Key="Ui.SegText" Color="#9A9AA4"/>
+    <SolidColorBrush x:Key="Ui.Hover" Color="#16FFFFFF"/>
+    <SolidColorBrush x:Key="Ui.Selected" Color="#24FFFFFF"/>
+    <SolidColorBrush x:Key="Ui.Field" Color="#38000000"/>
+    <SolidColorBrush x:Key="Ui.Track" Color="#40FFFFFF"/>
+    <SolidColorBrush x:Key="Ui.Tile" Color="#1EFFFFFF"/>
+    <SolidColorBrush x:Key="Ui.TileIcon" Color="#C8C8CE"/>
+    <SolidColorBrush x:Key="Ui.SwitchOff" Color="#48FFFFFF"/>
+    <SolidColorBrush x:Key="Ui.CaptionHover" Color="#22FFFFFF"/>
+    <SolidColorBrush x:Key="Ui.MenuBg" Color="#F0060607"/>
+    <SolidColorBrush x:Key="Ui.MenuBorder" Color="#24FFFFFF"/>
+    <SolidColorBrush x:Key="Ui.MenuHover" Color="#2EFFFFFF"/>
+    <SolidColorBrush x:Key="Ui.MenuSep" Color="#26FFFFFF"/>
+    <SolidColorBrush x:Key="Ui.MenuText" Color="#F2F2F4"/>
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Light">
+    <SolidColorBrush x:Key="Ui.Tint" Color="#78F4F4F6"/>
+    <SolidColorBrush x:Key="Ui.Fallback" Color="#FFF3F3F6"/>
+    <SolidColorBrush x:Key="Ui.Sidebar" Color="#30FFFFFF"/>
+    <SolidColorBrush x:Key="Ui.Text" Color="#16161A"/>
+    <SolidColorBrush x:Key="Ui.Muted" Color="#6A6A74"/>
+    <SolidColorBrush x:Key="Ui.Desc" Color="#7A7A84"/>
+    <SolidColorBrush x:Key="Ui.Card" Color="#A8FFFFFF"/>
+    <SolidColorBrush x:Key="Ui.CardBorder" Color="#14000000"/>
+    <SolidColorBrush x:Key="Ui.Divider" Color="#14000000"/>
+    <SolidColorBrush x:Key="Ui.Seg" Color="#14000000"/>
+    <SolidColorBrush x:Key="Ui.SegOn" Color="#FFFFFFFF"/>
+    <SolidColorBrush x:Key="Ui.SegText" Color="#6A6A74"/>
+    <SolidColorBrush x:Key="Ui.Hover" Color="#0E000000"/>
+    <SolidColorBrush x:Key="Ui.Selected" Color="#1A000000"/>
+    <SolidColorBrush x:Key="Ui.Field" Color="#10000000"/>
+    <SolidColorBrush x:Key="Ui.Track" Color="#26000000"/>
+    <SolidColorBrush x:Key="Ui.Tile" Color="#12000000"/>
+    <SolidColorBrush x:Key="Ui.TileIcon" Color="#3A3A44"/>
+    <SolidColorBrush x:Key="Ui.SwitchOff" Color="#30000000"/>
+    <SolidColorBrush x:Key="Ui.CaptionHover" Color="#14000000"/>
+    <SolidColorBrush x:Key="Ui.MenuBg" Color="#F2FAFAFB"/>
+    <SolidColorBrush x:Key="Ui.MenuBorder" Color="#1A000000"/>
+    <SolidColorBrush x:Key="Ui.MenuHover" Color="#16000000"/>
+    <SolidColorBrush x:Key="Ui.MenuSep" Color="#18000000"/>
+    <SolidColorBrush x:Key="Ui.MenuText" Color="#16161A"/>
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+  <SolidColorBrush x:Key="IslandMuted" Color="#85858B"/>
+  <SolidColorBrush x:Key="IslandAccent" Color="#FFAE54"/>
+  <SolidColorBrush x:Key="IslandCard" Color="#141415"/>
+</ResourceDictionary>

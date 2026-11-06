@@ -1,0 +1,30 @@
+<UserControl x:Class="Perch.Views.Pages.ClipboardPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <!-- DataContext is the clipboard history view model. -->
+ <Grid>
+  <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+  <Grid>
+   <TextBlock VerticalAlignment="Center" Margin="4,0,0,0"><Run Text="{DynamicResource Clip.Title}" FontSize="13" FontWeight="SemiBold"/><Run Text="  "/><Run Text="{Binding PausedNote, Mode=OneWay}" FontSize="11" Foreground="#FFAE54"/></TextBlock>
+   <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+    <Button Content="{Binding PauseLabel}" Command="{Binding TogglePause}" Classes="Text"/>
+    <Button Content="{DynamicResource Clip.Clear}" Command="{Binding Clear}" Classes="Text"/>
+   </StackPanel>
+  </Grid>
+  <TextBlock Grid.Row="1" Text="{DynamicResource Clip.Empty}" HorizontalAlignment="Center" Margin="0,30,0,0" IsVisible="{Binding IsEmpty}" Classes="Placeholder"/>
+  <ListBox Grid.Row="1" ItemsSource="{Binding Items}" Margin="0,6,0,0" ScrollViewer.VerticalScrollBarVisibility="Auto" Classes="Bare">
+   <ListBox.ItemTemplate><DataTemplate>
+    <Grid>
+     <Button Command="{Binding DataContext.Copy, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" HorizontalContentAlignment="Stretch" ToolTip.Tip="{Binding Text}" Classes="Tile">
+      <Grid Margin="12,8,40,8">
+       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+       <TextBlock Text="{Binding Preview}" FontSize="13" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+       <TextBlock Grid.Column="1" Text="{Binding TimeLabel}" Margin="14,0,0,0" VerticalAlignment="Center" Classes="Caption"/>
+      </Grid>
+     </Button>
+     <Button HorizontalAlignment="Right" Margin="0,0,6,0" Command="{Binding DataContext.Remove, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Clip.Remove}" AutomationProperties.Name="{DynamicResource Clip.Remove}" Classes="Nav Small">
+      <TextBlock Text="&#xE711;" FontSize="11" Foreground="#8A8A90" Classes="Glyph"/>
+     </Button>
+    </Grid>
+   </DataTemplate></ListBox.ItemTemplate>
+  </ListBox>
+ </Grid>
+</UserControl>

@@ -1,9 +1,10 @@
-﻿using System.Drawing;
+using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
-using WpfFormats = System.Windows.Media.PixelFormats;
-using System.Windows.Media.Imaging;
+using Avalonia;
+
+using AvaloniaPlatform = Avalonia.Platform;
 
 namespace Perch.Platform.Windows;
 
@@ -14,16 +15,16 @@ internal static class BackdropCapture
     private const int Downscale = 10, BlurRadius = 3;
     private const double Saturation = 1.5, Lift = 1.12;
 
-    public static BitmapSource? Grab(Rectangle area, int downscale = Downscale)
+    public static Avalonia.Media.Imaging.WriteableBitmap? Grab(Rectangle area, int downscale = Downscale)
     {
         if (area.Width < 16 || area.Height < 16) return null;
         try
         {
-            using var full = new Bitmap(area.Width, area.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            using var full = new System.Drawing.Bitmap(area.Width, area.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             using (var g = Graphics.FromImage(full)) g.CopyFromScreen(area.Left, area.Top, 0, 0, area.Size);
             var w = Math.Max(8, area.Width / downscale);
             var h = Math.Max(8, area.Height / downscale);
-            using var small = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            using var small = new System.Drawing.Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             using (var g = Graphics.FromImage(small))
             {
                 g.InterpolationMode = InterpolationMode.HighQualityBicubic;
@@ -38,8 +39,9 @@ internal static class BackdropCapture
             Blur(pixels, w, h);
             Blur(pixels, w, h);
             Saturate(pixels);
-            var picture = BitmapSource.Create(w, h, 96, 96, WpfFormats.Bgr32, null, pixels, w * 4);
-            picture.Freeze();
+            var picture = new Avalonia.Media.Imaging.WriteableBitmap(new PixelSize(w, h), new Vector(96, 96), AvaloniaPlatform.PixelFormat.Bgra8888, AvaloniaPlatform.AlphaFormat.Opaque);
+            using (var frame = picture.Lock())
+                for (var y = 0; y < h; y++) Marshal.Copy(pixels, y * w * 4, frame.Address + y * frame.RowBytes, w * 4);
             return picture;
         }
         catch (Exception) { return null; } // e.g. secure desktop or a screen being reconfigured

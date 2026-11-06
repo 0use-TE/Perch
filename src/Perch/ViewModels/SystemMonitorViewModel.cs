@@ -1,7 +1,6 @@
-﻿using System.IO;
+using System.IO;
 using System.Runtime.InteropServices;
-using System.Windows.Media;
-using System.Windows.Threading;
+using Avalonia.Threading;
 using Perch.Services;
 
 namespace Perch.ViewModels;
@@ -26,8 +25,8 @@ public sealed class SystemMonitorViewModel : Observable
     public string DiskName { get; private set; } = "";
     public string CpuDetail { get; private set; } = "";
     public string Uptime => Loc.F("Sys.Uptime", Duration(TimeSpan.FromMilliseconds(Environment.TickCount64)));
-    public PointCollection CpuLine { get; private set; } = [];
-    public PointCollection MemoryLine { get; private set; } = [];
+    public Avalonia.Collections.AvaloniaList<Avalonia.Point> CpuLine { get; private set; } = [];
+    public Avalonia.Collections.AvaloniaList<Avalonia.Point> MemoryLine { get; private set; } = [];
 
     public SystemMonitorViewModel()
     {
@@ -95,11 +94,10 @@ public sealed class SystemMonitorViewModel : Observable
     }
 
     // A line in a 0..59 by 0..100 box (the page stretches it to fit).
-    private static PointCollection Line(double[] history)
+    private static Avalonia.Collections.AvaloniaList<Avalonia.Point> Line(double[] history)
     {
-        var points = new PointCollection(history.Length);
-        for (var i = 0; i < history.Length; i++) points.Add(new System.Windows.Point(i, 100 - Math.Clamp(history[i], 0, 100)));
-        points.Freeze();
+        var points = new Avalonia.Collections.AvaloniaList<Avalonia.Point>();
+        for (var i = 0; i < history.Length; i++) points.Add(new Avalonia.Point(i, 100 - Math.Clamp(history[i], 0, 100)));
         return points;
     }
 

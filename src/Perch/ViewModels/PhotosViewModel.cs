@@ -1,9 +1,7 @@
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
+using Avalonia.Media.Imaging;
 using Perch.Platform.Windows;
 using Perch.Services;
 
@@ -11,9 +9,9 @@ namespace Perch.ViewModels;
 
 public sealed class PhotoItem(string fullPath) : Observable
 {
-    private ImageSource? thumbnail;
+    private Bitmap? thumbnail;
     public string FullPath { get; } = fullPath;
-    public ImageSource? Thumbnail { get => thumbnail; set => Set(ref thumbnail, value); }
+    public Bitmap? Thumbnail { get => thumbnail; set => Set(ref thumbnail, value); }
 }
 
 // The newest pictures from the photo folder (Pictures unless set otherwise), loaded the first time the page opens.
@@ -77,9 +75,9 @@ public sealed class PhotosViewModel : Observable
         loading = false;
         loaded = true;
         Changed(string.Empty);
-        var dispatcher = Application.Current.Dispatcher;
+        var dispatcher = Avalonia.Threading.Dispatcher.UIThread;
         var photos = Items.ToList();
-        await StaTask.Run(() =>
+        await Task.Run(() =>
         {
             foreach (var photo in photos)
             {
@@ -89,19 +87,12 @@ public sealed class PhotosViewModel : Observable
         });
     }
 
-    private static ImageSource? Thumbnail(string path)
+    private static Bitmap? Thumbnail(string path)
     {
         try
         {
-            var image = new BitmapImage();
-            image.BeginInit();
-            image.CacheOption = BitmapCacheOption.OnLoad;
-            image.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
-            image.DecodePixelHeight = 240;
-            image.UriSource = new Uri(path);
-            image.EndInit();
-            image.Freeze();
-            return image;
+            using var input = File.OpenRead(path);
+            return Bitmap.DecodeToHeight(input, 240);
         }
         catch { return null; }
     }

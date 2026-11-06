@@ -1,109 +1,105 @@
 ﻿using System.Runtime.InteropServices;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Interop;
-using System.Windows.Media;
-using System.Windows.Media.Media3D;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Win32;
 
 namespace Perch.Platform.Windows;
 
-// The native region excludes transparent corners from cross-process hit testing.
+// Win32 details of the island window: it never takes focus, sits at the top centre of the primary screen,
+// listens for hotkeys and clipboard changes, and uses a native region so transparent corners don't catch clicks.
 public sealed class IslandHost : IDisposable
 {
     private readonly Window window;
-    private readonly HwndSource source;
     private readonly nint handle;
+    private readonly Func<bool> overTextBox;
     private bool placing;
     public event Action? DisplayChanged;
     public event Action<int>? HotKeyPressed;
     public event Action? ClipboardUpdated;
-    public IslandHost(Window window)
+
+    // overTextBox tells whether the pointer is over a text input; only then may a click activate the window.
+    public IslandHost(Window window, Func<bool> overTextBox)
     {
         this.window = window;
-        handle = new WindowInteropHelper(window).Handle;
-        source = HwndSource.FromHwnd(handle)!;
-        source.AddHook(Hook);
+        this.overTextBox = overTextBox;
+        handle = window.TryGetPlatformHandle()!.Handle;
+        Win32Properties.AddWndProcHookCallback(window, Hook);
         AddClipboardFormatListener(handle);
         var style = GetWindowLongPtr(handle, -20).ToInt64();
-        // Passive mode also prevents WPF's keyboard provider from activating via SetFocus.
+        // No-activate + tool window (no taskbar button, not in Alt+Tab).
         SetWindowLongPtr(handle, -20, new nint((style | 0x80 | 0x8000000) & ~0x40000));
     }
+
+    public nint Handle => handle;
+
     // Hides this window from screen capture so the frosted backdrop can sample what is behind it (the side effect:
     // screenshots, recordings and screen sharing do not show the island while this is on).
     public bool ExcludeFromCapture(bool on) => SetWindowDisplayAffinity(handle, on ? 0x11u : 0u);
     public System.Drawing.Rectangle ScreenRect() { GetWindowRect(handle, out var r); return System.Drawing.Rectangle.FromLTRB(r.Left, r.Top, r.Right, r.Bottom); }
+    public static (int X, int Y) CursorPosition() { GetCursorPos(out var p); return (p.X, p.Y); }
     public void Passive() => SetActivation(false);
+
     public void BeginEditing()
     {
         SetActivation(true);
         window.Activate(); // Only called in response to a real click on a text input.
     }
+
     private void SetActivation(bool editable)
     {
         var style = GetWindowLongPtr(handle, -20).ToInt64();
         SetWindowLongPtr(handle, -20, new nint(editable ? style & ~0x8000000 : style | 0x8000000));
     }
+
     public void Place(double width, double height)
     {
         if (placing) return;
         placing = true;
         try
         {
-            var screen = System.Windows.Forms.Screen.PrimaryScreen!;
-            var work = screen.WorkingArea;
+            SystemParametersInfo(0x30 /* SPI_GETWORKAREA */, 0, out var work, 0);
             var dpi = GetDpiForWindow(handle) / 96d;
             var w = (int)Math.Ceiling(width * dpi);
             var h = (int)Math.Ceiling(height * dpi);
             window.Width = width; window.Height = height;
-            SetWindowPos(handle, new nint(-1), work.Left + (work.Width - w) / 2, work.Top, w, h, 0x10 | 0x40);
+            SetWindowPos(handle, new nint(-1), work.Left + (work.Right - work.Left - w) / 2, work.Top, w, h, 0x10 | 0x40);
         }
         finally { placing = false; }
     }
-    public void Region(Geometry outline, double offsetX)
+
+    // Clips the window to the given outline (in DIP, window coordinates).
+    public void Region(IReadOnlyList<Point> outline, double offsetX)
     {
         var scale = GetDpiForWindow(handle) / 96d;
-        // The region clips the drawn (anti-aliased) edge, which would show as stair-steps; growing it keeps the whole soft edge visible.
-        var grown = Geometry.Combine(outline, outline.GetWidenedPathGeometry(new Pen(Brushes.Black, 3)), GeometryCombineMode.Union, null);
-        var figure = grown.GetFlattenedPathGeometry(0.2, ToleranceType.Absolute).Figures[0];
-        var points = new List<POINT>();
-        void Add(Point point) => points.Add(new POINT { X = (int)Math.Round((point.X + offsetX) * scale), Y = (int)Math.Round(point.Y * scale) });
-        Add(figure.StartPoint);
-        foreach (var segment in figure.Segments)
-        {
-            if (segment is PolyLineSegment poly) foreach (var point in poly.Points) Add(point);
-            else if (segment is LineSegment line) Add(line.Point);
-        }
-        var region = CreatePolygonRgn(points.ToArray(), points.Count, 1);
+        var points = outline.Select(p => new POINT { X = (int)Math.Round((p.X + offsetX) * scale), Y = (int)Math.Round(p.Y * scale) }).ToArray();
+        var region = CreatePolygonRgn(points, points.Length, 1);
         if (SetWindowRgn(handle, region, true) == 0) DeleteObject(region); // Success transfers ownership to Windows.
     }
-    private nint Hook(nint hwnd, int msg, nint wParam, nint lParam, ref bool handled)
+
+    private nint Hook(nint hwnd, uint msg, nint wParam, nint lParam, ref bool handled)
     {
         if (msg == 0x21) // WM_MOUSEACTIVATE: only genuine text input should activate this island.
         {
-            GetCursorPos(out var cursor);
-            var point = window.PointFromScreen(new Point(cursor.X, cursor.Y));
-            var hit = window.InputHitTest(point) as DependencyObject;
-            while (hit != null)
-            {
-                if (hit is TextBox) { SetActivation(true); handled = true; return new nint(1); }
-                hit = hit is Visual or Visual3D ? VisualTreeHelper.GetParent(hit) : LogicalTreeHelper.GetParent(hit);
-            }
+            if (overTextBox()) { SetActivation(true); handled = true; return new nint(1); }
             SetActivation(false);
             handled = true; return new nint(3); // MA_NOACTIVATE, deliver click normally.
         }
-        if (msg == 0x0312) { var id = wParam.ToInt32(); window.Dispatcher.BeginInvoke(() => HotKeyPressed?.Invoke(id)); handled = true; return 0; }
-        if (msg == 0x031D) { window.Dispatcher.BeginInvoke(() => ClipboardUpdated?.Invoke()); return 0; }
+        if (msg == 0x0312) { var id = wParam.ToInt32(); Avalonia.Threading.Dispatcher.UIThread.Post(() => HotKeyPressed?.Invoke(id)); handled = true; return 0; }
+        if (msg == 0x031D) { Avalonia.Threading.Dispatcher.UIThread.Post(() => ClipboardUpdated?.Invoke()); return 0; }
         if (msg is 0x7E or 0x2E0 or 0x1A)
-            window.Dispatcher.BeginInvoke(() => DisplayChanged?.Invoke());
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => DisplayChanged?.Invoke());
         return 0;
     }
+
     public bool RegisterHotKey(int id, uint modifiers, uint virtualKey) => RegisterHotKey(handle, id, modifiers | 0x4000, virtualKey); // 0x4000: no auto-repeat
     public void UnregisterHotKey(int id) => UnregisterHotKey(handle, id);
+
     public void Dispose()
     {
         RemoveClipboardFormatListener(handle);
-        source.RemoveHook(Hook);
+        Win32Properties.RemoveWndProcHookCallback(window, Hook);
     }
+
     [StructLayout(LayoutKind.Sequential)] private struct POINT { public int X, Y; }
     [StructLayout(LayoutKind.Sequential)] private struct RECT { public int Left, Top, Right, Bottom; }
     [DllImport("user32.dll")] private static extern bool SetWindowDisplayAffinity(nint hwnd, uint affinity);
@@ -114,6 +110,7 @@ public sealed class IslandHost : IDisposable
     [DllImport("user32.dll")] private static extern bool UnregisterHotKey(nint hwnd, int id);
     [DllImport("user32.dll")] private static extern bool GetCursorPos(out POINT point);
     [DllImport("user32.dll")] private static extern uint GetDpiForWindow(nint hwnd);
+    [DllImport("user32.dll")] private static extern bool SystemParametersInfo(uint action, uint param, out RECT rect, uint flags);
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] private static extern nint GetWindowLongPtr(nint hwnd, int index);
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")] private static extern nint SetWindowLongPtr(nint hwnd, int index, nint value);
     [DllImport("user32.dll")] private static extern bool SetWindowPos(nint hwnd, nint after, int x, int y, int width, int height, uint flags);

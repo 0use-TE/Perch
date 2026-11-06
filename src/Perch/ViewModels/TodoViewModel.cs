@@ -2,7 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Windows.Input;
-using System.Windows.Threading;
+using Avalonia.Threading;
 using Perch.Services;
 
 namespace Perch.ViewModels;
@@ -163,7 +163,7 @@ public sealed class TodoViewModel : Observable
         store.Touch();
         if (refreshQueued) return;
         refreshQueued = true;
-        Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background, new Action(Refresh));
+        Dispatcher.UIThread.Post(Refresh, DispatcherPriority.Background);
     }
 
     private void Shift(int direction)

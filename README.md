@@ -1,6 +1,6 @@
-﻿# 栖点 Perch
+# 栖点 Perch
 
-Windows 顶部效率岛，C# / WPF / .NET 10。当前版本先完成核心显示、布局和交互。
+Windows 顶部效率岛，C# / Avalonia 11 / .NET 10（仅 Windows）。当前版本先完成核心显示、布局和交互。
 
 ## 构建与运行
 
@@ -24,7 +24,7 @@ dotnet publish src/Perch/Perch.csproj -c Release -r win-x64 --self-contained tru
 ## 显示与布局
 
 - 只保留屏幕顶部中央主岛，无左右组件。收起时若有提醒、番茄钟在计时或开启了网速显示，岛会加宽到约 380 DIP 显示这些内容。
-- 采用黑色贴顶轮廓和微软 `PresentationFramework.Fluent` 深色控件主题；输入框、复选框沿用 Fluent 模板，顶部导航采用圆角图标按钮。
+- 采用黑色贴顶轮廓和 Avalonia Fluent 控件主题（岛窗口固定深色）；输入框沿用 Fluent 模板，只改配色，顶部导航采用圆角图标按钮。
 - 紧凑态 248 × 36 DIP，显示名称和时间；展开态 840 × 276 DIP（包含两侧贴顶曲线），包含概览、音乐、专注、待办、笔记、天气与状态、应用与指令、文件中转、照片九个页面。
 - 纯黑背景、暖橙色时间与日历高亮、Segoe UI Variable 字体和 Fluent 图标。顶部一排导航，内容直接展开；无次级标签栏、宣传标语、开发状态说明或占位播放按钮。概览显示真实时间、当月日历、未完成待办数量和当前笔记摘要。
 - 悬停 180ms 展开，离开 460ms 后收起；支持点击标题展开和固定展开。
@@ -47,7 +47,7 @@ dotnet publish src/Perch/Perch.csproj -c Release -r win-x64 --self-contained tru
 
 ## 多语言
 
-界面支持 English 和简体中文，默认跟随 Windows 显示语言，也可在设置中选择，切换后立即生效。文字在 `src/Perch/Strings/<语言代码>.xaml`，XAML 用 `{DynamicResource 键}` 引用，代码用 `Loc.T` / `Loc.F`（`%0`、`%1` 为参数）；日期格式同样按语言存放在 `Format.*` 键中。缺少的键回退到英文。新增语言：复制 `en.xaml` 为新文件并翻译，再把语言加到 `Services/Loc.cs` 的 `Available`。环境变量 `PERCH_LANG` 可临时指定语言（验证脚本用它固定为中文）。
+界面支持 English 和简体中文，默认跟随 Windows 显示语言，也可在设置中选择，切换后立即生效。文字在 `src/Perch/Strings/<语言代码>.axaml`，XAML 用 `{DynamicResource 键}` 引用，代码用 `Loc.T` / `Loc.F`（`%0`、`%1` 为参数）；日期格式同样按语言存放在 `Format.*` 键中。缺少的键回退到英文。新增语言：复制 `en.xaml` 为新文件并翻译，再把语言加到 `Services/Loc.cs` 的 `Available`。环境变量 `PERCH_LANG` 可临时指定语言（验证脚本用它固定为中文）。
 
 - **材质与主题**：灵动岛收起时始终为纯黑；外观设为“展开时毛玻璃”后，展开的岛会在黑色底下显示模糊、略增饱和的屏幕背景（做法：截取岛身后的屏幕并模糊，同时让岛对屏幕截图 / 录屏 / 共享不可见，所以该材质下岛不会出现在截图里）。右键菜单在毛玻璃材质下同样模糊背景。设置窗口和右键菜单有深色 / 浅色 / 跟随系统三种主题，设置窗口使用 Windows 11 亚克力背景和自绘标题栏，岛的选项即时生效并带实时预览。环境变量 `PERCH_DATA` 可改变状态文件夹，便于测试。
 
@@ -66,16 +66,15 @@ dotnet publish src/Perch/Perch.csproj -c Release -r win-x64 --self-contained tru
 `Views` 负责 XAML 布局；`ViewModels` 负责页面状态与命令；`IslandController` 协调 Compact / Expanded / Editing / Pinned 状态，独立预留内容状态；`IslandAnimator` 统一处理形态弹簧和页面过渡；`Platform/Windows/IslandHost` 封装 Win32 行为，`Platform/Windows/Shell` 封装图标、启动项、全屏检测等系统调用；`Services` 负责保存、提醒和提示队列；`Views/Pages` 为各页面。
 
 - 使用 `WS_EX_TOOLWINDOW` 和 `ShowInTaskbar=false` 排除任务栏与 Alt+Tab。
-- 非编辑时临时启用 `WS_EX_NOACTIVATE`，阻止 WPF 内部通过 SetFocus 激活窗口。`WM_MOUSEACTIVATE` 命中输入框时先移除该样式，再允许激活与正常输入；转到其他应用后恢复非激活模式。该样式不是永久锁定。
-- `IslandOutline` 生成贴顶曲线、大圆角底边；同一条几何同时用于绘制、内容裁剪与原生窗口区域。`SetWindowRgn` 通过展平后的多边形移除透明曲线和动画空白，允许下方进程接收点击，不依赖 WPF 的 IsHitTestVisible。
+- 非编辑时临时启用 `WS_EX_NOACTIVATE`，阻止 Avalonia 通过 SetFocus 激活窗口。`WM_MOUSEACTIVATE` 命中输入框时先移除该样式，再允许激活与正常输入；转到其他应用后恢复非激活模式。该样式不是永久锁定。
+- `IslandOutline` 生成贴顶曲线、大圆角底边；同一条几何同时用于绘制、内容裁剪与原生窗口区域。`SetWindowRgn` 通过同一条采样多边形（外扩约 1.5 DIP 以保住抗锯齿边缘）移除透明曲线和动画空白，允许下方进程接收点击，不依赖控件自身的命中测试。
 - 展开前将宿主扩到 872 × 288 DIP（主岛 840 × 276，两侧各留 16、底部留 12 供回弹），收起动画结束后缩至 248 × 36 DIP，没有全屏透明窗口。
 - 原生窗口区域按状态设置而非逐帧：动画期间覆盖整个宿主，静止后贴合展开或紧凑轮廓。
 - 使用 PerMonitorV2 清单和当前窗口 DPI；按主显示器 WorkingArea 居中并贴其上缘，避开顶部任务栏。监听 DPI、显示器和工作区变化后重定位。目前不提供副屏选择和极小工作区自适应。
-- 透明岛不启用 Fluent 的默认 DWM 背景材质，避免与分层窗口透明区域冲突；控件仍使用真正的 Fluent 资源与模板。
+- 透明岛不启用系统背景材质，避免与分层窗口透明区域冲突；控件仍使用真正的 Fluent 资源与模板。
 - 时钟按下一分钟边界更新，隐藏时暂停；动画结束后移除逐帧回调；退出释放托盘、消息钩子、GDI 区域和计时器。
 
-Fluent 接入方式参考微软 WPF 文档：
-[WPF Fluent 接入文档](https://github.com/dotnet/wpf/blob/main/Documentation/docs/using-fluent.md)
+界面框架为 Avalonia 11（`Avalonia.Desktop` + `Avalonia.Themes.Fluent`）；WinRT 能力（Windows.Media.Control / Appointments / Geolocation）仍通过 `net10.0-windows10.0.19041.0` 目标框架直接调用。
 
 ## 验证
 
@@ -89,3 +88,11 @@ powershell -ExecutionPolicy Bypass -File tools/Verify-Window.ps1
 
 可用任务管理器或 Process Explorer 比较紧凑空闲、反复展开、固定和隐藏时的 CPU / 专用工作集；布局与渲染开销可用 Visual Studio Application Timeline 分析。尚未给出未经测量的 CPU 或内存数值。
 
+
+## 从 WPF 迁移到 Avalonia 后的变化
+
+- 界面层（`Views/*.axaml`）、样式、动画驱动改为 Avalonia；`ViewModels`、`Services`、弹簧动画和状态机原样沿用。
+- 主题切换改用 Avalonia 的主题变体（`Ui*` 颜色在 `Views/UiColors.axaml` 的 Dark/Light 字典里），不再需要手工刷新资源。
+- 托盘改用 Avalonia `TrayIcon`：左键单击显示/隐藏（原来是双击），菜单跟随系统外观。
+- 右键菜单不再有“毛玻璃”（原来对每个弹出菜单截屏模糊）；菜单是 Avalonia Fluent 的菜单，颜色按所选主题设定。灵动岛本身的毛玻璃不变。
+- 设置窗口用 Avalonia 的 AcrylicBlur 作为毛玻璃背景。

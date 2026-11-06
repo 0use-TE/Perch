@@ -1,7 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using System.Windows;
+using Avalonia.Input.Platform;
+using Perch.Platform.Windows;
 using System.Windows.Input;
 using Perch.Services;
 
@@ -45,23 +46,34 @@ public sealed class ClipboardViewModel : Observable
         {
             if (p is not ClipItem item) return;
             ownCopy = item.Text;
-            try { Clipboard.SetText(item.Text); alerts.Show(AlertQueue.Done, Loc.T("Clip.Copied")); }
-            catch (COMException) { ownCopy = null; }
+            _ = CopyAsync(item.Text);
         });
         Remove = new RelayCommand(p => { if (p is ClipItem item) Items.Remove(item); });
         Clear = new RelayCommand(_ => Items.Clear());
         TogglePause = new RelayCommand(_ => Paused = !Paused);
     }
 
+    private async Task CopyAsync(string text)
+    {
+        try
+        {
+            if (Ui.Clipboard is not { } clipboard) return;
+            await clipboard.SetTextAsync(text);
+            alerts.Show(AlertQueue.Done, Loc.T("Clip.Copied"));
+        }
+        catch (Exception) { ownCopy = null; }
+    }
+
     // Called from the window's clipboard-changed message.
-    public void Capture()
+    public async void Capture()
     {
         if (paused) return;
         try
         {
-            if (Clipboard.GetDataObject() is not { } data) return;
-            if (data.GetDataPresent("ExcludeClipboardContentFromMonitorProcessing")) return; // password managers set this
-            if (!data.GetDataPresent(DataFormats.UnicodeText) || data.GetData(DataFormats.UnicodeText) is not string text) return;
+            if (Ui.Clipboard is not { } clipboard) return;
+            var formats = await clipboard.GetFormatsAsync();
+            if (formats.Contains("ExcludeClipboardContentFromMonitorProcessing")) return; // password managers set this
+            if (await clipboard.GetTextAsync() is not { } text) return;
             if (string.IsNullOrWhiteSpace(text) || text.Length > 100_000) return;
             if (ownCopy != null && ownCopy == text) { ownCopy = null; return; } // what we just put back ourselves
             var same = Items.FirstOrDefault(item => item.Text == text);
@@ -69,7 +81,7 @@ public sealed class ClipboardViewModel : Observable
             Items.Insert(0, new ClipItem(text, DateTime.Now));
             while (Items.Count > Max) Items.RemoveAt(Items.Count - 1);
         }
-        catch (COMException)
+        catch (Exception)
         {
             // Another app has the clipboard open; the next change event will try again.
         }

@@ -1,0 +1,96 @@
+<Window x:Class="Perch.Views.IslandWindow" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:pages="using:Perch.Views.Pages"
+ Title="{DynamicResource App.Title}" Width="248" Height="36" SystemDecorations="None" CanResize="False" TransparencyLevelHint="Transparent" Background="Transparent" Topmost="True" ShowInTaskbar="False" ShowActivated="False" Focusable="False" UseLayoutRounding="True"
+ RequestedThemeVariant="Dark" Foreground="#F5F5F5" FontFamily="Segoe UI Variable Text, Microsoft YaHei UI">
+ <Canvas x:Name="Stage" Background="Transparent">
+  <Grid x:Name="Shell" Width="248" Height="36">
+   <Border x:Name="ShellBackdrop" IsHitTestVisible="False" IsVisible="False"/>
+   <Path x:Name="ShellOutline" Fill="Black"/>
+   <Path x:Name="ShellGrain" IsHitTestVisible="False" IsVisible="False"/>
+   <Path x:Name="ShellSheen" IsHitTestVisible="False" IsVisible="False"/>
+   <Grid x:Name="ShellContent">
+    <Grid x:Name="CompactHeader" Height="35" Width="176" VerticalAlignment="Top" HorizontalAlignment="Center" Background="Transparent">
+     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+      <TextBlock Text="{Binding CompactGlyph}" FontFamily="Segoe Fluent Icons" FontSize="12" Foreground="{DynamicResource IslandAccent}" VerticalAlignment="Center" Margin="0,0,7,0" IsVisible="{Binding HasCompactGlyph}"/>
+      <TextBlock Text="{Binding CompactText}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+     </StackPanel>
+     <TextBlock Grid.Column="1" Text="{Binding Time}" FontSize="12" Foreground="#ABABB0" VerticalAlignment="Center" Margin="10,0,0,0"/>
+    </Grid>
+    <Canvas x:Name="ExpandedContent" Opacity="0" IsHitTestVisible="False">
+     
+     <Grid x:Name="NavRow" Width="696" Height="40" Canvas.Left="72" Canvas.Top="14" Background="Transparent">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <StackPanel x:Name="NavStack" Orientation="Horizontal">
+       <Button x:Name="HomeTab" Tag="0" Padding="14,6.5,14,11.5" Click="OnTab" Background="#262626" ToolTip.Tip="{DynamicResource Nav.Overview}" AutomationProperties.Name="{DynamicResource Nav.Overview}" Classes="Nav"><TextBlock Text="Perch" FontSize="17" FontWeight="Bold"/></Button>
+       <Button x:Name="MusicTab" Tag="1" Click="OnTab" Margin="10,0,0,0" ToolTip.Tip="{DynamicResource Nav.Music}" AutomationProperties.Name="{DynamicResource Nav.Music}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8D6;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource IslandMuted}"/><TextBlock Text="{DynamicResource Nav.Music}" FontSize="13" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="9,0,0,0" IsVisible="False"/></StackPanel></Button>
+       <Button x:Name="FocusTab" Tag="2" Click="OnTab" Margin="4,0,0,0" ToolTip.Tip="{DynamicResource Nav.Focus}" AutomationProperties.Name="{DynamicResource Nav.Focus}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE916;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource IslandMuted}"/><TextBlock Text="{DynamicResource Nav.Focus}" FontSize="13" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="9,0,0,0" IsVisible="False"/></StackPanel></Button>
+       <Button x:Name="TodoTab" Tag="3" Click="OnTab" Margin="4,0,0,0" ToolTip.Tip="{DynamicResource Nav.Todo}" AutomationProperties.Name="{DynamicResource Nav.Todo}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE73A;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource IslandMuted}"/><TextBlock Text="{DynamicResource Nav.Todo}" FontSize="13" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="9,0,0,0" IsVisible="False"/></StackPanel></Button>
+       <Button x:Name="NoteTab" Tag="4" Click="OnTab" Margin="4,0,0,0" ToolTip.Tip="{DynamicResource Nav.Notes}" AutomationProperties.Name="{DynamicResource Nav.Notes}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE70B;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource IslandMuted}"/><TextBlock Text="{DynamicResource Nav.Notes}" FontSize="13" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="9,0,0,0" IsVisible="False"/></StackPanel></Button>
+       <Button x:Name="InfoTab" Tag="5" Click="OnTab" Margin="4,0,0,0" ToolTip.Tip="{DynamicResource Nav.Info}" AutomationProperties.Name="{DynamicResource Nav.Info}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE753;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource IslandMuted}"/><TextBlock Text="{DynamicResource Nav.Info}" FontSize="13" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="9,0,0,0" IsVisible="False"/></StackPanel></Button>
+       <Button x:Name="AppsTab" Tag="6" Click="OnTab" Margin="4,0,0,0" ToolTip.Tip="{DynamicResource Nav.Apps}" AutomationProperties.Name="{DynamicResource Nav.Apps}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE71D;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource IslandMuted}"/><TextBlock Text="{DynamicResource Nav.Apps}" FontSize="13" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="9,0,0,0" IsVisible="False"/></StackPanel></Button>
+       <Button x:Name="TrayTab" Tag="7" Click="OnTab" Margin="4,0,0,0" ToolTip.Tip="{DynamicResource Nav.Tray}" AutomationProperties.Name="{DynamicResource Nav.Tray}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE896;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource IslandMuted}"/><TextBlock Text="{DynamicResource Nav.Tray}" FontSize="13" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="9,0,0,0" IsVisible="False"/></StackPanel></Button>
+       <Button x:Name="PhotosTab" Tag="8" Click="OnTab" Margin="4,0,0,0" ToolTip.Tip="{DynamicResource Nav.Photos}" AutomationProperties.Name="{DynamicResource Nav.Photos}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE91B;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource IslandMuted}"/><TextBlock Text="{DynamicResource Nav.Photos}" FontSize="13" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="9,0,0,0" IsVisible="False"/></StackPanel></Button>
+       <Button x:Name="CalendarTab" Tag="9" Click="OnTab" Margin="4,0,0,0" ToolTip.Tip="{DynamicResource Nav.Calendar}" AutomationProperties.Name="{DynamicResource Nav.Calendar}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE787;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource IslandMuted}"/><TextBlock Text="{DynamicResource Nav.Calendar}" FontSize="13" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="9,0,0,0" IsVisible="False"/></StackPanel></Button>
+       <Button x:Name="ClipboardTab" Tag="10" Click="OnTab" Margin="4,0,0,0" ToolTip.Tip="{DynamicResource Nav.Clipboard}" AutomationProperties.Name="{DynamicResource Nav.Clipboard}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE77F;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource IslandMuted}"/><TextBlock Text="{DynamicResource Nav.Clipboard}" FontSize="13" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="9,0,0,0" IsVisible="False"/></StackPanel></Button>
+       <Button x:Name="SystemTab" Tag="11" Click="OnTab" Margin="4,0,0,0" ToolTip.Tip="{DynamicResource Nav.System}" AutomationProperties.Name="{DynamicResource Nav.System}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE7F4;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource IslandMuted}"/><TextBlock Text="{DynamicResource Nav.System}" FontSize="13" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="9,0,0,0" IsVisible="False"/></StackPanel></Button>
+       <Button x:Name="MoreButton" Click="OnMore" Margin="4,0,0,0" IsVisible="False" ToolTip.Tip="{DynamicResource Nav.More}" AutomationProperties.Name="{DynamicResource Nav.More}" Classes="Nav"><TextBlock Text="&#xE712;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource IslandMuted}"/></Button>
+      </StackPanel>
+      <Border Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,0" Padding="10,4" CornerRadius="12" Background="#2A1F12" MaxWidth="190" IsVisible="{Binding HasAlert}">
+       <TextBlock Text="{Binding AlertText}" FontSize="11.5" Foreground="{DynamicResource IslandAccent}" TextTrimming="CharacterEllipsis"/>
+      </Border>
+      <StackPanel Grid.Column="2" Orientation="Horizontal">
+       <Button Click="OnSettings" ToolTip.Tip="{DynamicResource Nav.Settings}" AutomationProperties.Name="{DynamicResource Nav.Settings}" Classes="Nav Icon"><TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons" FontSize="15" Foreground="{DynamicResource IslandMuted}"/></Button>
+       <Button x:Name="PinButton" Click="OnPin" ToolTip.Tip="{DynamicResource Nav.Pin}" AutomationProperties.Name="{DynamicResource Nav.Pin}" Classes="Nav Icon"><TextBlock x:Name="PinGlyph" Text="&#xE718;" FontFamily="Segoe Fluent Icons" FontSize="15" Foreground="{DynamicResource IslandMuted}"/></Button>
+      </StackPanel>
+     </Grid>
+     <Grid x:Name="PageStage" Width="688" Height="176" Canvas.Left="76" Canvas.Top="78"><Grid x:Name="PageHost">
+      
+      <Grid x:Name="HomePage">
+       <Grid.ColumnDefinitions><ColumnDefinition Width="222"/><ColumnDefinition Width="208"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+       <StackPanel Margin="0,18,0,0">
+        <TextBlock Text="{Binding Date}" FontSize="12" Foreground="#A9A9AF"/>
+        <TextBlock FontSize="52" FontWeight="Bold" FontFamily="Segoe UI Variable Display" Margin="-3,8,0,0"><Run Text="{Binding Hours, Mode=OneWay}"/><Run Text=":"/><Run Text="{Binding Minutes, Mode=OneWay}" Foreground="{DynamicResource IslandAccent}"/></TextBlock>
+        <Button x:Name="HomeWeatherButton" Tag="5" Click="OnTab" HorizontalAlignment="Left" Height="30" Padding="0,3" Margin="0,5,0,0" AutomationProperties.Name="{DynamicResource Home.OpenWeather}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Weather.Glyph}" FontFamily="Segoe UI Symbol" FontSize="13" Foreground="#C9C9CE" VerticalAlignment="Center"/><TextBlock Text="{Binding Weather.ShortText}" FontSize="12" Foreground="#929298" Margin="8,0,0,0"/></StackPanel></Button>
+       </StackPanel>
+       <StackPanel Grid.Column="1" Width="168" HorizontalAlignment="Left" Margin="0,9,0,0">
+        <TextBlock Text="{Binding MonthTitle}" FontSize="11" Foreground="#9C9CA4" Margin="3,0,0,9"/>
+        <UniformGrid Columns="7" Margin="0,0,0,4"><UniformGrid.Styles><Style Selector="TextBlock"><Setter Property="FontSize" Value="9"/><Setter Property="Foreground" Value="#68686E"/><Setter Property="HorizontalAlignment" Value="Center"/></Style></UniformGrid.Styles><TextBlock Text="{DynamicResource Week.Mon}"/><TextBlock Text="{DynamicResource Week.Tue}"/><TextBlock Text="{DynamicResource Week.Wed}"/><TextBlock Text="{DynamicResource Week.Thu}"/><TextBlock Text="{DynamicResource Week.Fri}"/><TextBlock Text="{DynamicResource Week.Sat}"/><TextBlock Text="{DynamicResource Week.Sun}"/></UniformGrid>
+        <ItemsControl ItemsSource="{Binding CalendarDays}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="7"/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate>
+         <Border Width="20" Height="18" CornerRadius="5" Margin="1,1" Background="{Binding Today, Converter={StaticResource Pick}, ConverterParameter=#FFAE54|#19191B}" Opacity="{Binding Blank, Converter={StaticResource Pick}, ConverterParameter=0|1}">
+          <TextBlock Text="{Binding Label}" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{Binding Today, Converter={StaticResource Pick}, ConverterParameter=#1A1208|#A1A1A7}" FontWeight="{Binding Today, Converter={StaticResource Pick}, ConverterParameter=Bold|Normal}"/>
+         </Border>
+        </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+       </StackPanel>
+       <Grid Grid.Column="2" Margin="8,12,0,0">
+        <Grid.RowDefinitions><RowDefinition Height="88"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <Grid><TextBlock Text="{DynamicResource Nav.Todo}" Foreground="#929298" FontSize="12" VerticalAlignment="Top"/>
+         <TextBlock Text="{Binding Todo.CountText}" FontFamily="Segoe UI Variable Display" FontSize="36" FontWeight="SemiBold" Margin="0,17,0,0" VerticalAlignment="Top"/>
+         <Button x:Name="HomeTodoAdd" Tag="3" Click="OnTab" HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip.Tip="{DynamicResource Todo.Add}" Classes="Nav Icon"><TextBlock Text="&#xE710;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="#AAAAAF"/></Button>
+         <TextBlock Text="{Binding Todo.Summary}" FontSize="11" Foreground="#727278" VerticalAlignment="Bottom" Margin="0,0,0,7" TextTrimming="CharacterEllipsis"/>
+        </Grid>
+        <Button x:Name="HomeNotesButton" Grid.Row="1" Tag="4" Click="OnTab" HorizontalContentAlignment="Left" Padding="0,4" Height="56" VerticalAlignment="Bottom" ToolTip.Tip="{DynamicResource Home.OpenNotes}" Classes="Nav"><StackPanel Width="198"><TextBlock Text="{DynamicResource Nav.Notes}" FontSize="12" Foreground="#929298"/><TextBlock Text="{Binding Notes.OverviewText}" FontSize="13" Foreground="#D9D9DD" Margin="0,8,0,0" TextTrimming="CharacterEllipsis"/></StackPanel></Button>
+       </Grid>
+      </Grid>
+      <pages:MusicPage x:Name="MusicPanel" DataContext="{Binding Music}" IsVisible="False"/>
+      <pages:FocusPage x:Name="FocusPanel" DataContext="{Binding Focus}" IsVisible="False"/>
+      <pages:TodoPage x:Name="TodoPanel" DataContext="{Binding Todo}" IsVisible="False"/>
+      <pages:NotesPage x:Name="NotesPanel" DataContext="{Binding Notes}" IsVisible="False"/>
+      <pages:InfoPage x:Name="InfoPanel" IsVisible="False"/>
+      <pages:AppsPage x:Name="AppsPanel" DataContext="{Binding Launcher}" IsVisible="False"/>
+      <pages:TrayPage x:Name="TrayPanel" DataContext="{Binding Tray}" IsVisible="False"/>
+      <pages:PhotosPage x:Name="PhotosPanel" DataContext="{Binding Photos}" IsVisible="False"/>
+      <pages:CalendarPage x:Name="CalendarPanel" DataContext="{Binding Calendar}" IsVisible="False"/>
+      <pages:ClipboardPage x:Name="ClipboardPanel" DataContext="{Binding Clipboard}" IsVisible="False"/>
+      <pages:SystemPage x:Name="SystemPanel" DataContext="{Binding Monitor}" IsVisible="False"/>
+     </Grid></Grid>
+     <Grid x:Name="MoreLayer" Canvas.Left="0" Canvas.Top="0" Width="840" Height="276" IsVisible="False" Background="#B0000000" ZIndex="50">
+      <Border x:Name="MorePanel" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="500,62,0,0" Background="#141416" BorderBrush="#2A2A2E" BorderThickness="1" CornerRadius="18" Padding="6" RenderTransformOrigin="100%,0%">
+       
+       <UniformGrid x:Name="MoreItems" Columns="2"/>
+      </Border>
+     </Grid>
+    </Canvas>
+   </Grid>
+  </Grid>
+ </Canvas>
+</Window>

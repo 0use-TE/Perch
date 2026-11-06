@@ -1,6 +1,5 @@
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Threading;
+using Avalonia.Threading;
 using Perch.Services;
 
 namespace Perch.ViewModels;
@@ -34,7 +33,7 @@ public sealed class FocusViewModel : Observable
         }
     }
     public double Progress => Math.Clamp(1 - left.TotalSeconds / Duration(Phase).TotalSeconds, 0, 1);
-    public DoubleCollection Ring => new() { Math.Max(0.001, Progress * RingLength), 100 };
+    public Avalonia.Collections.AvaloniaList<double> Ring => new() { Math.Max(0.001, Progress * RingLength), 100 };
     public string PlayGlyph => Running ? "" : "";
     public string RoundText => Loc.F("Focus.Round", rounds % 4 + 1);
     public int TodaySessions => Today()?.Sessions ?? 0;

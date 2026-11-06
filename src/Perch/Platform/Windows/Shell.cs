@@ -1,11 +1,9 @@
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Windows;
-using System.Windows.Interop;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Threading;
+using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using Microsoft.Win32;
 
 namespace Perch.Platform.Windows;
@@ -29,17 +27,20 @@ public static class StaTask
 
 public static class ShellIcons
 {
-    // 32 px shell icon for a file, folder or shortcut. Frozen, so it can be made on a background thread.
-    public static ImageSource? Get(string path)
+    // 32 px shell icon for a file, folder or shortcut. Safe to call from a background thread.
+    public static Bitmap? Get(string path)
     {
         var info = new SHFILEINFO();
         var result = SHGetFileInfo(path, 0, ref info, (uint)Marshal.SizeOf<SHFILEINFO>(), 0x100);
         if (result == 0 || info.hIcon == 0) return null;
         try
         {
-            var source = Imaging.CreateBitmapSourceFromHIcon(info.hIcon, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
-            source.Freeze();
-            return source;
+            using var icon = System.Drawing.Icon.FromHandle(info.hIcon);
+            using var picture = icon.ToBitmap();
+            using var stream = new MemoryStream();
+            picture.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
+            stream.Position = 0;
+            return new Bitmap(stream);
         }
         catch { return null; }
         finally { DestroyIcon(info.hIcon); }
@@ -169,4 +170,53 @@ public sealed class FullscreenWatcher : IDisposable
     [DllImport("user32.dll")] private static extern nint MonitorFromWindow(nint hwnd, uint flags);
     [DllImport("user32.dll")] private static extern nint MonitorFromPoint(POINT point, uint flags);
     [DllImport("user32.dll")] private static extern bool GetMonitorInfo(nint monitor, ref MONITORINFO info);
+}
+
+// The Windows "asterisk" notification sound.
+public static class Beep
+{
+    public static void Play() => MessageBeep(0x40);
+    [DllImport("user32.dll")] private static extern bool MessageBeep(uint type);
+}
+
+// Battery state (the same data the Windows power flyout reads).
+public static class PowerInfo
+{
+    public readonly record struct Reading(bool HasBattery, bool Charging, int Percent);
+
+    public static Reading Read()
+    {
+        if (!GetSystemPowerStatus(out var status)) return new(false, false, 100);
+        var has = status.BatteryFlag != 128 && status.BatteryFlag != 255; // 128 = no battery, 255 = unknown
+        var percent = status.BatteryLifePercent == 255 ? 100 : Math.Clamp((int)status.BatteryLifePercent, 0, 100);
+        return new(has, status.ACLineStatus == 1, percent);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct SYSTEM_POWER_STATUS { public byte ACLineStatus, BatteryFlag, BatteryLifePercent, SystemStatusFlag; public int BatteryLifeTime, BatteryFullLifeTime; }
+    [DllImport("kernel32.dll")] private static extern bool GetSystemPowerStatus(out SYSTEM_POWER_STATUS status);
+}
+
+// Saves a PNG or JPEG copy of an image (JPEG at quality 85, which also shrinks large images).
+public static class ImageConversion
+{
+    public static void Save(string source, string target, bool jpeg)
+    {
+        using var image = System.Drawing.Image.FromFile(source);
+        if (!jpeg) { image.Save(target, System.Drawing.Imaging.ImageFormat.Png); return; }
+        var codec = System.Drawing.Imaging.ImageCodecInfo.GetImageEncoders().First(c => c.FormatID == System.Drawing.Imaging.ImageFormat.Jpeg.Guid);
+        using var parameters = new System.Drawing.Imaging.EncoderParameters(1);
+        parameters.Param[0] = new System.Drawing.Imaging.EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 85L);
+        using var flat = new System.Drawing.Bitmap(image.Width, image.Height);
+        using (var g = System.Drawing.Graphics.FromImage(flat)) { g.Clear(System.Drawing.Color.White); g.DrawImage(image, 0, 0, image.Width, image.Height); }
+        flat.Save(target, codec, parameters);
+    }
+}
+
+// Reaches the UI thread's top-level window from code that has no view (clipboard, screen metrics).
+public static class Ui
+{
+    public static Avalonia.Controls.TopLevel? Root =>
+        (Avalonia.Application.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+    public static Avalonia.Input.Platform.IClipboard? Clipboard => Root?.Clipboard;
 }

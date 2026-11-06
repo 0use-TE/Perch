@@ -1,6 +1,6 @@
-﻿using System.IO;
+using System.IO;
 using System.Text.Json;
-using System.Windows.Threading;
+using Avalonia.Threading;
 
 namespace Perch.Services;
 

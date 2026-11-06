@@ -1,18 +1,19 @@
 using System.Globalization;
-using System.Windows;
+using Avalonia;
+using Avalonia.Markup.Xaml.Styling;
 
 namespace Perch.Services;
 
 public sealed record LanguageOption(string Code, string Name);
 
-// UI strings live in Strings/<code>.xaml. XAML reads them with {DynamicResource Key}, so switching language
-// updates the window in place; code reads them with T / F and refreshes its own text on Changed.
+// UI strings live in Strings/<code>.axaml. XAML reads them with {DynamicResource Key}, so switching language
+// updates the windows in place; code reads them with T / F and refreshes its own text on Changed.
 // English is always loaded underneath, so a key missing from another language falls back to English.
-// To add a language: copy Strings/en.xaml to Strings/<code>.xaml, translate it, and add it to Available.
+// To add a language: copy Strings/en.axaml to Strings/<code>.axaml, translate it, and add it to Available.
 public static class Loc
 {
     public static readonly LanguageOption[] Available = [new("en", "English"), new("zh-CN", "简体中文")];
-    private static ResourceDictionary? english, selected;
+    private static ResourceInclude? english, selected;
 
     public static string Code { get; private set; } = "en";
     public static CultureInfo Culture { get; private set; } = CultureInfo.GetCultureInfo("en-US");
@@ -34,7 +35,7 @@ public static class Loc
     public static void Apply(string? setting)
     {
         var code = Resolve(setting);
-        var merged = Application.Current.Resources.MergedDictionaries;
+        var merged = Application.Current!.Resources.MergedDictionaries;
         english ??= Load("en");
         if (!merged.Contains(english)) merged.Add(english);
         if (selected != null) merged.Remove(selected);
@@ -46,9 +47,13 @@ public static class Loc
         if (changed) Changed?.Invoke();
     }
 
-    private static ResourceDictionary Load(string code) => new() { Source = new Uri($"pack://application:,,,/Perch;component/Strings/{code}.xaml") };
+    private static ResourceInclude Load(string code) => new(new Uri("avares://Perch/")) { Source = new Uri($"avares://Perch/Strings/{code}.axaml") };
 
-    public static string T(string key) => Application.Current?.TryFindResource(key) as string ?? key;
+    public static string T(string key)
+    {
+        var app = Application.Current;
+        return app != null && app.TryGetResource(key, app.ActualThemeVariant, out var value) && value is string text ? text : key;
+    }
 
     // Fills %0, %1 … in the translated string, formatting numbers and dates for the current language.
     public static string F(string key, params object?[] args)

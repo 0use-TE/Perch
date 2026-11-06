@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using Avalonia;
+using Avalonia.Styling;
 using Microsoft.Win32;
 
 namespace Perch.Services;
@@ -15,14 +16,7 @@ public static class ThemeManager
 
     public static void Apply(string setting)
     {
-        var source = new Uri($"pack://application:,,,/Views/{(IsLight(setting) ? "UiLight" : "UiDark")}.xaml");
-        foreach (var child in Application.Current.Resources.MergedDictionaries)
-        {
-            var name = child.Source?.OriginalString ?? "";
-            if (!name.EndsWith("UiDark.xaml", StringComparison.Ordinal) && !name.EndsWith("UiLight.xaml", StringComparison.Ordinal)) continue;
-            if (!name.EndsWith(source.Segments[^1], StringComparison.Ordinal)) child.Source = source;
-            return;
-        }
+        if (Application.Current is { } app) app.RequestedThemeVariant = IsLight(setting) ? ThemeVariant.Light : ThemeVariant.Dark;
     }
 
     private static bool SystemUsesLightApps()

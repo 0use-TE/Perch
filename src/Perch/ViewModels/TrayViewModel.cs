@@ -2,8 +2,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.IO.Compression;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
+using Avalonia.Media.Imaging;
 using Perch.Platform.Windows;
 using Perch.Services;
 
@@ -27,7 +26,7 @@ public sealed class TrayFile : Observable
     public string Detail => IsFolder ? Loc.T("Tray.Folder") : length is { } bytes ? Size(bytes) : Loc.T("Tray.Moved");
     public bool IsFolder { get; }
     public bool IsImage { get; }
-    public ImageSource? Icon { get; }
+    public Bitmap? Icon { get; }
     public bool Exists => IsFolder ? Directory.Exists(FullPath) : File.Exists(FullPath);
 
     internal static string Size(long bytes) => bytes switch
@@ -171,22 +170,7 @@ public sealed class TrayViewModel : Observable
         var target = Unique(Path.Combine(Path.GetDirectoryName(source.FullPath) ?? "", Path.GetFileNameWithoutExtension(source.FullPath) + extension));
         try
         {
-            await StaTask.Run(() =>
-            {
-                BitmapSource frame;
-                using (var input = File.OpenRead(source.FullPath))
-                    frame = BitmapDecoder.Create(input, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad).Frames[0];
-                BitmapEncoder encoder;
-                if (format == "jpg")
-                {
-                    encoder = new JpegBitmapEncoder { QualityLevel = 85 };
-                    frame = new FormatConvertedBitmap(frame, PixelFormats.Bgr24, null, 0);
-                }
-                else encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(frame));
-                using var output = File.Create(target);
-                encoder.Save(output);
-            });
+            await Task.Run(() => Platform.Windows.ImageConversion.Save(source.FullPath, target, format == "jpg"));
             Add([target]);
             alerts.Show(AlertQueue.Done, Loc.F("Tray.Saved", Path.GetFileName(target)));
         }

@@ -1,9 +1,12 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using Perch.Services;
 
 namespace Perch.ViewModels;
 
-public sealed record CalendarDay(string Label, bool Today);
+public sealed record CalendarDay(string Label, bool Today)
+{
+    public bool Blank => Label.Length == 0;
+}
 
 public sealed class IslandViewModel : Observable
 {

@@ -1,4 +1,5 @@
-using System.Windows.Input;
+using Avalonia.Input;
+using Avalonia.Win32.Input;
 
 namespace Perch.Platform.Windows;
 
@@ -30,13 +31,13 @@ internal static class HotkeyParser
         return virtualKey != 0 && modifiers != 0;
     }
 
-    public static string Format(ModifierKeys modifiers, Key key)
+    public static string Format(KeyModifiers modifiers, Key key)
     {
         var parts = new List<string>();
-        if (modifiers.HasFlag(ModifierKeys.Control)) parts.Add("Ctrl");
-        if (modifiers.HasFlag(ModifierKeys.Alt)) parts.Add("Alt");
-        if (modifiers.HasFlag(ModifierKeys.Shift)) parts.Add("Shift");
-        if (modifiers.HasFlag(ModifierKeys.Windows)) parts.Add("Win");
+        if (modifiers.HasFlag(KeyModifiers.Control)) parts.Add("Ctrl");
+        if (modifiers.HasFlag(KeyModifiers.Alt)) parts.Add("Alt");
+        if (modifiers.HasFlag(KeyModifiers.Shift)) parts.Add("Shift");
+        if (modifiers.HasFlag(KeyModifiers.Meta)) parts.Add("Win");
         var name = key.ToString();
         if (name.Length == 2 && name[0] == 'D' && char.IsDigit(name[1])) name = name[1..];
         parts.Add(name);

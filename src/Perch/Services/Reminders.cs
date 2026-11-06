@@ -1,4 +1,4 @@
-using System.Windows.Threading;
+using Avalonia.Threading;
 using Perch.Platform.Windows;
 
 namespace Perch.Services;

@@ -1,12 +1,11 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Text.Json;
 using System.Windows.Input;
-using System.Windows.Threading;
+using Avalonia.Threading;
 using Perch.Services;
-using Forms = System.Windows.Forms;
 
 namespace Perch.ViewModels;
 
@@ -296,11 +295,10 @@ public sealed class SystemStatusViewModel : Observable
 
     private void SampleBattery()
     {
-        var power = Forms.SystemInformation.PowerStatus;
-        HasBattery = (power.BatteryChargeStatus & Forms.BatteryChargeStatus.NoSystemBattery) == 0
-            && power.BatteryChargeStatus != Forms.BatteryChargeStatus.Unknown;
-        Charging = power.PowerLineStatus == Forms.PowerLineStatus.Online;
-        Percent = Math.Clamp((int)Math.Round(power.BatteryLifePercent * 100), 0, 100);
+        var power = Platform.Windows.PowerInfo.Read();
+        HasBattery = power.HasBattery;
+        Charging = power.Charging;
+        Percent = power.Percent;
         if (!HasBattery) return;
 
         var s = store.State.Settings;

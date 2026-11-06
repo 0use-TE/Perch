@@ -1,4 +1,4 @@
-using System.Windows.Threading;
+using Avalonia.Threading;
 
 namespace Perch.Services;
 
@@ -30,7 +30,7 @@ public sealed class AlertQueue
         Current = pending.Count > 0 ? pending.Dequeue() : null;
         if (Current != null)
         {
-            if (Sound) System.Media.SystemSounds.Asterisk.Play();
+            if (Sound) Platform.Windows.Beep.Play();
             timer.Start();
         }
         Changed?.Invoke();

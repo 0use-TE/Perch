@@ -1,8 +1,7 @@
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
+using Avalonia.Media.Imaging;
 using Perch.Platform.Windows;
 using Perch.Services;
 
@@ -10,13 +9,13 @@ namespace Perch.ViewModels;
 
 public sealed class AppEntry : Observable
 {
-    private ImageSource? icon;
+    private Bitmap? icon;
     private bool pinned;
     public AppEntry(string name, string fullPath, string folder) { Name = name; FullPath = fullPath; Folder = folder; }
     public string Name { get; }
     public string FullPath { get; }
     public string Folder { get; }
-    public ImageSource? Icon { get => icon; set => Set(ref icon, value); }
+    public Bitmap? Icon { get => icon; set => Set(ref icon, value); }
     public bool Pinned { get => pinned; set => Set(ref pinned, value); }
 }
 
@@ -110,9 +109,9 @@ public sealed class LauncherViewModel : Observable
         loading = false;
         loaded = true;
         Filter();
-        var dispatcher = Application.Current.Dispatcher;
+        var dispatcher = Avalonia.Threading.Dispatcher.UIThread;
         var entries = all.ToList();
-        await StaTask.Run(() =>
+        await Task.Run(() =>
         {
             foreach (var entry in entries)
             {

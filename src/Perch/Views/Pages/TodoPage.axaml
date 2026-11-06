@@ -1,0 +1,97 @@
+<UserControl x:Class="Perch.Views.Pages.TodoPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <Grid>
+  <Grid.RowDefinitions><RowDefinition Height="30"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+
+  <!-- View, period and filter bar -->
+  <Grid>
+   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+    <ToggleButton Content="{DynamicResource Todo.ViewList}" IsChecked="{Binding ViewList, Mode=OneWay}" Command="{Binding SetView}" CommandParameter="list" Classes="Chip"/>
+    <ToggleButton Content="{DynamicResource Todo.ViewDay}" IsChecked="{Binding ViewDay, Mode=OneWay}" Command="{Binding SetView}" CommandParameter="day" Classes="Chip"/>
+    <ToggleButton Content="{DynamicResource Todo.ViewWeek}" IsChecked="{Binding ViewWeek, Mode=OneWay}" Command="{Binding SetView}" CommandParameter="week" Classes="Chip"/>
+    <ToggleButton Content="{DynamicResource Todo.ViewMonth}" IsChecked="{Binding ViewMonth, Mode=OneWay}" Command="{Binding SetView}" CommandParameter="month" Classes="Chip"/>
+   </StackPanel>
+   <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0" IsVisible="{Binding ShowsPeriod}">
+    <Button Command="{Binding Previous}" ToolTip.Tip="{DynamicResource Common.Previous}" Classes="Nav Small"><TextBlock Text="&#xE76B;" FontSize="11" Foreground="#AAAAAF" Classes="Glyph"/></Button>
+    <TextBlock Text="{Binding PeriodTitle}" FontSize="12" MinWidth="112" TextAlignment="Center" VerticalAlignment="Center"/>
+    <Button Command="{Binding Next}" ToolTip.Tip="{DynamicResource Common.Next}" Classes="Nav Small"><TextBlock Text="&#xE76C;" FontSize="11" Foreground="#AAAAAF" Classes="Glyph"/></Button>
+    <Button Content="{DynamicResource Common.Today}" Command="{Binding Today}" Classes="Text"/>
+   </StackPanel>
+   <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+    <ToggleButton Content="{DynamicResource Todo.All}" IsChecked="{Binding FilterAll, Mode=OneWay}" Command="{Binding SetFilter}" CommandParameter="all" Classes="Chip"/>
+    <ToggleButton Content="{DynamicResource Todo.Active}" IsChecked="{Binding FilterActive, Mode=OneWay}" Command="{Binding SetFilter}" CommandParameter="active" Classes="Chip"/>
+    <ToggleButton Content="{DynamicResource Todo.Done}" IsChecked="{Binding FilterDone, Mode=OneWay}" Command="{Binding SetFilter}" CommandParameter="done" Classes="Chip"/>
+    <Button Content="{Binding SortLabel}" Command="{Binding ToggleSort}" ToolTip.Tip="{DynamicResource Todo.ToggleSort}" Margin="4,0,0,0" Classes="Text"/>
+    <Button Command="{Binding ClearDone}" ToolTip.Tip="{DynamicResource Todo.ClearDone}" AutomationProperties.Name="{DynamicResource Todo.ClearDone}" Classes="Nav Small"><TextBlock Text="&#xE74D;" FontSize="13" Foreground="#8A8A90" Classes="Glyph"/></Button>
+   </StackPanel>
+  </Grid>
+
+  <!-- New to-do -->
+  <Grid Grid.Row="1" Margin="0,8,0,0" IsVisible="{Binding ShowsInput}">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <TextBox Text="{Binding Draft}" AutomationProperties.Name="{DynamicResource Todo.New}" Classes="Quiet Compact">
+    <TextBox.KeyBindings><KeyBinding Gesture="Enter" Command="{Binding Add}"/></TextBox.KeyBindings>
+   </TextBox>
+   <TextBlock Text="{DynamicResource Todo.Placeholder}" Margin="13,0,0,0" Classes="Placeholder" IsVisible="{Binding Draft, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+   <Button Grid.Column="1" Command="{Binding CycleDue}" Margin="8,0,0,0" ToolTip.Tip="{DynamicResource Todo.DueTip}" Content="{Binding DraftDueLabel}" Classes="Text"/>
+   <Button Grid.Column="2" Command="{Binding Add}" Margin="4,0,0,0" ToolTip.Tip="{DynamicResource Common.Add}" AutomationProperties.Name="{DynamicResource Todo.Add}" Classes="Nav Small"><TextBlock Text="&#xE710;" FontSize="14" Classes="Glyph"/></Button>
+  </Grid>
+
+  <Grid Grid.Row="2" Margin="0,8,0,0">
+   <!-- List and day view -->
+   <ListBox ItemsSource="{Binding Visible}" IsVisible="{Binding ShowsList}" Classes="Bare">
+    <ListBox.ItemTemplate><DataTemplate>
+     <Grid Margin="4,0">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <CheckBox IsChecked="{Binding Done}" VerticalAlignment="Center" Focusable="False" Margin="0,0,10,0" MinWidth="0" AutomationProperties.Name="{DynamicResource Todo.Complete}"/>
+      <TextBlock Grid.Column="1" Text="{Binding Text}" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextDecorations="{Binding Done, Converter={StaticResource Pick}, ConverterParameter=Strikethrough|None}" Opacity="{Binding Done, Converter={StaticResource Pick}, ConverterParameter=0.4|1}"/>
+      <Border Grid.Column="2" CornerRadius="8" Padding="7,1" Margin="8,0" Background="#1E1E20" VerticalAlignment="Center" IsVisible="{Binding HasDue}">
+       <TextBlock Text="{Binding DueLabel}" FontSize="10.5" Foreground="{Binding IsOverdue, Converter={StaticResource Pick}, ConverterParameter=#FF8A70|#A1A1A7}"/>
+      </Border>
+      <Button Grid.Column="3" Command="{Binding DataContext.Delete, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Common.Delete}" Classes="Nav Small">
+       <TextBlock Text="&#xE74D;" FontSize="12" Foreground="#77777D" Classes="Glyph"/>
+      </Button>
+     </Grid>
+    </DataTemplate></ListBox.ItemTemplate>
+   </ListBox>
+   <TextBlock Text="{Binding EmptyText}" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsEmpty}" Classes="Caption"/>
+
+   <!-- Week view: one column per day -->
+   <ItemsControl ItemsSource="{Binding Week}" IsVisible="{Binding ViewWeek}">
+    <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="7" Rows="1"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+    <ItemsControl.ItemTemplate><DataTemplate>
+     <Button Margin="2,0" Background="{DynamicResource IslandCard}" Padding="8,6" Command="{Binding DataContext.OpenDay, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Date}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Top" Classes="Tile">
+      <StackPanel>
+       <TextBlock FontSize="11"><Run Text="{Binding Weekday, Mode=OneWay}" Foreground="#8A8A90"/><Run Text=" "/><Run Text="{Binding Day, Mode=OneWay}" Foreground="{Binding Today, Converter={StaticResource Pick}, ConverterParameter=#FFAE54|#E0E0E4}"/></TextBlock>
+       <ItemsControl ItemsSource="{Binding Items}" Margin="0,5,0,0">
+        <ItemsControl.ItemTemplate><DataTemplate>
+         <TextBlock Text="{Binding Text}" FontSize="11" TextTrimming="CharacterEllipsis" Margin="0,1" Foreground="#C9C9CE" TextDecorations="{Binding Done, Converter={StaticResource Pick}, ConverterParameter=Strikethrough|None}" Opacity="{Binding Done, Converter={StaticResource Pick}, ConverterParameter=0.4|1}"/>
+        </DataTemplate></ItemsControl.ItemTemplate>
+       </ItemsControl>
+      </StackPanel>
+     </Button>
+    </DataTemplate></ItemsControl.ItemTemplate>
+   </ItemsControl>
+
+   <!-- Month view: open-item count per day; click a day to open it -->
+   <Grid IsVisible="{Binding ViewMonth}">
+    <Grid.RowDefinitions><RowDefinition Height="16"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+    <UniformGrid Columns="7">
+     <UniformGrid.Styles><Style Selector="TextBlock"><Setter Property="FontSize" Value="10"/><Setter Property="Foreground" Value="#8A8A90"/><Setter Property="HorizontalAlignment" Value="Center"/></Style></UniformGrid.Styles>
+     <TextBlock Text="{DynamicResource Week.Mon}"/><TextBlock Text="{DynamicResource Week.Tue}"/><TextBlock Text="{DynamicResource Week.Wed}"/><TextBlock Text="{DynamicResource Week.Thu}"/><TextBlock Text="{DynamicResource Week.Fri}"/><TextBlock Text="{DynamicResource Week.Sat}"/><TextBlock Text="{DynamicResource Week.Sun}"/>
+    </UniformGrid>
+    <ItemsControl Grid.Row="1" ItemsSource="{Binding Month}">
+     <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="7"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+     <ItemsControl.ItemTemplate><DataTemplate>
+      <Button Margin="2,1" Padding="8,0" Command="{Binding DataContext.OpenDay, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Date}" Classes="Tile" Background="{Binding Today, Converter={StaticResource Pick}, ConverterParameter=#3A2814|#121213}" Opacity="{Binding InMonth, Converter={StaticResource Pick}, ConverterParameter=1|0.35}">
+       <Grid>
+        <TextBlock Text="{Binding Day}" FontSize="10.5" Foreground="#C9C9CE" VerticalAlignment="Center"/>
+        <TextBlock Text="{Binding Count}" FontSize="10" Foreground="#FFAE54" HorizontalAlignment="Right" VerticalAlignment="Center" IsVisible="{Binding HasItems}"/>
+       </Grid>
+      </Button>
+     </DataTemplate></ItemsControl.ItemTemplate>
+    </ItemsControl>
+   </Grid>
+  </Grid>
+ </Grid>
+</UserControl>

@@ -1,0 +1,28 @@
+<UserControl x:Class="Perch.Views.Pages.CalendarPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <!-- DataContext is the calendar view model (events from .ics links). -->
+ <Grid>
+  <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+  <Grid>
+   <TextBlock VerticalAlignment="Center" Margin="4,0,0,0"><Run Text="{DynamicResource Cal.Title}" FontSize="13" FontWeight="SemiBold"/><Run Text="  "/><Run Text="{Binding Status, Mode=OneWay}" FontSize="11" Foreground="#8A8A90"/></TextBlock>
+   <Button HorizontalAlignment="Right" Command="{Binding Refresh}" ToolTip.Tip="{DynamicResource Common.Refresh}" AutomationProperties.Name="{DynamicResource Common.Refresh}" Classes="Nav Small"><TextBlock Text="&#xE72C;" FontSize="12" Foreground="#AAAAAF" Classes="Glyph"/></Button>
+  </Grid>
+  <TextBlock Grid.Row="1" Text="{DynamicResource Cal.NoFeeds}" HorizontalAlignment="Center" Margin="0,30,0,0" IsVisible="{Binding NoFeeds}" Classes="Placeholder"/>
+  <TextBlock Grid.Row="1" Text="{DynamicResource Cal.Nothing}" HorizontalAlignment="Center" Margin="0,30,0,0" IsVisible="{Binding IsEmpty}" Classes="Placeholder"/>
+  <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Focusable="False" Margin="0,6,0,0">
+   <ItemsControl ItemsSource="{Binding Rows}">
+    <ItemsControl.ItemTemplate><DataTemplate>
+     <StackPanel>
+      <TextBlock Text="{Binding DayLabel}" Margin="4,10,0,4" IsVisible="{Binding ShowDay}" Classes="Caption"/>
+      <Grid Margin="4,3,4,3">
+       <Grid.ColumnDefinitions><ColumnDefinition Width="4"/><ColumnDefinition Width="128"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+       <Border CornerRadius="2" Margin="0,2" Background="{Binding Now, Converter={StaticResource Pick}, ConverterParameter=#FFAE54|#3A3A3E}"/>
+       <TextBlock Grid.Column="1" Text="{Binding TimeText}" FontSize="12.5" Foreground="#C9C9CE" Margin="12,0,0,0" VerticalAlignment="Center"/>
+       <TextBlock Grid.Column="2" Text="{Binding Title}" FontSize="13.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+       <TextBlock Grid.Column="3" Text="{Binding Location}" TextTrimming="CharacterEllipsis" MaxWidth="220" Margin="12,0,0,0" VerticalAlignment="Center" Classes="Caption"/>
+      </Grid>
+     </StackPanel>
+    </DataTemplate></ItemsControl.ItemTemplate>
+   </ItemsControl>
+  </ScrollViewer>
+ </Grid>
+</UserControl>

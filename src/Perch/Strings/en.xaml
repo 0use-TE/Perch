@@ -216,7 +216,7 @@
  <sys:String x:Key="Set.FormCapsule">Capsule</sys:String>
  <sys:String x:Key="Set.Appearance">Material</sys:String>
  <sys:String x:Key="Set.Solid">Solid black</sys:String>
- <sys:String x:Key="Set.Glass">Transparent when open</sys:String>
+ <sys:String x:Key="Set.Glass">Transparent</sys:String>
  <sys:String x:Key="Set.GlassOpacity">Opacity when open</sys:String>
  <sys:String x:Key="Set.GlassOpacityDesc">Lower lets more of the background through</sys:String>
  <sys:String x:Key="Set.Expand">Open the island</sys:String>
@@ -322,7 +322,7 @@
  <sys:String x:Key="Menu.FormCapsule">Capsule</sys:String>
  <sys:String x:Key="Menu.Appearance">Island appearance</sys:String>
  <sys:String x:Key="Menu.AppearanceBlack">Solid black</sys:String>
- <sys:String x:Key="Menu.AppearanceGlass">Transparent when open</sys:String>
+ <sys:String x:Key="Menu.AppearanceGlass">Transparent</sys:String>
  <sys:String x:Key="Menu.Expand">Expand mode</sys:String>
  <sys:String x:Key="Menu.ExpandHover">Expand on hover</sys:String>
  <sys:String x:Key="Menu.ExpandClick">Expand on click</sys:String>

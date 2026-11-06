@@ -216,7 +216,7 @@
  <sys:String x:Key="Set.FormCapsule">胶囊</sys:String>
  <sys:String x:Key="Set.Appearance">材质</sys:String>
  <sys:String x:Key="Set.Solid">纯黑</sys:String>
- <sys:String x:Key="Set.Glass">展开时透明</sys:String>
+    <sys:String x:Key="Set.Glass">透明</sys:String>
  <sys:String x:Key="Set.GlassOpacity">展开时的不透明度</sys:String>
  <sys:String x:Key="Set.GlassOpacityDesc">数值越低，越能透出背景</sys:String>
  <sys:String x:Key="Set.Expand">展开方式</sys:String>
@@ -322,7 +322,7 @@
  <sys:String x:Key="Menu.FormCapsule">胶囊形态</sys:String>
  <sys:String x:Key="Menu.Appearance">灵动岛外观</sys:String>
  <sys:String x:Key="Menu.AppearanceBlack">纯黑</sys:String>
- <sys:String x:Key="Menu.AppearanceGlass">展开时透明</sys:String>
+    <sys:String x:Key="Menu.AppearanceGlass">透明</sys:String>
  <sys:String x:Key="Menu.Expand">展开模式</sys:String>
  <sys:String x:Key="Menu.ExpandHover">悬停展开</sys:String>
  <sys:String x:Key="Menu.ExpandClick">点击展开</sys:String>

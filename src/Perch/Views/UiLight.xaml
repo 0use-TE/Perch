@@ -1,0 +1,27 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <SolidColorBrush x:Key="Ui.Tint" Color="#78F4F4F6"/>
+ <SolidColorBrush x:Key="Ui.Fallback" Color="#FFF3F3F6"/>
+ <SolidColorBrush x:Key="Ui.Sidebar" Color="#30FFFFFF"/>
+ <SolidColorBrush x:Key="Ui.Text" Color="#16161A"/>
+ <SolidColorBrush x:Key="Ui.Muted" Color="#6A6A74"/>
+ <SolidColorBrush x:Key="Ui.Desc" Color="#7A7A84"/>
+ <SolidColorBrush x:Key="Ui.Card" Color="#A8FFFFFF"/>
+ <SolidColorBrush x:Key="Ui.CardBorder" Color="#14000000"/>
+ <SolidColorBrush x:Key="Ui.Divider" Color="#14000000"/>
+ <SolidColorBrush x:Key="Ui.Seg" Color="#14000000"/>
+ <SolidColorBrush x:Key="Ui.SegOn" Color="#FFFFFFFF"/>
+ <SolidColorBrush x:Key="Ui.SegText" Color="#6A6A74"/>
+ <SolidColorBrush x:Key="Ui.Hover" Color="#0E000000"/>
+ <SolidColorBrush x:Key="Ui.Selected" Color="#1A000000"/>
+ <SolidColorBrush x:Key="Ui.Field" Color="#10000000"/>
+ <SolidColorBrush x:Key="Ui.Track" Color="#26000000"/>
+ <SolidColorBrush x:Key="Ui.Tile" Color="#12000000"/>
+ <SolidColorBrush x:Key="Ui.TileIcon" Color="#3A3A44"/>
+ <SolidColorBrush x:Key="Ui.SwitchOff" Color="#30000000"/>
+ <SolidColorBrush x:Key="Ui.CaptionHover" Color="#14000000"/>
+ <SolidColorBrush x:Key="Ui.MenuBg" Color="#F2FAFAFB"/>
+ <SolidColorBrush x:Key="Ui.MenuBorder" Color="#1A000000"/>
+ <SolidColorBrush x:Key="Ui.MenuHover" Color="#16000000"/>
+ <SolidColorBrush x:Key="Ui.MenuSep" Color="#18000000"/>
+ <SolidColorBrush x:Key="Ui.MenuText" Color="#16161A"/>
+</ResourceDictionary>

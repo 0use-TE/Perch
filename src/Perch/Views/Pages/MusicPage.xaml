@@ -1,0 +1,40 @@
+﻿<UserControl x:Class="Perch.Views.Pages.MusicPage" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <!-- DataContext is the music view model (Windows media controls). -->
+ <Grid>
+  <!-- Nothing registered with the media controls -->
+  <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="8,0,0,0" Visibility="{Binding Idle, Converter={StaticResource Visible}}">
+   <Border Width="112" Height="112" Background="#171719" CornerRadius="24"><TextBlock Text="&#xE8D6;" Style="{StaticResource Glyph}" FontSize="40" Foreground="#55555B"/></Border>
+   <StackPanel VerticalAlignment="Center" Margin="28,0,0,0" MaxWidth="400">
+    <TextBlock Text="{DynamicResource Nav.Music}" FontSize="23" FontWeight="SemiBold"/>
+    <TextBlock Text="{DynamicResource Music.Nothing}" Foreground="#85858B" FontSize="13" Margin="0,10,0,0"/>
+    <TextBlock Text="{DynamicResource Music.Hint}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+   </StackPanel>
+  </StackPanel>
+
+  <!-- Now playing -->
+  <Grid Margin="8,0,0,0" Visibility="{Binding HasSession, Converter={StaticResource Visible}}">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+   <Border Width="144" Height="144" CornerRadius="22" Background="#171719" VerticalAlignment="Center">
+    <Grid>
+     <TextBlock Text="&#xE8D6;" Style="{StaticResource Glyph}" FontSize="42" Foreground="#55555B"/>
+     <Border CornerRadius="22"><Border.Background><ImageBrush ImageSource="{Binding Cover}" Stretch="UniformToFill"/></Border.Background></Border>
+    </Grid>
+   </Border>
+   <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="28,0,16,0">
+    <TextBlock Text="{Binding Title}" FontSize="22" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+    <TextBlock Text="{Binding Artist}" FontSize="14" Foreground="#A9A9AF" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
+    <TextBlock Text="{Binding AppName}" Style="{StaticResource Caption}" Margin="0,2,0,0"/>
+    <ProgressBar Height="4" Minimum="0" Maximum="1" Value="{Binding Progress, Mode=OneWay}" Foreground="{StaticResource IslandAccent}" Background="#2A2A2E" BorderThickness="0" Margin="0,16,0,0" Visibility="{Binding HasTimeline, Converter={StaticResource Visible}}"/>
+    <Grid Margin="0,5,0,0" Visibility="{Binding HasTimeline, Converter={StaticResource Visible}}">
+     <TextBlock Text="{Binding PositionText}" Style="{StaticResource Caption}"/>
+     <TextBlock Text="{Binding DurationText}" Style="{StaticResource Caption}" HorizontalAlignment="Right"/>
+    </Grid>
+    <StackPanel Orientation="Horizontal" Margin="-6,8,0,0" Visibility="{Binding CanControl, Converter={StaticResource Visible}}">
+     <Button Style="{StaticResource IconButton}" Visibility="{Binding CanPrevious, Converter={StaticResource Visible}}" Command="{Binding Previous}" ToolTip="{DynamicResource Music.Previous}" AutomationProperties.Name="{DynamicResource Music.Previous}"><TextBlock Text="&#xE892;" Style="{StaticResource Glyph}" FontSize="16" Foreground="#C9C9CE"/></Button>
+     <Button Style="{StaticResource PrimaryRound}" Visibility="{Binding CanToggle, Converter={StaticResource Visible}}" Command="{Binding Toggle}" Margin="8,0" ToolTip="{DynamicResource Music.PlayPause}" AutomationProperties.Name="{DynamicResource Music.PlayPause}"><TextBlock Text="{Binding PlayGlyph}" Style="{StaticResource Glyph}" FontSize="18" Foreground="#1A1208"/></Button>
+     <Button Style="{StaticResource IconButton}" Visibility="{Binding CanNext, Converter={StaticResource Visible}}" Command="{Binding Next}" ToolTip="{DynamicResource Music.Next}" AutomationProperties.Name="{DynamicResource Music.Next}"><TextBlock Text="&#xE893;" Style="{StaticResource Glyph}" FontSize="16" Foreground="#C9C9CE"/></Button>
+    </StackPanel>
+   </StackPanel>
+  </Grid>
+ </Grid>
+</UserControl>

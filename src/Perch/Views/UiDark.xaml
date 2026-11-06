@@ -1,0 +1,28 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <!-- Chrome colours for the settings window and right-click menu. The island itself is always black. -->
+ <SolidColorBrush x:Key="Ui.Tint" Color="#70000000"/>
+ <SolidColorBrush x:Key="Ui.Fallback" Color="#FF141416"/>
+ <SolidColorBrush x:Key="Ui.Sidebar" Color="#40000000"/>
+ <SolidColorBrush x:Key="Ui.Text" Color="#F5F5F7"/>
+ <SolidColorBrush x:Key="Ui.Muted" Color="#9A9AA4"/>
+ <SolidColorBrush x:Key="Ui.Desc" Color="#8A8A94"/>
+ <SolidColorBrush x:Key="Ui.Card" Color="#14FFFFFF"/>
+ <SolidColorBrush x:Key="Ui.CardBorder" Color="#1AFFFFFF"/>
+ <SolidColorBrush x:Key="Ui.Divider" Color="#1CFFFFFF"/>
+ <SolidColorBrush x:Key="Ui.Seg" Color="#26000000"/>
+ <SolidColorBrush x:Key="Ui.SegOn" Color="#3EFFFFFF"/>
+ <SolidColorBrush x:Key="Ui.SegText" Color="#9A9AA4"/>
+ <SolidColorBrush x:Key="Ui.Hover" Color="#16FFFFFF"/>
+ <SolidColorBrush x:Key="Ui.Selected" Color="#24FFFFFF"/>
+ <SolidColorBrush x:Key="Ui.Field" Color="#38000000"/>
+ <SolidColorBrush x:Key="Ui.Track" Color="#40FFFFFF"/>
+ <SolidColorBrush x:Key="Ui.Tile" Color="#1EFFFFFF"/>
+ <SolidColorBrush x:Key="Ui.TileIcon" Color="#C8C8CE"/>
+ <SolidColorBrush x:Key="Ui.SwitchOff" Color="#48FFFFFF"/>
+ <SolidColorBrush x:Key="Ui.CaptionHover" Color="#22FFFFFF"/>
+ <SolidColorBrush x:Key="Ui.MenuBg" Color="#F0060607"/>
+ <SolidColorBrush x:Key="Ui.MenuBorder" Color="#24FFFFFF"/>
+ <SolidColorBrush x:Key="Ui.MenuHover" Color="#2EFFFFFF"/>
+ <SolidColorBrush x:Key="Ui.MenuSep" Color="#26FFFFFF"/>
+ <SolidColorBrush x:Key="Ui.MenuText" Color="#F2F2F4"/>
+</ResourceDictionary>

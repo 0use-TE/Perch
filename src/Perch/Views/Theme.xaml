@@ -1,0 +1,159 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <ResourceDictionary.MergedDictionaries>
+  <ResourceDictionary Source="pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.Dark.xaml"/>
+  <ResourceDictionary Source="UiDark.xaml"/>
+  <ResourceDictionary Source="ThemeControls.xaml"/>
+ </ResourceDictionary.MergedDictionaries>
+ <BooleanToVisibilityConverter x:Key="Visible"/>
+ <!-- Tooltips open centred just below their control instead of at the mouse pointer. -->
+ <Style TargetType="ToolTip" BasedOn="{StaticResource DefaultToolTipStyle}">
+  <Setter Property="Placement" Value="Bottom"/>
+  <Setter Property="VerticalOffset" Value="6"/>
+  <Setter Property="HorizontalOffset">
+   <Setter.Value>
+    <MultiBinding Converter="{StaticResource CenterOffset}">
+     <Binding Path="PlacementTarget.ActualWidth" RelativeSource="{RelativeSource Self}"/>
+     <Binding Path="ActualWidth" RelativeSource="{RelativeSource Self}"/>
+    </MultiBinding>
+   </Setter.Value>
+  </Setter>
+ </Style>
+ <SolidColorBrush x:Key="IslandMuted" Color="#85858B"/>
+ <SolidColorBrush x:Key="IslandAccent" Color="#FFAE54"/>
+ <SolidColorBrush x:Key="IslandCard" Color="#141415"/>
+ <Style TargetType="TextBlock">
+  <Setter Property="FontFamily" Value="Segoe UI Variable Text, Microsoft YaHei UI"/>
+  <Setter Property="Foreground" Value="#F5F5F5"/>
+ </Style>
+ <Style x:Key="Caption" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+  <Setter Property="FontSize" Value="11"/><Setter Property="Foreground" Value="#8A8A90"/>
+ </Style>
+ <Style x:Key="Glyph" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+  <Setter Property="FontFamily" Value="Segoe Fluent Icons"/><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="HorizontalAlignment" Value="Center"/>
+ </Style>
+ <Style x:Key="Card" TargetType="Border">
+  <Setter Property="Background" Value="{StaticResource IslandCard}"/><Setter Property="CornerRadius" Value="14"/>
+ </Style>
+ <Style TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+  <Setter Property="Focusable" Value="False"/><Setter Property="Cursor" Value="Hand"/>
+ </Style>
+ <Style x:Key="NavigationButton" TargetType="Button">
+  <Setter Property="Focusable" Value="False"/><Setter Property="Cursor" Value="Hand"/>
+  <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="#85858B"/>
+  <Setter Property="Padding" Value="14,9"/><Setter Property="Height" Value="38"/>
+  <Setter Property="HorizontalContentAlignment" Value="Center"/>
+  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+   <Border x:Name="Pill" Background="{TemplateBinding Background}" CornerRadius="19" Padding="{TemplateBinding Padding}">
+    <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+   </Border>
+   <ControlTemplate.Triggers>
+    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Pill" Property="Background" Value="#292929"/></Trigger>
+    <Trigger Property="IsPressed" Value="True"><Setter TargetName="Pill" Property="Opacity" Value="0.65"/></Trigger>
+    <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Pill" Property="Opacity" Value="0.35"/></Trigger>
+   </ControlTemplate.Triggers>
+  </ControlTemplate></Setter.Value></Setter>
+ </Style>
+ <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource NavigationButton}">
+  <Setter Property="Width" Value="38"/><Setter Property="Height" Value="38"/><Setter Property="Padding" Value="0"/>
+ </Style>
+ <Style x:Key="SmallIcon" TargetType="Button" BasedOn="{StaticResource NavigationButton}">
+  <Setter Property="Width" Value="30"/><Setter Property="Height" Value="30"/><Setter Property="Padding" Value="0"/>
+ </Style>
+ <!-- Text-only pill button. The label is its own TextBlock because the app-wide TextBlock style would override an inherited Foreground. -->
+ <Style x:Key="TextButton" TargetType="Button">
+  <Setter Property="Focusable" Value="False"/><Setter Property="Cursor" Value="Hand"/>
+  <Setter Property="Foreground" Value="#B4B4BA"/><Setter Property="Height" Value="28"/><Setter Property="Padding" Value="10,0"/><Setter Property="FontSize" Value="12"/>
+  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+   <Border x:Name="Pill" Background="Transparent" CornerRadius="14" Padding="{TemplateBinding Padding}">
+    <TextBlock x:Name="Label" Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}" Foreground="{TemplateBinding Foreground}" FontSize="{TemplateBinding FontSize}" VerticalAlignment="Center"/>
+   </Border>
+   <ControlTemplate.Triggers>
+    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Pill" Property="Background" Value="#262628"/><Setter TargetName="Label" Property="Foreground" Value="White"/></Trigger>
+    <Trigger Property="IsPressed" Value="True"><Setter TargetName="Pill" Property="Opacity" Value="0.65"/></Trigger>
+    <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Pill" Property="Opacity" Value="0.35"/></Trigger>
+   </ControlTemplate.Triggers>
+  </ControlTemplate></Setter.Value></Setter>
+ </Style>
+ <!-- Segmented choice: IsChecked is bound one-way to the view model, which re-asserts it after every click. -->
+ <Style x:Key="Chip" TargetType="ToggleButton">
+  <Setter Property="Focusable" Value="False"/><Setter Property="Cursor" Value="Hand"/>
+  <Setter Property="Foreground" Value="#8E8E94"/><Setter Property="Height" Value="28"/><Setter Property="Padding" Value="9,0"/><Setter Property="FontSize" Value="12"/>
+  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton">
+   <Border x:Name="Pill" Background="Transparent" CornerRadius="14" Padding="{TemplateBinding Padding}">
+    <TextBlock x:Name="Label" Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}" Foreground="{TemplateBinding Foreground}" FontSize="{TemplateBinding FontSize}" VerticalAlignment="Center"/>
+   </Border>
+   <ControlTemplate.Triggers>
+    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Pill" Property="Background" Value="#202022"/></Trigger>
+    <Trigger Property="IsChecked" Value="True"><Setter TargetName="Pill" Property="Background" Value="#2C2C2E"/><Setter TargetName="Label" Property="Foreground" Value="White"/></Trigger>
+   </ControlTemplate.Triggers>
+  </ControlTemplate></Setter.Value></Setter>
+ </Style>
+ <Style x:Key="PrimaryRound" TargetType="Button">
+  <Setter Property="Focusable" Value="False"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Width" Value="48"/><Setter Property="Height" Value="48"/>
+  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+   <Grid><Ellipse x:Name="Disc" Fill="{StaticResource IslandAccent}"/><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid>
+   <ControlTemplate.Triggers>
+    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Disc" Property="Fill" Value="#FFC07A"/></Trigger>
+    <Trigger Property="IsPressed" Value="True"><Setter TargetName="Disc" Property="Opacity" Value="0.7"/></Trigger>
+   </ControlTemplate.Triggers>
+  </ControlTemplate></Setter.Value></Setter>
+ </Style>
+ <!-- Plain hover tile used for app icons, photos, week columns and month days. -->
+ <Style x:Key="Tile" TargetType="Button">
+  <Setter Property="Focusable" Value="False"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Background" Value="Transparent"/><Setter Property="Padding" Value="0"/>
+  <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="VerticalContentAlignment" Value="Stretch"/>
+  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+   <Border x:Name="Pill" Background="{TemplateBinding Background}" CornerRadius="10" Padding="{TemplateBinding Padding}">
+    <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+   </Border>
+   <ControlTemplate.Triggers>
+    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Pill" Property="Background" Value="#202022"/></Trigger>
+    <Trigger Property="IsPressed" Value="True"><Setter TargetName="Pill" Property="Opacity" Value="0.7"/></Trigger>
+   </ControlTemplate.Triggers>
+  </ControlTemplate></Setter.Value></Setter>
+ </Style>
+ <!-- List rows without the default chrome; SelectableItem draws its own hover and selection. -->
+ <Style x:Key="BareItem" TargetType="ListBoxItem">
+  <Setter Property="Focusable" Value="False"/><Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0,0,0,4"/>
+  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><ContentPresenter/></ControlTemplate></Setter.Value></Setter>
+ </Style>
+ <Style x:Key="SelectableItem" TargetType="ListBoxItem">
+  <Setter Property="Focusable" Value="False"/><Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0,0,0,3"/><Setter Property="Cursor" Value="Hand"/>
+  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem">
+   <Border x:Name="Pill" Background="Transparent" CornerRadius="10"><ContentPresenter/></Border>
+   <ControlTemplate.Triggers>
+    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Pill" Property="Background" Value="#19191B"/></Trigger>
+    <Trigger Property="IsSelected" Value="True"><Setter TargetName="Pill" Property="Background" Value="#232325"/></Trigger>
+   </ControlTemplate.Triggers>
+  </ControlTemplate></Setter.Value></Setter>
+ </Style>
+ <Style x:Key="BareList" TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
+  <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Focusable" Value="False"/><Setter Property="Padding" Value="0"/>
+  <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/><Setter Property="ItemContainerStyle" Value="{StaticResource BareItem}"/>
+ </Style>
+ <Style x:Key="QuietInput" TargetType="TextBox" BasedOn="{StaticResource DefaultTextBoxStyle}">
+  <Setter Property="Background" Value="#171717"/><Setter Property="BorderThickness" Value="0"/>
+  <Setter Property="Padding" Value="16,12"/><Setter Property="FontSize" Value="14"/>
+  <Setter Property="SelectionBrush" Value="#80502C"/><Setter Property="CaretBrush" Value="#FFAE54"/>
+  <!-- Plain template: the Windows text box brings its own clear (x) button, which sat on top of the note's icons. -->
+  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
+   <Grid>
+    <Border Background="{TemplateBinding Background}" CornerRadius="6" SnapsToDevicePixels="True"/>
+    <Border x:Name="FocusLine" Height="2" VerticalAlignment="Bottom" Margin="6,0" CornerRadius="1" Background="#FFAE54" Opacity="0"/>
+    <ScrollViewer x:Name="PART_ContentHost" Focusable="False" Padding="{TemplateBinding Padding}"
+                  HorizontalScrollBarVisibility="{TemplateBinding HorizontalScrollBarVisibility}" VerticalScrollBarVisibility="{TemplateBinding VerticalScrollBarVisibility}"/>
+   </Grid>
+   <ControlTemplate.Triggers>
+    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="FocusLine" Property="Opacity" Value="1"/></Trigger>
+    <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.55"/></Trigger>
+   </ControlTemplate.Triggers>
+  </ControlTemplate></Setter.Value></Setter>
+ </Style>
+ <Style x:Key="CompactInput" TargetType="TextBox" BasedOn="{StaticResource QuietInput}">
+  <Setter Property="Padding" Value="12,6"/><Setter Property="FontSize" Value="13"/><Setter Property="MinHeight" Value="32"/>
+ </Style>
+ <!-- Grey hint text over an empty TextBox; the page shows it with a DataTrigger on the bound text. -->
+ <Style x:Key="Placeholder" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+  <Setter Property="Foreground" Value="#6E6E74"/><Setter Property="IsHitTestVisible" Value="False"/><Setter Property="FontSize" Value="13"/><Setter Property="VerticalAlignment" Value="Center"/>
+ </Style>
+</ResourceDictionary>

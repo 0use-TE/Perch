@@ -23,4 +23,17 @@
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
 
+  <!-- Publish: dotnet publish for example: dotnet publish, runtime win-x64, Release, PublishTrimmed true -->
+  <PropertyGroup Condition="'$(PublishTrimmed)' == 'true'">
+    <TrimMode>partial</TrimMode>
+    <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+    <DebuggerSupport>false</DebuggerSupport>
+    <EventSourceSupport>false</EventSourceSupport>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(PublishTrimmed)' == 'true'">
+    <!-- Bindings are looked up by name at run time, so everything in this assembly stays. -->
+    <TrimmerRootAssembly Include="Perch" />
+  </ItemGroup>
+
 </Project>

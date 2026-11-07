@@ -62,8 +62,6 @@ public partial class IslandWindow : Window
     [DllImport("user32.dll")] private static extern nint GetAncestor(nint hwnd, uint flags);
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint hwnd, out uint processId);
     [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int key);
-    private enum HitRegion { None, Compact, Envelope, Expanded }
-    private HitRegion region;
 
     private IBrush Muted => (IBrush)(this.FindResource("IslandMuted") ?? Brushes.Gray);
     private IBrush Accent => (IBrush)(this.FindResource("IslandAccent") ?? Brushes.Orange);
@@ -98,7 +96,7 @@ public partial class IslandWindow : Window
         animator.Frame += Draw;
         dragWatch.Tick += (_, _) => { if (!CursorOverIsland()) { dragWatch.Stop(); controller.Pointer(false); } };
 
-        Stage.PointerEntered += (_, _) => controller.Pointer(true);
+        Stage.PointerEntered += (_, _) => { if (CursorOverIsland()) controller.Pointer(true); };
         Stage.PointerExited += (_, _) => controller.Pointer(false);
         CompactHeader.PointerReleased += (_, e) => { if (e.InitialPressMouseButton == MouseButton.Left) controller.Open(); };
         NavRow.AddHandler(PointerWheelChangedEvent, OnNavWheel, RoutingStrategies.Tunnel);
@@ -212,7 +210,6 @@ public partial class IslandWindow : Window
         var height = largeHost ? IslandOutline.HostHeight : IslandOutline.CompactHostHeight;
         host?.Place(width, height);
         Shell.Width = width; Shell.Height = height;
-        region = HitRegion.None;
     }
 
     private void Draw(double w, double h, bool settled)
@@ -253,14 +250,9 @@ public partial class IslandWindow : Window
         CompactHeader.Opacity = 1 - Math.Clamp(shapeH * 4, 0, 1);
         CompactHeader.IsHitTestVisible = shapeH < 0.25;
 
-        // The native region changes once per state, not per frame. While moving it covers the whole padded host,
-        // which contains every intermediate shape.
-        var next = !settled ? HitRegion.Envelope : shapeH > 0.5 ? HitRegion.Expanded : HitRegion.Compact;
-        if (next == region || host == null) return;
-        if (next == HitRegion.Envelope && !largeHost) return; // compact host is about to grow; UpdateShape() redraws
-        region = next;
-        var shape = next == HitRegion.Envelope ? IslandOutline.Polygon(0, IslandOutline.HostWidth, IslandOutline.HostHeight, 1) : polygon;
-        host.Region(IslandOutline.Grown(shape, 1.5), 0);
+        // The native region follows the drawn shape exactly: anything more would show unrendered pixels or catch the pointer.
+        if (host == null) return;
+        host.Region(IslandOutline.Grown(polygon, 1.5), 0);
     }
 
     // Form (notch / floating capsule) and appearance (solid black / frosted glass) are settings, applied live.
@@ -271,7 +263,6 @@ public partial class IslandWindow : Window
         ExpandedContent.Margin = new Thickness(IslandOutline.PadX, gap, 0, 0);
         IslandLook.Apply(ShellOutline, ShellGrain, ShellSheen, Glass);
         backdropReady = host != null && host.ExcludeFromCapture(Glass);
-        region = HitRegion.None;
         PlaceHost();
         Draw(shapeW, shapeH, !animator.IsRunning);
     }

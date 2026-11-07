@@ -96,3 +96,9 @@ powershell -ExecutionPolicy Bypass -File tools/Verify-Window.ps1
 - 托盘改用 Avalonia `TrayIcon`：左键单击显示/隐藏（原来是双击），菜单跟随系统外观。
 - 右键菜单不再有“毛玻璃”（原来对每个弹出菜单截屏模糊）；菜单是 Avalonia Fluent 的菜单，颜色按所选主题设定。灵动岛本身的毛玻璃不变。
 - 设置窗口用 Avalonia 的 AcrylicBlur 作为毛玻璃背景。
+
+## 介绍网站与截图
+
+- `website/` 是纯静态的介绍页（`index.html`，中英双语，无需构建），可直接用任意静态服务器打开，例如 `python -m http.server --directory website`。
+- 页面里的截图放在 `website/assets/shots/`；文件不存在时页面会显示“截图待补 + 文件名”的占位框，补上 PNG 后刷新即可。
+- `tools/Capture-Shots.ps1` 会自动生成大部分截图：它在屏幕上铺一层渐变“壁纸”，用示例数据启动 Perch，再通过界面自动化逐页截图（需要解锁的交互式桌面，期间别动鼠标）。音乐页（需要真的在播放）和毛玻璃展开（岛对截屏不可见）需要手动截取；应用、文件中转、照片页可能带出你自己的内容，发布前请检查。

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Media;
+using System.Runtime.InteropServices;
 
 namespace Perch.Animation;
 
@@ -61,6 +62,8 @@ public sealed class IslandAnimator : IDisposable
         }
         if (running) return;
         running = true; last = 0; clock.Restart();
+        // Windows ticks every ~15.6 ms by default, which halves the frame rate to ~32 fps; ask for 1 ms while animating.
+        timeBeginPeriod(1);
         Host.RequestAnimationFrame(OnFrame);
     }
 
@@ -81,8 +84,15 @@ public sealed class IslandAnimator : IDisposable
         var settled = width.Settled && height.Settled;
         if (settled) { width.Snap(); height.Snap(); Stop(); }
         Frame?.Invoke(width.Value, height.Value, settled);
+    }
+
+    private void Stop()
+    {
+        if (running) timeEndPeriod(1);
+        clock.Stop(); running = false;
     }
 
-    private void Stop() { clock.Stop(); running = false; }
+    [DllImport("winmm.dll")] private static extern uint timeBeginPeriod(uint milliseconds);
+    [DllImport("winmm.dll")] private static extern uint timeEndPeriod(uint milliseconds);
     public void Dispose() => Stop();
 }

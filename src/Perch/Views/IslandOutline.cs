@@ -15,7 +15,7 @@ internal static class IslandOutline
     public const double CapsuleGap = 6;
     public const double HostWidth = ExpandedWidth + PadX * 2, HostHeight = ExpandedHeight + PadBottom + CapsuleGap;
     public const double CompactHostHeight = CompactHeight + CapsuleGap;
-    private const int CurveSamples = 20;
+    private const int CurveSamples = 12;
 
     public static StreamGeometry Create(double x, double width, double height, double progress, bool capsule = false)
     {

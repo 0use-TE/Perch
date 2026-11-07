@@ -44,11 +44,12 @@ public partial class IslandWindow : Window
     private NativeMenuItem? hoverItem, motionItem, menuShowHide, menuSettings, menuLayout, menuExit;
     private int page;
     private double shapeW, shapeH, content;
-    private bool largeHost, closing, userHidden;
+    // The host window stays at full size (872 x 294) so opening never resizes a window mid-animation;
+    // the native region keeps the transparent part from catching clicks.
+    private bool largeHost = true, closing, userHidden;
     private bool Capsule => store.State.Settings.Shape == "capsule";
     // Closed: always black. Open: black at the user's opacity (translucent) when the material is "glass".
     private bool Glass => store.State.Settings.Appearance == "glass";
-    private readonly BlurEffect focusBlur = new();
     private readonly DispatcherTimer outsideWatch = new() { Interval = TimeSpan.FromMilliseconds(60) };
     private readonly DispatcherTimer backdropTimer = new() { Interval = TimeSpan.FromMilliseconds(100) };
     private readonly DispatcherTimer menuWatch = new() { Interval = TimeSpan.FromMilliseconds(40) };
@@ -216,11 +217,6 @@ public partial class IslandWindow : Window
     {
         shapeW = Math.Clamp(w, 0, 1.04);
         shapeH = Math.Clamp(h, 0, 1.03);
-        if (settled && shapeW == 0 && shapeH == 0 && largeHost)
-        {
-            largeHost = false;
-            PlaceHost();
-        }
         var width = IslandOutline.CompactWidth + (IslandOutline.ExpandedWidth - IslandOutline.CompactWidth) * shapeW;
         var height = IslandOutline.CompactHeight + (IslandOutline.ExpandedHeight - IslandOutline.CompactHeight) * shapeH;
         var stageWidth = largeHost ? IslandOutline.HostWidth : IslandOutline.CompactWidth;
@@ -248,13 +244,10 @@ public partial class IslandWindow : Window
         // The nav row leads, the page trails, and the whole block sharpens from a blur.
         ExpandedContent.Opacity = Math.Clamp(content * 1.7, 0, 1);
         PageStage.Opacity = Math.Clamp((content - 0.25) / 0.75, 0, 1);
-        var blur = (1 - content) * 7;
-        if (blur > 0.4 && !animator.ReducedMotion) { focusBlur.Radius = blur; ExpandedContent.Effect = focusBlur; }
-        else ExpandedContent.Effect = null;
         ExpandedContent.IsHitTestVisible = animator.Expanding && Math.Min(shapeW, shapeH) > 0.94;
         contentOffset.Y = 6 * (1 - content);
         // The compact header stretches with the wide island and fades as the island grows taller.
-        CompactHeader.Width = Math.Max(176, width - 72);
+        CompactHeader.Width = Math.Max(176, Math.Min(width, 380) - 72);
         CompactHeader.Opacity = 1 - Math.Clamp(shapeH * 4, 0, 1);
         CompactHeader.IsHitTestVisible = shapeH < 0.25;
 

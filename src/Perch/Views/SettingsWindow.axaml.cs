@@ -27,6 +27,9 @@ public partial class SettingsWindow : Window
 
     public event Action? Applied;
 
+    // Needed by the XAML runtime loader (previewer); the app always passes the live settings.
+    public SettingsWindow() : this(new Settings()) { }
+
     public SettingsWindow(Settings settings)
     {
         this.settings = settings;

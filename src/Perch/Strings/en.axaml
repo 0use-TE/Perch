@@ -223,6 +223,10 @@
  <sys:String x:Key="Set.ExpandHover">On hover</sys:String>
  <sys:String x:Key="Set.ExpandClick">On click</sys:String>
  <sys:String x:Key="Set.Collapse">Close the island</sys:String>
+ <sys:String x:Key="Set.ExpandDelay">Open delay</sys:String>
+ <sys:String x:Key="Set.ExpandDelayDesc">How long the pointer rests on the island before it opens (0 to 1000 ms)</sys:String>
+ <sys:String x:Key="Set.CollapseDelay">Close delay</sys:String>
+ <sys:String x:Key="Set.CollapseDelayDesc">How long after the pointer leaves before it closes (0 to 1000 ms)</sys:String>
  <sys:String x:Key="Set.CollapseDesc">Pinning keeps it open either way</sys:String>
  <sys:String x:Key="Set.CollapseLeave">Mouse leaves</sys:String>
  <sys:String x:Key="Set.CollapseClick">Click outside</sys:String>

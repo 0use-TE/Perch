@@ -48,6 +48,8 @@ public partial class SettingsWindow : Window
         // Bubbled from the switches and segmented choices; sliders and the language list are watched directly.
         AddHandler(Button.ClickEvent, (_, _) => Changed());
         GlassSlider.PropertyChanged += (_, e) => { if (e.Property == RangeBase.ValueProperty) Changed(); };
+        ExpandDelaySlider.PropertyChanged += (_, e) => { if (e.Property == RangeBase.ValueProperty) Changed(); };
+        CollapseDelaySlider.PropertyChanged += (_, e) => { if (e.Property == RangeBase.ValueProperty) Changed(); };
         LanguageBox.SelectionChanged += (_, _) => Changed();
         Sidebar.AddHandler(ToggleButton.IsCheckedChangedEvent, OnPage);
         PlaceBox.PropertyChanged += (_, e) => { if (e.Property == TextBox.TextProperty) OnPlaceTextChanged(); };

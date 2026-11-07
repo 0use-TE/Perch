@@ -108,6 +108,16 @@
          <RadioButton Content="{DynamicResource Set.CollapseClick}" IsChecked="{Binding CollapseOnLeave, Mode=OneTime, Converter={StaticResource BoolChoice}, ConverterParameter=false}" GroupName="segCollapseOnLeave" Tag="CollapseOnLeave|false" Click="OnSegment" Classes="Segment"/>
         </StackPanel></Border></Grid>
        <Border Classes="Divider"/>
+       <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <StackPanel><TextBlock Text="{DynamicResource Set.ExpandDelay}" Classes="RowTitle"/><TextBlock Text="{DynamicResource Set.ExpandDelayDesc}" Classes="RowDesc"/></StackPanel>
+        <Slider x:Name="ExpandDelaySlider" Grid.Column="1" Minimum="0" Maximum="1000" TickFrequency="10" IsSnapToTickEnabled="True" Value="{Binding ExpandDelay}" AutomationProperties.Name="{DynamicResource Set.ExpandDelay}" Classes="Dotted"/>
+        <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=ExpandDelaySlider, Converter={StaticResource Ms}}" Width="64" Classes="Value"/></Grid>
+       <Border Classes="Divider"/>
+       <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <StackPanel><TextBlock Text="{DynamicResource Set.CollapseDelay}" Classes="RowTitle"/><TextBlock Text="{DynamicResource Set.CollapseDelayDesc}" Classes="RowDesc"/></StackPanel>
+        <Slider x:Name="CollapseDelaySlider" Grid.Column="1" Minimum="0" Maximum="1000" TickFrequency="10" IsSnapToTickEnabled="True" Value="{Binding CollapseDelay}" AutomationProperties.Name="{DynamicResource Set.CollapseDelay}" Classes="Dotted"/>
+        <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=CollapseDelaySlider, Converter={StaticResource Ms}}" Width="64" Classes="Value"/></Grid>
+       <Border Classes="Divider"/>
        <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <StackPanel><TextBlock Text="{DynamicResource Set.ReduceMotion}" Classes="RowTitle"/><TextBlock Text="{DynamicResource Set.ReduceMotionDesc}" Classes="RowDesc"/></StackPanel>
         <CheckBox Grid.Column="1" IsChecked="{Binding ReducedMotion}" AutomationProperties.Name="{DynamicResource Set.ReduceMotion}" Classes="Switch"/></Grid>

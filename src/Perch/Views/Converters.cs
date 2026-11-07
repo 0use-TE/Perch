@@ -18,6 +18,12 @@ public sealed class BoolChoiceConverter : IValueConverter
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => value is true ? bool.Parse(parameter!.ToString()!) : BindingOperations.DoNothing;
 }
 
+public sealed class MillisecondsConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => $"{System.Convert.ToInt32(value, culture)} ms";
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => BindingOperations.DoNothing;
+}
+
 public sealed class PercentConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => $"{System.Convert.ToInt32(value, culture)}%";

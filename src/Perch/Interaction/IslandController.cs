@@ -11,8 +11,8 @@ public sealed class IslandController : IDisposable
     private bool hovered, editing, pinned;
     public bool HoverEnabled { get; set; } = true;
     public bool CollapseOnLeave { get; set; } = true;
-    public int ExpandDelay { get; set; } = 180;
-    public int CollapseDelay { get; set; } = 460;
+    public int ExpandDelay { get; set; } = 100;
+    public int CollapseDelay { get; set; } = 400;
     public InteractionState State { get; private set; }
     public ContentState Content { get; private set; } = ContentState.Idle;
     public event Action<bool>? ExpansionChanged;

@@ -223,6 +223,10 @@
  <sys:String x:Key="Set.ExpandHover">悬停</sys:String>
  <sys:String x:Key="Set.ExpandClick">点击</sys:String>
  <sys:String x:Key="Set.Collapse">收起方式</sys:String>
+ <sys:String x:Key="Set.ExpandDelay">展开延迟</sys:String>
+ <sys:String x:Key="Set.ExpandDelayDesc">鼠标停在岛上多久后展开（0 到 1000 毫秒）</sys:String>
+ <sys:String x:Key="Set.CollapseDelay">收起延迟</sys:String>
+ <sys:String x:Key="Set.CollapseDelayDesc">鼠标离开后多久收起（0 到 1000 毫秒）</sys:String>
  <sys:String x:Key="Set.CollapseDesc">固定后无论哪种方式都不会收起</sys:String>
  <sys:String x:Key="Set.CollapseLeave">鼠标移开</sys:String>
  <sys:String x:Key="Set.CollapseClick">点击外部</sys:String>

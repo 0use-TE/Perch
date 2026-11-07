@@ -88,6 +88,8 @@ public partial class IslandWindow : Window
         controller.HoverEnabled = settings.HoverExpand;
         animator.ReducedMotion = settings.ReducedMotion ?? false;
         controller.CollapseOnLeave = settings.CollapseOnLeave;
+        controller.ExpandDelay = settings.ExpandDelay;
+        controller.CollapseDelay = settings.CollapseDelay;
         outsideWatch.Tick += OnOutsideWatch;
         menuWatch.Tick += OnMenuWatch;
         backdropTimer.Tick += (_, _) => RefreshBackdrop();
@@ -364,6 +366,8 @@ public partial class IslandWindow : Window
         var s = store.State.Settings;
         controller.HoverEnabled = s.HoverExpand;
         controller.CollapseOnLeave = s.CollapseOnLeave;
+        controller.ExpandDelay = s.ExpandDelay;
+        controller.CollapseDelay = s.CollapseDelay;
         if (Loc.Resolve(s.Language) != Loc.Code) Loc.Apply(s.Language); // language switches immediately, not when the window closes
         animator.ReducedMotion = s.ReducedMotion ?? false;
         ThemeManager.Apply(s.Theme);

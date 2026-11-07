@@ -3,6 +3,7 @@
   <v:EqualsConverter x:Key="StrEq"/>
   <v:BoolChoiceConverter x:Key="BoolChoice"/>
   <v:PercentConverter x:Key="Percent"/>
+  <v:MillisecondsConverter x:Key="Ms"/>
   <v:PickConverter x:Key="Pick"/>
  </Styles.Resources>
 

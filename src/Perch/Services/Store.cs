@@ -59,6 +59,8 @@ public sealed class Settings
     public string HotkeyIsland { get; set; } = "Ctrl+Alt+I";   // not Ctrl+Alt+P: NetEase Cloud Music already uses that for play/pause
     public string HotkeyNote { get; set; } = "Ctrl+Alt+N";
     public bool CollapseOnLeave { get; set; } = true; // false: once open, it closes only on a click outside (or the pin)
+    public int ExpandDelay { get; set; } = 100;       // ms the pointer must rest on the island before it opens (0 to 1000)
+    public int CollapseDelay { get; set; } = 400;     // ms after the pointer leaves before it closes (0 to 1000)
     public int GlassOpacity { get; set; } = 50;       // percent, how solid the black tint is when the island is open
 }
 
@@ -136,6 +138,8 @@ public sealed class Store
     // no longer clashes with NetEase Cloud Music's play/pause key.
     private static void Normalize(Settings s)
     {
+        s.ExpandDelay = Math.Clamp(s.ExpandDelay, 0, 1000);
+        s.CollapseDelay = Math.Clamp(s.CollapseDelay, 0, 1000);
         foreach (var (process, name) in PlayerWatcher.Players)
         {
             if (s.PlayerKeys.Any(k => string.Equals(k.Process, process, StringComparison.OrdinalIgnoreCase))) continue;

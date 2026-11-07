@@ -31,7 +31,7 @@ $notes = @(
 )
 $state = @{
   Settings = @{
-    Appearance = 'black'; Theme = $Theme; Language = 'zh-CN'; CityName = '杭州'; Latitude = 30.2741; Longitude = 120.1551
+    Appearance = 'black'; HideInFullscreen = $false; Theme = $Theme; Language = 'zh-CN'; CityName = '杭州'; Latitude = 30.2741; Longitude = 120.1551
     CalendarWindows = $false; CalendarUrls = "$data\sample.ics"; MusicInCompact = $false; HotkeysEnabled = $true
     NavPinned = @($Pinned -split ',')
   }

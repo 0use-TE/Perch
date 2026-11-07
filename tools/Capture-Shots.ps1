@@ -1,4 +1,4 @@
-# Takes the screenshots used by the website (website/assets/shots/*.png).
+﻿# Takes the screenshots used by the website (website/assets/shots/*.png).
 #
 # It covers the screen with a gradient "wallpaper" (tools/shots/backdrop.ps1), starts Perch with a throw-away state folder
 # filled with sample data (tools/shots/seed.ps1), then drives the real UI through UI Automation and saves PNGs.
@@ -40,22 +40,32 @@ function Shot($name, $x, $y, $w, $h) {
 # Starts the backdrop and Perch (sample data), runs $Body with the Perch process and its island window, then cleans up.
 function Session([string]$Pinned, [string]$Theme, [scriptblock]$Body) {
     & "$PSScriptRoot\shots\seed.ps1" -Pinned $Pinned -Theme $Theme | Out-Null
-    Remove-Item $flag -ErrorAction SilentlyContinue
+    Remove-Item $flag, "$flag.ready" -ErrorAction SilentlyContinue
     $backdrop = Start-Process pwsh -WindowStyle Hidden -PassThru -ArgumentList '-NoProfile', '-File', "$PSScriptRoot\shots\backdrop.ps1", '-Flag', $flag, '-MaxSeconds', '240'
-    Start-Sleep 3
+    # Perch must start after the backdrop is on screen, or the (topmost) backdrop ends up above the island.
+    for ($wait = 0; $wait -lt 100 -and -not (Test-Path "$flag.ready"); $wait++) { Start-Sleep -Milliseconds 200 }
+    Start-Sleep 1
     $env:PERCH_DATA = Join-Path $env:TEMP 'perch-shots'
     [void][Perch.Shots]::SetCursorPos($parkX, $parkY)
     $p = Start-Process $Exe -PassThru
     try {
-        Start-Sleep 7
         $root = [Windows.Automation.AutomationElement]::RootElement
         $cond = New-Object Windows.Automation.PropertyCondition([Windows.Automation.AutomationElement]::ProcessIdProperty, $p.Id)
-        $win = $root.FindAll([Windows.Automation.TreeScope]::Children, $cond) | Select-Object -First 1
+        $win = $null
+        for ($try = 0; $try -lt 30 -and -not $win; $try++) {
+            Start-Sleep -Seconds 1
+            $win = $root.FindAll([Windows.Automation.TreeScope]::Children, $cond) | Select-Object -First 1
+        }
+        if (-not $win) { throw 'Perch window did not appear' }
+        # Both the backdrop and the island are topmost; make sure the island is the upper one.
+        [void][Perch.Shots]::SetWindowPos([IntPtr]$win.Current.NativeWindowHandle, [IntPtr](-1), 0, 0, 0, 0, 0x53)
+        Start-Sleep -Seconds 3
         & $Body $p $root $cond $win
     } finally {
         [void][Perch.Shots]::SetCursorPos($parkX, $parkY)
         Stop-Process $p.Id -ErrorAction SilentlyContinue
         New-Item $flag -ItemType File -Force | Out-Null
+        [void]$backdrop.WaitForExit(8000) # the next session must not start while this backdrop is still on screen
         Start-Sleep 1
     }
 }

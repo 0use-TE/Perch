@@ -12,8 +12,8 @@
 
   var saved = null;
   try { saved = localStorage.getItem('perch-lang'); } catch (e) { /* ignore */ }
-  var wantsEnglish = saved ? saved === 'en' : !/^zh/i.test(navigator.language || 'zh');
-  if (wantsEnglish) setLang('en');
+  // English is the default; a visitor's own choice (the switch button) is remembered.
+  setLang(saved === 'zh' ? 'zh' : 'en');
 
   document.getElementById('lang').addEventListener('click', function () {
     setLang(root.dataset.lang === 'en' ? 'zh' : 'en');

@@ -1,5 +1,5 @@
 <!-- English strings. Keys are shared by every language file; %0, %1 … are filled in by Loc.F. -->
-<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="using:System">
+<ResourceDictionary x:Class="Perch.Strings.EnglishStrings" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="using:System">
  <sys:String x:Key="App.Title">Perch</sys:String>
 
  <sys:String x:Key="Nav.Overview">Overview</sys:String>

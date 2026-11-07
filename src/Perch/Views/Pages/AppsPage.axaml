@@ -1,4 +1,4 @@
-<UserControl x:Class="Perch.Views.Pages.AppsPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<UserControl x:Class="Perch.Views.Pages.AppsPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:Perch.ViewModels" x:DataType="vm:LauncherViewModel">
  <Grid>
   <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="*"/></Grid.RowDefinitions>
   <Grid>
@@ -20,14 +20,14 @@
   <Grid Grid.Row="1" Margin="0,8,0,0" IsVisible="{Binding ShowsApps}">
    <ListBox ItemsSource="{Binding Visible}" Classes="Bare Selectable">
     <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
-    <ListBox.ItemTemplate><DataTemplate>
+    <ListBox.ItemTemplate><DataTemplate x:DataType="vm:AppEntry">
      <Button Width="84" Height="64" Padding="4,6" ToolTip.Tip="{Binding Name}"
-             Command="{Binding DataContext.Launch, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Classes="Tile">
+             Command="{Binding $parent[UserControl].((vm:LauncherViewModel)DataContext).Launch}" CommandParameter="{Binding}" Classes="Tile">
       <StackPanel>
        <Grid Width="28" Height="28">
         <Image Source="{Binding Icon}" Width="28" Height="28" RenderOptions.BitmapInterpolationMode="HighQuality"/>
         <TextBlock Text="&#xE734;" FontSize="10" Foreground="#C9C9CE" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-8,0"
-                   IsVisible="{Binding DataContext.PinMode, RelativeSource={RelativeSource AncestorType=UserControl}}" Classes="Glyph"/>
+                   IsVisible="{Binding $parent[UserControl].((vm:LauncherViewModel)DataContext).PinMode}" Classes="Glyph"/>
         <TextBlock Text="&#xE735;" FontSize="10" Foreground="#FFAE54" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-8,0"
                    IsVisible="{Binding Pinned}" Classes="Glyph"/>
        </Grid>
@@ -43,17 +43,17 @@
   <Grid Grid.Row="1" Margin="0,8,0,0" IsVisible="{Binding ShowsCommands}">
    <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
    <ListBox ItemsSource="{Binding Commands}" Classes="Bare">
-    <ListBox.ItemTemplate><DataTemplate>
+    <ListBox.ItemTemplate><DataTemplate x:DataType="vm:CommandItem">
      <Grid Margin="6,0">
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
        <TextBlock Text="{Binding Name}" FontSize="12.5" TextTrimming="CharacterEllipsis"/>
        <TextBlock Text="{Binding Command}" FontFamily="Cascadia Mono, Consolas" TextTrimming="CharacterEllipsis" Classes="Caption"/>
       </StackPanel>
-      <Button Grid.Column="1" Command="{Binding DataContext.RunCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Common.Run}" Classes="Nav Small">
+      <Button Grid.Column="1" Command="{Binding $parent[UserControl].((vm:LauncherViewModel)DataContext).RunCommand}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Common.Run}" Classes="Nav Small">
        <TextBlock Text="&#xE768;" FontSize="12" Foreground="#FFAE54" Classes="Glyph"/>
       </Button>
-      <Button Grid.Column="2" Command="{Binding DataContext.RemoveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Common.Delete}" Classes="Nav Small">
+      <Button Grid.Column="2" Command="{Binding $parent[UserControl].((vm:LauncherViewModel)DataContext).RemoveCommand}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Common.Delete}" Classes="Nav Small">
        <TextBlock Text="&#xE74D;" FontSize="12" Foreground="#77777D" Classes="Glyph"/>
       </Button>
      </Grid>

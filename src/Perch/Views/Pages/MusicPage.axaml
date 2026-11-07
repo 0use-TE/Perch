@@ -1,4 +1,4 @@
-<UserControl x:Class="Perch.Views.Pages.MusicPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<UserControl x:Class="Perch.Views.Pages.MusicPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:Perch.ViewModels" x:DataType="vm:MusicViewModel">
  <!-- DataContext is the music view model (Windows media controls). -->
  <Grid>
   <!-- Nothing registered with the media controls -->

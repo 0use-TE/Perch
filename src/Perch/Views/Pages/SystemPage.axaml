@@ -1,4 +1,4 @@
-<UserControl x:Class="Perch.Views.Pages.SystemPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<UserControl x:Class="Perch.Views.Pages.SystemPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:Perch.ViewModels" x:DataType="vm:SystemMonitorViewModel">
  <!-- DataContext is the system monitor view model. -->
  <Grid>
   <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>

@@ -1,6 +1,7 @@
 using System.Globalization;
 using Avalonia;
-using Avalonia.Markup.Xaml.Styling;
+using Avalonia.Controls;
+using Perch.Strings;
 
 namespace Perch.Services;
 
@@ -13,7 +14,7 @@ public sealed record LanguageOption(string Code, string Name);
 public static class Loc
 {
     public static readonly LanguageOption[] Available = [new("en", "English"), new("zh-CN", "简体中文")];
-    private static ResourceInclude? english, selected;
+    private static ResourceDictionary? english, selected;
 
     public static string Code { get; private set; } = "en";
     public static CultureInfo Culture { get; private set; } = CultureInfo.GetCultureInfo("en-US");
@@ -47,7 +48,12 @@ public static class Loc
         if (changed) Changed?.Invoke();
     }
 
-    private static ResourceInclude Load(string code) => new(new Uri("avares://Perch/")) { Source = new Uri($"avares://Perch/Strings/{code}.axaml") };
+    // Add a case here when adding a language file (see the note above).
+    private static ResourceDictionary Load(string code) => code switch
+    {
+        "zh-CN" => new ChineseStrings(),
+        _ => new EnglishStrings(),
+    };
 
     public static string T(string key)
     {

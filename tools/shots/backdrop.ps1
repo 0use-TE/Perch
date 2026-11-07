@@ -4,7 +4,7 @@ Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 $f = New-Object Windows.Forms.Form
 $f.FormBorderStyle = 'None'; $f.StartPosition = 'Manual'
 $b = [Windows.Forms.Screen]::PrimaryScreen.Bounds
-$f.Bounds = $b; $f.TopMost = $true; $f.ShowInTaskbar = $false; $f.BackColor = [Drawing.Color]::FromArgb(40, 30, 90)
+$f.Bounds = $b; $f.TopMost = $false; $f.ShowInTaskbar = $false; $f.BackColor = [Drawing.Color]::FromArgb(40, 30, 90)
 $f.Add_Paint({
   param($s, $e)
   $g = $e.Graphics; $g.SmoothingMode = 'AntiAlias'
@@ -22,6 +22,7 @@ $f.Add_Paint({
     $g.FillPath($pg, $path)
   }
 })
+$f.Add_Shown({ $f.Activate(); New-Item ($Flag + '.ready') -ItemType File -Force | Out-Null })
 $started = Get-Date
 $t = New-Object Windows.Forms.Timer; $t.Interval = 300
 $t.Add_Tick({ if ((Test-Path $Flag) -or ((Get-Date) - $started).TotalSeconds -gt $MaxSeconds) { $f.Close() } })

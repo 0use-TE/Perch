@@ -1,4 +1,4 @@
-<UserControl x:Class="Perch.Views.Pages.InfoPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<UserControl x:Class="Perch.Views.Pages.InfoPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:Perch.ViewModels" x:DataType="vm:IslandViewModel">
  <!-- DataContext is the island view model: weather on the left, battery and network on the right. -->
  <Grid>
   <Grid.ColumnDefinitions><ColumnDefinition Width="226"/><ColumnDefinition Width="*"/><ColumnDefinition Width="156"/></Grid.ColumnDefinitions>
@@ -14,7 +14,7 @@
   </StackPanel>
   <ItemsControl Grid.Column="1" DataContext="{Binding Weather}" ItemsSource="{Binding Days}" VerticalAlignment="Center" Margin="8,0">
    <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="5" Rows="1"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-   <ItemsControl.ItemTemplate><DataTemplate>
+   <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:WeatherDay">
     <Border Margin="3,0" Padding="4,12" Classes="Card">
      <StackPanel HorizontalAlignment="Center">
       <TextBlock Text="{Binding Label}" HorizontalAlignment="Center" Classes="Caption"/>

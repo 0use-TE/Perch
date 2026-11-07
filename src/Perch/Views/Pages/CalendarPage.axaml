@@ -1,4 +1,4 @@
-<UserControl x:Class="Perch.Views.Pages.CalendarPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<UserControl x:Class="Perch.Views.Pages.CalendarPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:Perch.ViewModels" x:DataType="vm:CalendarViewModel">
  <!-- DataContext is the calendar view model (events from .ics links). -->
  <Grid>
   <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="*"/></Grid.RowDefinitions>
@@ -10,7 +10,7 @@
   <TextBlock Grid.Row="1" Text="{DynamicResource Cal.Nothing}" HorizontalAlignment="Center" Margin="0,30,0,0" IsVisible="{Binding IsEmpty}" Classes="Placeholder"/>
   <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Focusable="False" Margin="0,6,0,0">
    <ItemsControl ItemsSource="{Binding Rows}">
-    <ItemsControl.ItemTemplate><DataTemplate>
+    <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:CalendarRow">
      <StackPanel>
       <TextBlock Text="{Binding DayLabel}" Margin="4,10,0,4" IsVisible="{Binding ShowDay}" Classes="Caption"/>
       <Grid Margin="4,3,4,3">

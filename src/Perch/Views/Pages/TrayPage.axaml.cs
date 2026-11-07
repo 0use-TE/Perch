@@ -49,11 +49,9 @@ public partial class TrayPage : UserControl
         {
             IStorageItem? item = file.IsFolder ? await top.StorageProvider.TryGetFolderFromPathAsync(file.FullPath) : await top.StorageProvider.TryGetFileFromPathAsync(file.FullPath);
             if (item == null) return;
-#pragma warning disable CS0618
-            var data = new DataObject();
-            data.Set(DataFormats.Files, new[] { item });
-            var result = await DragDrop.DoDragDrop(pressedEvent, data, DragDropEffects.Copy | DragDropEffects.Move | DragDropEffects.Link);
-#pragma warning restore CS0618
+            var data = new DataTransfer();
+            data.Add(DataTransferItem.CreateFile(item));
+            var result = await DragDrop.DoDragDropAsync(pressedEvent, data, DragDropEffects.Copy | DragDropEffects.Move | DragDropEffects.Link);
             if (result.HasFlag(DragDropEffects.Move) && !file.Exists) tray.RemoveFile(file);
         }
         finally { DraggingOut = false; }

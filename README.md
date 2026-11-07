@@ -1,6 +1,6 @@
 # 栖点 Perch
 
-Windows 顶部效率岛，C# / Avalonia 11 / .NET 10（仅 Windows）。当前版本先完成核心显示、布局和交互。
+Windows 顶部效率岛，C# / Avalonia 12 / .NET 10（仅 Windows）。当前版本先完成核心显示、布局和交互。
 
 ## 构建与运行
 
@@ -20,6 +20,20 @@ dotnet publish src/Perch/Perch.csproj -c Release -r win-arm64 --self-contained f
 # 如需包含运行时：
 dotnet publish src/Perch/Perch.csproj -c Release -r win-x64 --self-contained true -o artifacts/Perch-win-x64-standalone
 ```
+
+### Native AOT 单文件（无需安装 .NET，启动更快）
+
+需要 Visual Studio 的“使用 C++ 的桌面开发”工作负载（ARM64 目标还要勾选“MSVC ARM64 生成工具”）。AOT 构建会自动引用 [StaticLink.Avalonia](https://github.com/0use-TE/StaticLink.Avalonia)，把 SkiaSharp、HarfBuzz 等原生库静态链接进 `Perch.exe`，所以发布结果只有这一个文件。
+
+```powershell
+# 如果提示找不到 vswhere，先把 VS Installer 目录加入 PATH：
+$env:PATH += ";${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer"
+dotnet publish src/Perch/Perch.csproj -c Release -r win-x64 -p:PublishAot=true -o artifacts/Perch-win-x64-aot
+```
+
+输出目录里的 `.pdb` 是调试符号（体积很大），分发时只需要 `Perch.exe`。`StaticLink.Avalonia` 的版本要和 SkiaSharp 对应（Avalonia 12 → `3.119.4-7922.1`），升级 Avalonia 时记得按它的版本表一起改。
+
+AOT 版约 37 MB，把 `Perch.exe` 单独复制到空文件夹也能运行，窗口约 0.4 秒出现，构建 0 警告。界面全部使用编译绑定（每个 XAML 都声明了 `x:DataType`，绑定错误在编译期就会报出）；设置/状态文件使用源生成的 JSON；语言文件编译成类；音频会话检测使用源生成的 COM（`[GeneratedComInterface]`），因为传统 `[ComImport]` 在 AOT 下不可用。已验证（单独的 exe）：启动、各页数据绑定、悬停展开与收起、设置读写与真实点击、运行中切换语言、剪贴板捕获。ARM64 AOT 在没有 ARM64 C++ 工具链的机器上无法链接，尚未构建；托盘、全局快捷键、音乐控制（WinRT）、文件拖放、毛玻璃在 AOT 版里没有逐项测过。
 
 ## 显示与布局
 
@@ -74,7 +88,7 @@ dotnet publish src/Perch/Perch.csproj -c Release -r win-x64 --self-contained tru
 - 透明岛不启用系统背景材质，避免与分层窗口透明区域冲突；控件仍使用真正的 Fluent 资源与模板。
 - 时钟按下一分钟边界更新，隐藏时暂停；动画结束后移除逐帧回调；退出释放托盘、消息钩子、GDI 区域和计时器。
 
-界面框架为 Avalonia 11（`Avalonia.Desktop` + `Avalonia.Themes.Fluent`）；WinRT 能力（Windows.Media.Control / Appointments / Geolocation）仍通过 `net10.0-windows10.0.19041.0` 目标框架直接调用。
+界面框架为 Avalonia 12（`Avalonia.Desktop` + `Avalonia.Themes.Fluent`）；WinRT 能力（Windows.Media.Control / Appointments / Geolocation）仍通过 `net10.0-windows10.0.19041.0` 目标框架直接调用。
 
 ## 验证
 

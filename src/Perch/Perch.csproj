@@ -9,14 +9,17 @@
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\perch.ico</ApplicationIcon>
-    <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="11.3.22" />
-    <PackageReference Include="Avalonia.Desktop" Version="11.3.22" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.22" />
+    <PackageReference Include="Avalonia" Version="12.0.0" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.0.0" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.0" />
+    <!-- Linux-only D-Bus dependency of Avalonia.Desktop, pinned to a release that fixes GHSA-xrw6-gwf8-vvr9 (not used on Windows). -->
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.2" />
     <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
   </ItemGroup>
   <ItemGroup>
@@ -31,9 +34,23 @@
     <DebuggerSupport>false</DebuggerSupport>
     <EventSourceSupport>false</EventSourceSupport>
   </PropertyGroup>
+  <ItemGroup Condition="'$(PublishAot)' == 'true'">
+    <!-- Links SkiaSharp, HarfBuzz and the other native libraries into Perch.exe: a single file. Version matches SkiaSharp 3.119.4 (Avalonia 12). -->
+    <PackageReference Include="StaticLink.Avalonia" Version="3.119.4-7922.1" />
+  </ItemGroup>
   <ItemGroup Condition="'$(PublishTrimmed)' == 'true'">
     <!-- Bindings are looked up by name at run time, so everything in this assembly stays. -->
     <TrimmerRootAssembly Include="Perch" />
   </ItemGroup>
 
+
+  <!-- Native AOT: dotnet publish -c Release -r win-x64 -p:PublishAot=true -->
+  <PropertyGroup Condition="'$(PublishAot)' == 'true'">
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+    <IlcOptimizationPreference>Size</IlcOptimizationPreference>
+    <DebuggerSupport>false</DebuggerSupport>
+    <EventSourceSupport>false</EventSourceSupport>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
 </Project>

@@ -1,8 +1,14 @@
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Avalonia.Threading;
 
 namespace Perch.Services;
+
+// Source-generated JSON: no run-time reflection, so it also works with Native AOT and trimming.
+[JsonSourceGenerationOptions(WriteIndented = true)]
+[JsonSerializable(typeof(AppState))]
+internal sealed partial class StateJson : JsonSerializerContext;
 
 public sealed class Settings
 {
@@ -121,7 +127,6 @@ public sealed class Store
     // PERCH_DATA redirects the state folder (used for side-by-side testing without touching the real settings).
     private static readonly string Folder = Environment.GetEnvironmentVariable("PERCH_DATA") is { Length: > 0 } custom ? custom : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Perch");
     private static readonly string FilePath = Path.Combine(Folder, "state.json");
-    private static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
     private readonly DispatcherTimer debounce = new() { Interval = TimeSpan.FromMilliseconds(800) };
     public AppState State { get; }
     // View models copy their live collections into State here, right before the file is written.
@@ -158,7 +163,7 @@ public sealed class Store
     {
         try
         {
-            if (File.Exists(FilePath)) return JsonSerializer.Deserialize<AppState>(File.ReadAllText(FilePath), Options) ?? new();
+            if (File.Exists(FilePath)) return JsonSerializer.Deserialize(File.ReadAllText(FilePath), StateJson.Default.AppState) ?? new();
         }
         catch
         {
@@ -177,7 +182,7 @@ public sealed class Store
             Saving?.Invoke();
             Directory.CreateDirectory(Folder);
             var temp = FilePath + ".tmp";
-            File.WriteAllText(temp, JsonSerializer.Serialize(State, Options));
+            File.WriteAllText(temp, JsonSerializer.Serialize(State, StateJson.Default.AppState));
             File.Move(temp, FilePath, true);
         }
         catch { }

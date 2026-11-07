@@ -110,7 +110,7 @@ public partial class IslandWindow : Window
         AddHandler(DragDrop.DragEnterEvent, OnDragEnter);
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
         AddHandler(DragDrop.DropEvent, OnDrop);
-        Deactivated += (_, _) => { host?.Passive(); FocusManager?.ClearFocus(); controller.Edit(false); };
+        Deactivated += (_, _) => { host?.Passive(); FocusManager?.Focus(null); controller.Edit(false); };
         clock.Tick += OnClock;
         PropertyChanged += (_, e) => { if (e.Property == IsVisibleProperty) { if (IsVisible) RefreshClock(); else clock.Stop(); } };
         Opened += OnSourceReady;
@@ -175,7 +175,7 @@ public partial class IslandWindow : Window
     private void OnOutsideWatch(object? sender, EventArgs e)
     {
         if (menuOpen || (GetAsyncKeyState(0x01) & 0x8000) == 0 || CursorOverIsland()) return;
-        FocusManager?.ClearFocus();
+        FocusManager?.Focus(null);
         controller.Collapse();
     }
 
@@ -402,7 +402,7 @@ public partial class IslandWindow : Window
 
     private void OnTab(object? sender, RoutedEventArgs e)
     {
-        FocusManager?.ClearFocus();
+        FocusManager?.Focus(null);
         controller.Edit(false);
         SelectPage(int.Parse((string)((Button)sender!).Tag!));
     }
@@ -579,8 +579,7 @@ public partial class IslandWindow : Window
     }
 
     // Dragging files over the island opens the file shelf; dropping keeps them there.
-#pragma warning disable CS0618
-    private static bool HasFiles(DragEventArgs e) => e.Data.Contains(DataFormats.Files);
+    private static bool HasFiles(DragEventArgs e) => e.DataTransfer.Contains(DataFormat.File);
 
     private void OnDragEnter(object? sender, DragEventArgs e)
     {
@@ -601,11 +600,10 @@ public partial class IslandWindow : Window
     private void OnDrop(object? sender, DragEventArgs e)
     {
         e.Handled = true;
-        if (!store.State.Settings.ShowTray || TrayPage.DraggingOut || e.Data.GetFiles() is not { } items) return;
-        var files = items.Select(i => i.Path.LocalPath).Where(p => p != null).Select(p => p!).ToArray();
+        if (!store.State.Settings.ShowTray || TrayPage.DraggingOut || e.DataTransfer.TryGetFiles() is not { } items) return;
+        var files = items.Select(i => i.Path?.LocalPath).Where(p => p != null).Select(p => p!).ToArray();
         if (files.Length > 0) model.Tray.Add(files);
     }
-#pragma warning restore CS0618
 
     // During and after a drag the pointer-leave event isn't reported, so the cursor is checked against the outline.
     private bool CursorOverIsland()
@@ -681,7 +679,7 @@ public partial class IslandWindow : Window
         menuSettings.Click += (_, _) => OpenSettings();
         NativeMenuItem Toggle(bool initial, Action<bool> changed)
         {
-            var item = new NativeMenuItem { ToggleType = NativeMenuItemToggleType.CheckBox, IsChecked = initial };
+            var item = new NativeMenuItem { ToggleType = MenuItemToggleType.CheckBox, IsChecked = initial };
             item.Click += (_, _) => changed(item.IsChecked);
             return item;
         }

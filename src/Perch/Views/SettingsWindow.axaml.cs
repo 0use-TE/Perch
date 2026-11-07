@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
@@ -50,7 +51,11 @@ public partial class SettingsWindow : Window
         GlassSlider.PropertyChanged += (_, e) => { if (e.Property == RangeBase.ValueProperty) Changed(); };
         ExpandDelaySlider.PropertyChanged += (_, e) => { if (e.Property == RangeBase.ValueProperty) Changed(); };
         CollapseDelaySlider.PropertyChanged += (_, e) => { if (e.Property == RangeBase.ValueProperty) Changed(); };
-        LanguageBox.SelectionChanged += (_, _) => Changed();
+        LanguageBox.SelectionChanged += (_, _) =>
+        {
+            if (!fillingLanguages && LanguageBox.SelectedItem is LanguageOption option) settings.Language = option.Code;
+            Changed();
+        };
         Sidebar.AddHandler(ToggleButton.IsCheckedChangedEvent, OnPage);
         PlaceBox.PropertyChanged += (_, e) => { if (e.Property == TextBox.TextProperty) OnPlaceTextChanged(); };
         PlaceResults.SelectionChanged += OnPlaceChosen;
@@ -105,16 +110,20 @@ public partial class SettingsWindow : Window
         {
             LanguageBox.ItemsSource = new[] { new LanguageOption("", Loc.T("Settings.LanguageSystem")) }.Concat(Loc.Available).ToList();
             settings.Language = current;
-            LanguageBox.SelectedValue = current;
+            SelectLanguage();
         }
         finally { fillingLanguages = false; }
     }
+
+    private void SelectLanguage() => LanguageBox.SelectedItem = (LanguageBox.ItemsSource as IEnumerable<LanguageOption>)?.FirstOrDefault(o => o.Code == settings.Language);
 
     // Called when something else (the right-click menu) changed a setting while this window is open.
     public void Refresh()
     {
         DataContext = null;
         DataContext = settings;
+        fillingLanguages = true;
+        try { SelectLanguage(); } finally { fillingLanguages = false; }
         ApplyChrome();
         RefreshPreview();
     }
@@ -147,6 +156,7 @@ public partial class SettingsWindow : Window
 
     // Segmented choices (shape, material, expand/collapse, theme): the radio buttons only show the current value;
     // a click writes the value its Tag names ("Property|value") into the settings.
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(Settings))] // the property is looked up by name
     private void OnSegment(object? sender, RoutedEventArgs e)
     {
         if (sender is not RadioButton { Tag: string tag }) return;

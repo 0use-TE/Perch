@@ -1,4 +1,4 @@
-<UserControl x:Class="Perch.Views.Pages.NotesPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<UserControl x:Class="Perch.Views.Pages.NotesPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:Perch.ViewModels" x:DataType="vm:NotesViewModel">
  <Grid>
   <Grid.ColumnDefinitions><ColumnDefinition Width="196"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
   <Grid>
@@ -6,7 +6,7 @@
    <TextBlock Text="{DynamicResource Nav.Notes}" FontSize="12" VerticalAlignment="Center" Margin="4,0,0,0" Classes="Caption"/>
    <Button HorizontalAlignment="Right" Command="{Binding New}" ToolTip.Tip="{DynamicResource Notes.New}" AutomationProperties.Name="{DynamicResource Notes.New}" Classes="Nav Small"><TextBlock Text="&#xE710;" FontSize="13" Classes="Glyph"/></Button>
    <ListBox Grid.Row="1" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected, Mode=TwoWay}" Classes="Bare Selectable">
-    <ListBox.ItemTemplate><DataTemplate>
+    <ListBox.ItemTemplate><DataTemplate x:DataType="vm:NoteItem">
      <Grid Margin="10,6">
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
       <StackPanel>

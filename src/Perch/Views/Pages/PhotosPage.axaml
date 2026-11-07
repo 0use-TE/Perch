@@ -1,4 +1,4 @@
-<UserControl x:Class="Perch.Views.Pages.PhotosPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<UserControl x:Class="Perch.Views.Pages.PhotosPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:Perch.ViewModels" x:DataType="vm:PhotosViewModel">
  <Grid>
   <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="*"/></Grid.RowDefinitions>
   <Grid>
@@ -11,8 +11,8 @@
   <ScrollViewer x:Name="Scroller" Grid.Row="1" Margin="0,8,0,0" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" Focusable="False">
    <ItemsControl ItemsSource="{Binding Items}">
     <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-    <ItemsControl.ItemTemplate><DataTemplate>
-     <Button Margin="0,0,8,0" Command="{Binding DataContext.Open, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" ToolTip.Tip="{Binding FullPath}" Classes="Tile">
+    <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PhotoItem">
+     <Button Margin="0,0,8,0" Command="{Binding $parent[UserControl].((vm:PhotosViewModel)DataContext).Open}" CommandParameter="{Binding}" ToolTip.Tip="{Binding FullPath}" Classes="Tile">
       <Border Width="124" Height="124" CornerRadius="12" Background="#18181A">
        <Border CornerRadius="12">
         <Border.Background><ImageBrush Source="{Binding Thumbnail}" Stretch="UniformToFill"/></Border.Background>

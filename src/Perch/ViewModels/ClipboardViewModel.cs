@@ -71,11 +71,9 @@ public sealed class ClipboardViewModel : Observable
         try
         {
             if (Ui.Clipboard is not { } clipboard) return;
-#pragma warning disable CS0618 // the replacement API has a different shape; this one works on Windows
-            var formats = await clipboard.GetFormatsAsync();
-            if (formats.Contains("ExcludeClipboardContentFromMonitorProcessing")) return; // password managers set this
-            if (await clipboard.GetTextAsync() is not { } text) return;
-#pragma warning restore CS0618
+            var formats = await clipboard.GetDataFormatsAsync();
+            if (formats.Any(format => format.Identifier == "ExcludeClipboardContentFromMonitorProcessing")) return; // password managers set this
+            if (await clipboard.TryGetTextAsync() is not { } text) return;
             if (string.IsNullOrWhiteSpace(text) || text.Length > 100_000) return;
             if (ownCopy != null && ownCopy == text) { ownCopy = null; return; } // what we just put back ourselves
             var same = Items.FirstOrDefault(item => item.Text == text);

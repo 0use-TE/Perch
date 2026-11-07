@@ -1,8 +1,8 @@
-<Window x:Class="Perch.Views.IslandWindow" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:pages="using:Perch.Views.Pages"
- Title="{DynamicResource App.Title}" Width="248" Height="36" SystemDecorations="None" CanResize="False" TransparencyLevelHint="Transparent" Background="Transparent" Topmost="True" ShowInTaskbar="False" ShowActivated="False" Focusable="False" UseLayoutRounding="True"
+<Window x:Class="Perch.Views.IslandWindow" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:pages="using:Perch.Views.Pages" xmlns:vm="using:Perch.ViewModels" x:DataType="vm:IslandViewModel"
+ Title="{DynamicResource App.Title}" Width="872" Height="294" WindowDecorations="None" CanResize="False" TransparencyLevelHint="Transparent" Background="Transparent" Topmost="True" ShowInTaskbar="False" ShowActivated="False" Focusable="False" UseLayoutRounding="True"
  RequestedThemeVariant="Dark" Foreground="#F5F5F5" FontFamily="Segoe UI Variable Text, Microsoft YaHei UI">
  <Canvas x:Name="Stage" Background="Transparent">
-  <Grid x:Name="Shell" Width="248" Height="36">
+  <Grid x:Name="Shell" Width="872" Height="294" Canvas.Left="0" Canvas.Top="0">
    <Border x:Name="ShellBackdrop" IsHitTestVisible="False" IsVisible="False"/>
    <Path x:Name="ShellOutline" Fill="Black"/>
    <Grid x:Name="ShellContent">
@@ -53,7 +53,7 @@
        <StackPanel Grid.Column="1" Width="168" HorizontalAlignment="Left" Margin="0,9,0,0">
         <TextBlock Text="{Binding MonthTitle}" FontSize="11" Foreground="#9C9CA4" Margin="3,0,0,9"/>
         <UniformGrid Columns="7" Margin="0,0,0,4"><UniformGrid.Styles><Style Selector="TextBlock"><Setter Property="FontSize" Value="9"/><Setter Property="Foreground" Value="#68686E"/><Setter Property="HorizontalAlignment" Value="Center"/></Style></UniformGrid.Styles><TextBlock Text="{DynamicResource Week.Mon}"/><TextBlock Text="{DynamicResource Week.Tue}"/><TextBlock Text="{DynamicResource Week.Wed}"/><TextBlock Text="{DynamicResource Week.Thu}"/><TextBlock Text="{DynamicResource Week.Fri}"/><TextBlock Text="{DynamicResource Week.Sat}"/><TextBlock Text="{DynamicResource Week.Sun}"/></UniformGrid>
-        <ItemsControl ItemsSource="{Binding CalendarDays}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="7"/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate>
+        <ItemsControl ItemsSource="{Binding CalendarDays}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="7"/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:CalendarDay">
          <Border Width="20" Height="18" CornerRadius="5" Margin="1,1" Background="{Binding Today, Converter={StaticResource Pick}, ConverterParameter=#FFAE54|#19191B}" Opacity="{Binding Blank, Converter={StaticResource Pick}, ConverterParameter=0|1}">
           <TextBlock Text="{Binding Label}" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{Binding Today, Converter={StaticResource Pick}, ConverterParameter=#1A1208|#A1A1A7}" FontWeight="{Binding Today, Converter={StaticResource Pick}, ConverterParameter=Bold|Normal}"/>
          </Border>

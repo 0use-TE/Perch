@@ -1,4 +1,4 @@
-<UserControl x:Class="Perch.Views.Pages.TodoPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<UserControl x:Class="Perch.Views.Pages.TodoPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:Perch.ViewModels" x:DataType="vm:TodoViewModel">
  <Grid>
   <Grid.RowDefinitions><RowDefinition Height="30"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
 
@@ -40,7 +40,7 @@
   <Grid Grid.Row="2" Margin="0,8,0,0">
    <!-- List and day view -->
    <ListBox ItemsSource="{Binding Visible}" IsVisible="{Binding ShowsList}" Classes="Bare">
-    <ListBox.ItemTemplate><DataTemplate>
+    <ListBox.ItemTemplate><DataTemplate x:DataType="vm:TodoItem">
      <Grid Margin="4,0">
       <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
       <CheckBox IsChecked="{Binding Done}" VerticalAlignment="Center" Focusable="False" Margin="0,0,10,0" MinWidth="0" AutomationProperties.Name="{DynamicResource Todo.Complete}"/>
@@ -48,7 +48,7 @@
       <Border Grid.Column="2" CornerRadius="8" Padding="7,1" Margin="8,0" Background="#1E1E20" VerticalAlignment="Center" IsVisible="{Binding HasDue}">
        <TextBlock Text="{Binding DueLabel}" FontSize="10.5" Foreground="{Binding IsOverdue, Converter={StaticResource Pick}, ConverterParameter=#FF8A70|#A1A1A7}"/>
       </Border>
-      <Button Grid.Column="3" Command="{Binding DataContext.Delete, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Common.Delete}" Classes="Nav Small">
+      <Button Grid.Column="3" Command="{Binding $parent[UserControl].((vm:TodoViewModel)DataContext).Delete}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Common.Delete}" Classes="Nav Small">
        <TextBlock Text="&#xE74D;" FontSize="12" Foreground="#77777D" Classes="Glyph"/>
       </Button>
      </Grid>
@@ -59,12 +59,12 @@
    <!-- Week view: one column per day -->
    <ItemsControl ItemsSource="{Binding Week}" IsVisible="{Binding ViewWeek}">
     <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="7" Rows="1"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-    <ItemsControl.ItemTemplate><DataTemplate>
-     <Button Margin="2,0" Background="{DynamicResource IslandCard}" Padding="8,6" Command="{Binding DataContext.OpenDay, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Date}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Top" Classes="Tile">
+    <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:WeekColumn">
+     <Button Margin="2,0" Background="{DynamicResource IslandCard}" Padding="8,6" Command="{Binding $parent[UserControl].((vm:TodoViewModel)DataContext).OpenDay}" CommandParameter="{Binding Date}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Top" Classes="Tile">
       <StackPanel>
        <TextBlock FontSize="11"><Run Text="{Binding Weekday, Mode=OneWay}" Foreground="#8A8A90"/><Run Text=" "/><Run Text="{Binding Day, Mode=OneWay}" Foreground="{Binding Today, Converter={StaticResource Pick}, ConverterParameter=#FFAE54|#E0E0E4}"/></TextBlock>
        <ItemsControl ItemsSource="{Binding Items}" Margin="0,5,0,0">
-        <ItemsControl.ItemTemplate><DataTemplate>
+        <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:TodoItem">
          <TextBlock Text="{Binding Text}" FontSize="11" TextTrimming="CharacterEllipsis" Margin="0,1" Foreground="#C9C9CE" TextDecorations="{Binding Done, Converter={StaticResource Pick}, ConverterParameter=Strikethrough|None}" Opacity="{Binding Done, Converter={StaticResource Pick}, ConverterParameter=0.4|1}"/>
         </DataTemplate></ItemsControl.ItemTemplate>
        </ItemsControl>
@@ -82,8 +82,8 @@
     </UniformGrid>
     <ItemsControl Grid.Row="1" ItemsSource="{Binding Month}">
      <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="7"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-     <ItemsControl.ItemTemplate><DataTemplate>
-      <Button Margin="2,1" Padding="8,0" Command="{Binding DataContext.OpenDay, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Date}" Classes="Tile" Background="{Binding Today, Converter={StaticResource Pick}, ConverterParameter=#3A2814|#121213}" Opacity="{Binding InMonth, Converter={StaticResource Pick}, ConverterParameter=1|0.35}">
+     <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:MonthCell">
+      <Button Margin="2,1" Padding="8,0" Command="{Binding $parent[UserControl].((vm:TodoViewModel)DataContext).OpenDay}" CommandParameter="{Binding Date}" Classes="Tile" Background="{Binding Today, Converter={StaticResource Pick}, ConverterParameter=#3A2814|#121213}" Opacity="{Binding InMonth, Converter={StaticResource Pick}, ConverterParameter=1|0.35}">
        <Grid>
         <TextBlock Text="{Binding Day}" FontSize="10.5" Foreground="#C9C9CE" VerticalAlignment="Center"/>
         <TextBlock Text="{Binding Count}" FontSize="10" Foreground="#FFAE54" HorizontalAlignment="Right" VerticalAlignment="Center" IsVisible="{Binding HasItems}"/>

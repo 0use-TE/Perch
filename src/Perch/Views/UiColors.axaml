@@ -29,7 +29,7 @@
     <SolidColorBrush x:Key="Ui.MenuText" Color="#F2F2F4"/>
     </ResourceDictionary>
     <ResourceDictionary x:Key="Light">
-    <SolidColorBrush x:Key="Ui.Tint" Color="#78F4F4F6"/>
+    <SolidColorBrush x:Key="Ui.Tint" Color="#E8F4F4F6"/>
     <SolidColorBrush x:Key="Ui.Fallback" Color="#FFF3F3F6"/>
     <SolidColorBrush x:Key="Ui.Sidebar" Color="#30FFFFFF"/>
     <SolidColorBrush x:Key="Ui.Text" Color="#16161A"/>

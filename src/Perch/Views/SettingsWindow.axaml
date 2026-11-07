@@ -75,15 +75,15 @@
        <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <TextBlock Text="{DynamicResource Set.Form}" Classes="RowTitle"/>
         <Border Grid.Column="1" Classes="Segmented"><StackPanel Orientation="Horizontal">
-         <RadioButton GroupName="form" Content="{DynamicResource Set.FormStandard}" IsChecked="{Binding Shape, Converter={StaticResource StrEq}, ConverterParameter=standard}" Classes="Segment"/>
-         <RadioButton GroupName="form" Content="{DynamicResource Set.FormCapsule}" IsChecked="{Binding Shape, Converter={StaticResource StrEq}, ConverterParameter=capsule}" Classes="Segment"/>
+         <RadioButton Content="{DynamicResource Set.FormStandard}" IsChecked="{Binding Shape, Mode=OneTime, Converter={StaticResource StrEq}, ConverterParameter=standard}" GroupName="segShape" Tag="Shape|standard" Click="OnSegment" Classes="Segment"/>
+         <RadioButton Content="{DynamicResource Set.FormCapsule}" IsChecked="{Binding Shape, Mode=OneTime, Converter={StaticResource StrEq}, ConverterParameter=capsule}" GroupName="segShape" Tag="Shape|capsule" Click="OnSegment" Classes="Segment"/>
         </StackPanel></Border></Grid>
        <Border Classes="Divider"/>
        <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <TextBlock Text="{DynamicResource Set.Appearance}" Classes="RowTitle"/>
         <Border Grid.Column="1" Classes="Segmented"><StackPanel Orientation="Horizontal">
-         <RadioButton GroupName="look" Content="{DynamicResource Set.Solid}" IsChecked="{Binding Appearance, Converter={StaticResource StrEq}, ConverterParameter=black}" Classes="Segment"/>
-         <RadioButton GroupName="look" Content="{DynamicResource Set.Glass}" IsChecked="{Binding Appearance, Converter={StaticResource StrEq}, ConverterParameter=glass}" Classes="Segment"/>
+         <RadioButton Content="{DynamicResource Set.Solid}" IsChecked="{Binding Appearance, Mode=OneTime, Converter={StaticResource StrEq}, ConverterParameter=black}" GroupName="segAppearance" Tag="Appearance|black" Click="OnSegment" Classes="Segment"/>
+         <RadioButton Content="{DynamicResource Set.Glass}" IsChecked="{Binding Appearance, Mode=OneTime, Converter={StaticResource StrEq}, ConverterParameter=glass}" GroupName="segAppearance" Tag="Appearance|glass" Click="OnSegment" Classes="Segment"/>
         </StackPanel></Border></Grid>
        <Border Classes="Divider"/>
        <Grid x:Name="GlassRow" Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -97,15 +97,15 @@
        <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <TextBlock Text="{DynamicResource Set.Expand}" Classes="RowTitle"/>
         <Border Grid.Column="1" Classes="Segmented"><StackPanel Orientation="Horizontal">
-         <RadioButton GroupName="open" Content="{DynamicResource Set.ExpandHover}" IsChecked="{Binding HoverExpand, Converter={StaticResource BoolChoice}, ConverterParameter=true}" Classes="Segment"/>
-         <RadioButton GroupName="open" Content="{DynamicResource Set.ExpandClick}" IsChecked="{Binding HoverExpand, Converter={StaticResource BoolChoice}, ConverterParameter=false}" Classes="Segment"/>
+         <RadioButton Content="{DynamicResource Set.ExpandHover}" IsChecked="{Binding HoverExpand, Mode=OneTime, Converter={StaticResource BoolChoice}, ConverterParameter=true}" GroupName="segHoverExpand" Tag="HoverExpand|true" Click="OnSegment" Classes="Segment"/>
+         <RadioButton Content="{DynamicResource Set.ExpandClick}" IsChecked="{Binding HoverExpand, Mode=OneTime, Converter={StaticResource BoolChoice}, ConverterParameter=false}" GroupName="segHoverExpand" Tag="HoverExpand|false" Click="OnSegment" Classes="Segment"/>
         </StackPanel></Border></Grid>
        <Border Classes="Divider"/>
        <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <StackPanel><TextBlock Text="{DynamicResource Set.Collapse}" Classes="RowTitle"/><TextBlock Text="{DynamicResource Set.CollapseDesc}" Classes="RowDesc"/></StackPanel>
         <Border Grid.Column="1" Classes="Segmented"><StackPanel Orientation="Horizontal">
-         <RadioButton GroupName="close" Content="{DynamicResource Set.CollapseLeave}" IsChecked="{Binding CollapseOnLeave, Converter={StaticResource BoolChoice}, ConverterParameter=true}" Classes="Segment"/>
-         <RadioButton GroupName="close" Content="{DynamicResource Set.CollapseClick}" IsChecked="{Binding CollapseOnLeave, Converter={StaticResource BoolChoice}, ConverterParameter=false}" Classes="Segment"/>
+         <RadioButton Content="{DynamicResource Set.CollapseLeave}" IsChecked="{Binding CollapseOnLeave, Mode=OneTime, Converter={StaticResource BoolChoice}, ConverterParameter=true}" GroupName="segCollapseOnLeave" Tag="CollapseOnLeave|true" Click="OnSegment" Classes="Segment"/>
+         <RadioButton Content="{DynamicResource Set.CollapseClick}" IsChecked="{Binding CollapseOnLeave, Mode=OneTime, Converter={StaticResource BoolChoice}, ConverterParameter=false}" GroupName="segCollapseOnLeave" Tag="CollapseOnLeave|false" Click="OnSegment" Classes="Segment"/>
         </StackPanel></Border></Grid>
        <Border Classes="Divider"/>
        <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -338,9 +338,9 @@
        <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <StackPanel><TextBlock Text="{DynamicResource Set.Theme}" Classes="RowTitle"/><TextBlock Text="{DynamicResource Set.ThemeDesc}" Classes="RowDesc"/></StackPanel>
         <Border Grid.Column="1" Classes="Segmented"><StackPanel Orientation="Horizontal">
-         <RadioButton GroupName="theme" Content="{DynamicResource Set.ThemeDark}" IsChecked="{Binding Theme, Converter={StaticResource StrEq}, ConverterParameter=dark}" Classes="Segment"/>
-         <RadioButton GroupName="theme" Content="{DynamicResource Set.ThemeLight}" IsChecked="{Binding Theme, Converter={StaticResource StrEq}, ConverterParameter=light}" Classes="Segment"/>
-         <RadioButton GroupName="theme" Content="{DynamicResource Set.ThemeSystem}" IsChecked="{Binding Theme, Converter={StaticResource StrEq}, ConverterParameter=system}" Classes="Segment"/>
+         <RadioButton Content="{DynamicResource Set.ThemeDark}" IsChecked="{Binding Theme, Mode=OneTime, Converter={StaticResource StrEq}, ConverterParameter=dark}" GroupName="segTheme" Tag="Theme|dark" Click="OnSegment" Classes="Segment"/>
+         <RadioButton Content="{DynamicResource Set.ThemeLight}" IsChecked="{Binding Theme, Mode=OneTime, Converter={StaticResource StrEq}, ConverterParameter=light}" GroupName="segTheme" Tag="Theme|light" Click="OnSegment" Classes="Segment"/>
+         <RadioButton Content="{DynamicResource Set.ThemeSystem}" IsChecked="{Binding Theme, Mode=OneTime, Converter={StaticResource StrEq}, ConverterParameter=system}" GroupName="segTheme" Tag="Theme|system" Click="OnSegment" Classes="Segment"/>
         </StackPanel></Border></Grid>
        <Border Classes="Divider"/>
        <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="200"/></Grid.ColumnDefinitions>

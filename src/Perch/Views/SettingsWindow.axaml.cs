@@ -140,6 +140,17 @@ public partial class SettingsWindow : Window
         Canvas.SetTop(PreviewTime, top);
     }
 
+    // Segmented choices (shape, material, expand/collapse, theme): the radio buttons only show the current value;
+    // a click writes the value its Tag names ("Property|value") into the settings.
+    private void OnSegment(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not RadioButton { Tag: string tag }) return;
+        var parts = tag.Split('|', 2);
+        var property = typeof(Settings).GetProperty(parts[0]);
+        if (property == null) return;
+        property.SetValue(settings, property.PropertyType == typeof(bool) ? bool.Parse(parts[1]) : parts[1]);
+    }
+
     private void OnPage(object? sender, RoutedEventArgs e)
     {
         if (e.Source is not RadioButton { GroupName: "page", IsChecked: true } selected || pages == null) return;

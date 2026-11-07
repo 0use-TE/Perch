@@ -66,7 +66,7 @@
       <!-- Live preview: the island as it looks closed, over a stand-in wallpaper. -->
       <Border CornerRadius="14" Height="112" Margin="0,0,0,20" ClipToBounds="True"><Border.Background><LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%"><GradientStop Color="#FF6A2B" Offset="0"/><GradientStop Color="#C0508A" Offset="0.5"/><GradientStop Color="#2E9FD6" Offset="1"/></LinearGradientBrush></Border.Background>
        <Canvas x:Name="PreviewStage" HorizontalAlignment="Center" Width="260" Height="112">
-        <Path x:Name="PreviewOutline"/><Path x:Name="PreviewGrain" IsHitTestVisible="False"/><Path x:Name="PreviewSheen" IsHitTestVisible="False"/>
+        <Path x:Name="PreviewOutline"/>
         <TextBlock x:Name="PreviewText" Text="Perch" FontSize="12" FontWeight="SemiBold" Foreground="White" Canvas.Left="44" Canvas.Top="9"/>
         <TextBlock x:Name="PreviewTime" Text="10:21" FontSize="12" Foreground="#C4C4CA" Canvas.Left="190" Canvas.Top="9"/>
        </Canvas></Border>

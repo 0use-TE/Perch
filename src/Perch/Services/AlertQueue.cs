@@ -22,7 +22,6 @@ public sealed class AlertQueue
         if (Current == null) Next();
     }
 
-    public void Dismiss() => Next();
 
     private void Next()
     {

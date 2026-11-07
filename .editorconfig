@@ -1,0 +1,13 @@
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{axaml,xaml,csproj,slnx,json}]
+indent_size = 1
+
+[*.cs]
+end_of_line = crlf
+csharp_style_namespace_declarations = file_scoped

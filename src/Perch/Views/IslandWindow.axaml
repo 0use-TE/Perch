@@ -5,8 +5,6 @@
   <Grid x:Name="Shell" Width="248" Height="36">
    <Border x:Name="ShellBackdrop" IsHitTestVisible="False" IsVisible="False"/>
    <Path x:Name="ShellOutline" Fill="Black"/>
-   <Path x:Name="ShellGrain" IsHitTestVisible="False" IsVisible="False"/>
-   <Path x:Name="ShellSheen" IsHitTestVisible="False" IsVisible="False"/>
    <Grid x:Name="ShellContent">
     <Grid x:Name="CompactHeader" Height="35" Width="176" VerticalAlignment="Top" HorizontalAlignment="Center" Background="Transparent">
      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>

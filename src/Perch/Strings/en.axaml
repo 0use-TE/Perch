@@ -175,10 +175,8 @@
  <sys:String x:Key="Settings.Title">Perch settings</sys:String>
  <sys:String x:Key="Settings.Language">Language</sys:String>
  <sys:String x:Key="Settings.LanguageSystem">Match Windows</sys:String>
- <sys:String x:Key="Settings.City">City (any language, e.g. Halifax or 上海)</sys:String>
  <sys:String x:Key="Settings.Fahrenheit">Use Fahrenheit °F</sys:String>
  <sys:String x:Key="Settings.WeatherAlerts">Severe weather alerts (storms, heavy rain or snow, wind, heat, cold)</sys:String>
- <sys:String x:Key="Settings.Reminders">Reminders</sys:String>
  <sys:String x:Key="Settings.Water">Water reminder every (minutes, 8:00–22:00)</sys:String>
  <sys:String x:Key="Settings.Sit">Stand-up reminder after continuous use (minutes)</sys:String>
  <sys:String x:Key="Settings.Bedtime">Bedtime reminder at (HH:mm)</sys:String>
@@ -190,7 +188,6 @@
  <sys:String x:Key="Settings.PhotoTip">Leave empty to use your Pictures folder</sys:String>
  <sys:String x:Key="Settings.Browse">Browse…</sys:String>
  <sys:String x:Key="Settings.PickFolder">Choose a photo folder</sys:String>
- <sys:String x:Key="Settings.Island">Island</sys:String>
  <sys:String x:Key="Settings.Hover">Expand on hover</sys:String>
  <sys:String x:Key="Settings.NetSpeed">Show network speed on the closed island</sys:String>
  <sys:String x:Key="Settings.Fullscreen">Hide while a full-screen app (video, game, slideshow) is open</sys:String>
@@ -200,9 +197,6 @@
  <sys:String x:Key="Set.General">General</sys:String>
  <sys:String x:Key="Set.Widgets">Features</sys:String>
  <sys:String x:Key="Set.Reminders">Reminders</sys:String>
- <sys:String x:Key="Set.Focus">Focus</sys:String>
- <sys:String x:Key="Set.Weather">Weather</sys:String>
- <sys:String x:Key="Set.Photos">Photos</sys:String>
  <sys:String x:Key="Set.Theme">Theme</sys:String>
  <sys:String x:Key="Set.ThemeDesc">For this window and the right-click menu. The island stays black.</sys:String>
  <sys:String x:Key="Set.ThemeDark">Dark</sys:String>
@@ -210,7 +204,6 @@
  <sys:String x:Key="Set.ThemeSystem">System</sys:String>
  <sys:String x:Key="Set.Look">LOOK</sys:String>
  <sys:String x:Key="Set.Behavior">BEHAVIOUR</sys:String>
- <sys:String x:Key="Set.Display">DISPLAY</sys:String>
  <sys:String x:Key="Set.Form">Shape</sys:String>
  <sys:String x:Key="Set.FormStandard">Notch</sys:String>
  <sys:String x:Key="Set.FormCapsule">Capsule</sys:String>
@@ -314,7 +307,6 @@
  <sys:String x:Key="Set.NavDesc">Drag to reorder; pin what stays on the bar</sys:String>
  <sys:String x:Key="Set.NavPin">Pin</sys:String>
  <sys:String x:Key="Set.NavMax">At most %0 can be pinned. The rest are under More.</sys:String>
- <sys:String x:Key="Set.NavDrag">Drag to reorder</sys:String>
  <sys:String x:Key="Menu.ShowHide">Show / hide</sys:String>
  <sys:String x:Key="Menu.Settings">Settings…</sys:String>
  <sys:String x:Key="Menu.Layout">Layout</sys:String>

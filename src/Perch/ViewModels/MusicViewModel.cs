@@ -37,13 +37,11 @@ public sealed class MusicViewModel : Observable
     public bool CanNext => Has(k => k.Next);
     public bool CanControl => CanToggle || CanPrevious || CanNext;
     public bool HasTimeline => duration > 0;
-    public bool FromWindow => fromWindow;
     public bool IsPlaying => playing;
     public string Title => title.Length > 0 ? title : Loc.T("Music.Unknown");
     public string Artist => artist;
     public string AppName => app;
     public Bitmap? Cover => cover;
-    public bool HasCover => cover != null;
     public string PlayGlyph => playing ? "" : "";
     public double Progress => duration > 0 ? Math.Clamp(position / duration, 0, 1) : 0;
     public string PositionText => Clock(position);

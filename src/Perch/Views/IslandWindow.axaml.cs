@@ -261,7 +261,7 @@ public partial class IslandWindow : Window
         var gap = Capsule ? IslandOutline.CapsuleGap : 0;
         CompactHeader.Margin = new Thickness(0, gap, 0, 0);
         ExpandedContent.Margin = new Thickness(IslandOutline.PadX, gap, 0, 0);
-        IslandLook.Apply(ShellOutline, ShellGrain, ShellSheen, Glass);
+        IslandLook.Apply(ShellOutline, Glass);
         backdropReady = host != null && host.ExcludeFromCapture(Glass);
         PlaceHost();
         Draw(shapeW, shapeH, !animator.IsRunning);

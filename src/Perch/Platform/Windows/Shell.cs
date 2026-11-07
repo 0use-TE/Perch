@@ -8,23 +8,6 @@ using Microsoft.Win32;
 
 namespace Perch.Platform.Windows;
 
-// Shell and imaging calls want a single-threaded apartment, which thread-pool threads are not.
-public static class StaTask
-{
-    public static Task Run(Action work)
-    {
-        var done = new TaskCompletionSource();
-        var thread = new System.Threading.Thread(() =>
-        {
-            try { work(); done.SetResult(); }
-            catch (Exception e) { done.SetException(e); }
-        }) { IsBackground = true };
-        thread.SetApartmentState(System.Threading.ApartmentState.STA);
-        thread.Start();
-        return done.Task;
-    }
-}
-
 public static class ShellIcons
 {
     // 32 px shell icon for a file, folder or shortcut. Safe to call from a background thread.

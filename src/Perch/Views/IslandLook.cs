@@ -1,4 +1,4 @@
-﻿using Avalonia.Media;
+using Avalonia.Media;
 using Avalonia.Controls.Shapes;
 using Perch.Services;
 
@@ -10,10 +10,8 @@ internal static class IslandLook
 {
     public static bool IsGlass(Settings s) => s.Appearance == "glass";
 
-    public static void Apply(Path outline, Path grain, Path sheen, bool translucent)
+    public static void Apply(Path outline, bool translucent)
     {
-        grain.IsVisible = false;
-        sheen.IsVisible = false;
         if (translucent)
         {
             outline.Fill = new SolidColorBrush(Colors.Black);

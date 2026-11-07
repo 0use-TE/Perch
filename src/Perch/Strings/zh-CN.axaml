@@ -175,10 +175,8 @@
  <sys:String x:Key="Settings.Title">Perch 设置</sys:String>
  <sys:String x:Key="Settings.Language">语言</sys:String>
  <sys:String x:Key="Settings.LanguageSystem">跟随系统</sys:String>
- <sys:String x:Key="Settings.City">城市（中文或英文，如 上海 / Halifax）</sys:String>
  <sys:String x:Key="Settings.Fahrenheit">使用华氏度 °F</sys:String>
  <sys:String x:Key="Settings.WeatherAlerts">恶劣天气提醒（雷暴、大雨大雪、大风、高温、严寒）</sys:String>
- <sys:String x:Key="Settings.Reminders">提醒</sys:String>
  <sys:String x:Key="Settings.Water">喝水提醒，每隔（分钟，8:00–22:00）</sys:String>
  <sys:String x:Key="Settings.Sit">久坐提醒，连续使用（分钟）</sys:String>
  <sys:String x:Key="Settings.Bedtime">睡觉提醒，时间（HH:mm）</sys:String>
@@ -190,7 +188,6 @@
  <sys:String x:Key="Settings.PhotoTip">留空则使用“图片”文件夹</sys:String>
  <sys:String x:Key="Settings.Browse">选择…</sys:String>
  <sys:String x:Key="Settings.PickFolder">选择照片文件夹</sys:String>
- <sys:String x:Key="Settings.Island">岛</sys:String>
  <sys:String x:Key="Settings.Hover">悬停时展开</sys:String>
  <sys:String x:Key="Settings.NetSpeed">收起时在岛上显示网速</sys:String>
  <sys:String x:Key="Settings.Fullscreen">全屏应用（视频、游戏、演示）时隐藏</sys:String>
@@ -200,9 +197,6 @@
  <sys:String x:Key="Set.General">通用</sys:String>
  <sys:String x:Key="Set.Widgets">功能</sys:String>
  <sys:String x:Key="Set.Reminders">提醒</sys:String>
- <sys:String x:Key="Set.Focus">专注</sys:String>
- <sys:String x:Key="Set.Weather">天气</sys:String>
- <sys:String x:Key="Set.Photos">照片</sys:String>
  <sys:String x:Key="Set.Theme">主题</sys:String>
  <sys:String x:Key="Set.ThemeDesc">用于本窗口和右键菜单，灵动岛始终为黑色。</sys:String>
  <sys:String x:Key="Set.ThemeDark">深色</sys:String>
@@ -210,7 +204,6 @@
  <sys:String x:Key="Set.ThemeSystem">跟随系统</sys:String>
  <sys:String x:Key="Set.Look">外观</sys:String>
  <sys:String x:Key="Set.Behavior">行为</sys:String>
- <sys:String x:Key="Set.Display">显示</sys:String>
  <sys:String x:Key="Set.Form">形态</sys:String>
  <sys:String x:Key="Set.FormStandard">刘海</sys:String>
  <sys:String x:Key="Set.FormCapsule">胶囊</sys:String>
@@ -314,7 +307,6 @@
  <sys:String x:Key="Set.NavDesc">拖动调整顺序，固定要留在导航栏上的功能</sys:String>
  <sys:String x:Key="Set.NavPin">固定</sys:String>
  <sys:String x:Key="Set.NavMax">最多固定 %0 个，其余放在“更多”里。</sys:String>
- <sys:String x:Key="Set.NavDrag">拖动调整顺序</sys:String>
  <sys:String x:Key="Menu.ShowHide">显示 / 隐藏</sys:String>
  <sys:String x:Key="Menu.Settings">设置…</sys:String>
  <sys:String x:Key="Menu.Layout">布局设置</sys:String>

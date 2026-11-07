@@ -138,7 +138,7 @@ public partial class SettingsWindow : Window
         var capsule = settings.Shape == "capsule";
 
         PreviewOutline.Data = IslandOutline.Create(6, IslandOutline.CompactWidth, IslandOutline.CompactHeight, 0, capsule);
-        IslandLook.Apply(PreviewOutline, PreviewGrain, PreviewSheen, glass);
+        IslandLook.Apply(PreviewOutline, glass);
         IslandLook.SetGlassFill(PreviewOutline, settings, 0);
         var top = 9 + (capsule ? IslandOutline.CapsuleGap : 0);
         Canvas.SetTop(PreviewText, top);

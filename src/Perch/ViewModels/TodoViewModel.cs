@@ -59,7 +59,6 @@ public sealed class TodoViewModel : Observable
     public bool FilterAll => filter == "all";
     public bool FilterActive => filter == "active";
     public bool FilterDone => filter == "done";
-    public bool SortByDue => sort == "due";
     public string SortLabel => Loc.T(sort == "due" ? "Todo.SortDue" : "Todo.SortCreated");
     public bool ViewList => view == TodoView.List;
     public bool ViewDay => view == TodoView.Day;

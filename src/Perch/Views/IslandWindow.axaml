@@ -5,6 +5,8 @@
   <Grid x:Name="Shell" Width="872" Height="464" Canvas.Left="0" Canvas.Top="0">
    <Border x:Name="ShellBackdrop" IsHitTestVisible="False" IsVisible="False"/>
    <Path x:Name="ShellOutline" Fill="Black"/>
+   <!-- A glowing rim that lights up while the island is dragged into the snapping zone around the centre. -->
+   <Path x:Name="SnapRing" Fill="Transparent" Stroke="#FFAE54" StrokeThickness="1.6" Opacity="0" IsHitTestVisible="False" Effect="drop-shadow(0 0 7 #B0FFAE54)"/>
    <Grid x:Name="ShellContent">
     <Grid x:Name="CompactHeader" Height="35" Width="176" VerticalAlignment="Top" HorizontalAlignment="Center" Background="Transparent">
      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>

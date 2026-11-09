@@ -9,6 +9,7 @@ public sealed class IslandHost : IDisposable
     private readonly Window window;
     private readonly X11Events events;
     public nint Handle { get; }
+    public double Offset { get; set; }
     public event Action? DisplayChanged;
     public event Action<int>? HotKeyPressed;
     public event Action? ClipboardUpdated;
@@ -35,6 +36,14 @@ public sealed class IslandHost : IDisposable
     public bool RegisterHotKey(int id, uint modifiers, uint virtualKey) => events.Register(id, modifiers, virtualKey);
     public void UnregisterHotKey(int id) => events.Unregister(id);
 
+    public (double Width, double Scale) WorkArea()
+    {
+        var screen = window.Screens.Primary ?? window.Screens.All.FirstOrDefault();
+        return screen == null
+            ? (0, window.RenderScaling)
+            : (screen.WorkingArea.Width / screen.Scaling, screen.Scaling);
+    }
+
     public void Place(double width, double height)
     {
         var screen = window.Screens.Primary ?? window.Screens.All.FirstOrDefault();
@@ -42,7 +51,9 @@ public sealed class IslandHost : IDisposable
         window.Height = height;
         if (screen == null) return;
         var area = screen.WorkingArea;
-        window.Position = new PixelPoint(area.X + (area.Width - (int)Math.Ceiling(width * screen.Scaling)) / 2, area.Y);
+        var room = Math.Max(0, (area.Width - (int)Math.Ceiling(width * screen.Scaling)) / 2);
+        var shift = (int)Math.Clamp(Math.Round(Offset * screen.Scaling), -room, room);
+        window.Position = new PixelPoint(area.X + room + shift, area.Y);
     }
 
     public void Region(IReadOnlyList<Point> outline, double offsetX, Rect? extra = null) =>

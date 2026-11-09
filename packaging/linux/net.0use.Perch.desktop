@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Perch
+Comment=Desktop productivity island
+Exec=Perch
+Icon=net.0use.Perch
+Terminal=false
+Categories=Utility;
+StartupWMClass=Perch

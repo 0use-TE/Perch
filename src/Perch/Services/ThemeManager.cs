@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Styling;
 using Microsoft.Win32;
 
@@ -21,6 +21,8 @@ public static class ThemeManager
 
     private static bool SystemUsesLightApps()
     {
+        if (!OperatingSystem.IsWindows())
+            return Application.Current?.PlatformSettings?.GetColorValues().ThemeVariant == Avalonia.Platform.PlatformThemeVariant.Light;
         try { return Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 0) is 1; }
         catch { return false; }
     }

@@ -1,4 +1,4 @@
-<Window x:Class="Perch.Views.SettingsWindow" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Perch.Views" xmlns:svc="using:Perch.Services" xmlns:snd="using:Perch.Services.Sounds" x:DataType="svc:Settings"
+<Window x:Class="Perch.Views.SettingsWindow" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Perch.Views" xmlns:svc="using:Perch.Services" xmlns:snd="using:Perch.Services.Sounds" xmlns:platform="using:Perch.Platform" x:DataType="svc:Settings"
         Title="{DynamicResource Settings.Title}" Icon="avares://Perch/Assets/perch.ico" Width="820" Height="640" MinWidth="720" MinHeight="500" WindowStartupLocation="CenterScreen"
         WindowDecorations="BorderOnly" ExtendClientAreaToDecorationsHint="True" ExtendClientAreaTitleBarHeightHint="-1"
         Background="{DynamicResource Ui.Fallback}" Foreground="{DynamicResource Ui.Text}" FontFamily="Segoe UI Variable Text, Microsoft YaHei UI" UseLayoutRounding="True">
@@ -177,7 +177,7 @@
         <TextBlock Text="{DynamicResource Set.MusicCompact}" Margin="0,0,16,0" Classes="RowTitle"/>
         <CheckBox Grid.Column="1" IsChecked="{Binding MusicInCompact}" AutomationProperties.Name="{DynamicResource Set.MusicCompact}" Classes="Switch"/></Grid>
        <Border Classes="Divider"/>
-       <StackPanel Margin="18,13,18,6">
+       <StackPanel Margin="18,13,18,6" IsVisible="{x:Static platform:PlatformFeatures.WindowsIntegration}">
         <TextBlock Text="{DynamicResource Set.PlayerKeys}" Classes="RowTitle"/>
         <TextBlock Text="{DynamicResource Set.PlayerKeysDesc}" Classes="RowDesc"/>
         <ItemsControl ItemsSource="{Binding PlayerKeys}">
@@ -240,7 +240,7 @@
        <StackPanel>
        <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <StackPanel><TextBlock Text="{DynamicResource Set.CalendarWindows}" Classes="RowTitle"/><TextBlock Text="{DynamicResource Set.CalendarWindowsDesc}" Classes="RowDesc"/></StackPanel>
-        <CheckBox Grid.Column="1" IsChecked="{Binding CalendarWindows}" AutomationProperties.Name="{DynamicResource Set.CalendarWindows}" Classes="Switch"/></Grid>
+        <CheckBox Grid.Column="1" IsEnabled="{x:Static platform:PlatformFeatures.WindowsIntegration}" IsChecked="{Binding CalendarWindows}" AutomationProperties.Name="{DynamicResource Set.CalendarWindows}" Classes="Switch"/></Grid>
        <Border Classes="Divider"/>
        <StackPanel Margin="18,13">
         <TextBlock Text="{DynamicResource Set.CalendarUrls}" Classes="RowTitle"/>
@@ -261,7 +261,7 @@
        <StackPanel>
        <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <StackPanel><TextBlock Text="{DynamicResource Set.Place}" Classes="RowTitle"/><TextBlock x:Name="PlaceCurrent" Classes="RowDesc"/></StackPanel>
-        <Button Grid.Column="1" x:Name="UseLocationButton" Content="{DynamicResource Set.UseLocation}" Click="OnUseLocation" Classes="Pill"/></Grid>
+        <Button Grid.Column="1" x:Name="UseLocationButton" IsEnabled="{x:Static platform:PlatformFeatures.WindowsIntegration}" Content="{DynamicResource Set.UseLocation}" Click="OnUseLocation" Classes="Pill"/></Grid>
        <Border Classes="Divider"/>
        <StackPanel Margin="18,13">
         <Grid>
@@ -312,15 +312,15 @@
        <CheckBox Grid.Column="1" IsChecked="{Binding SysCpuTemp}" AutomationProperties.Name="{DynamicResource Set.SysCpuTemp}" Classes="Switch"/></Grid>
        <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
        <TextBlock Text="{DynamicResource Set.SysGpu}" Classes="RowTitle"/>
-       <CheckBox Grid.Column="1" IsChecked="{Binding SysGpu}" AutomationProperties.Name="{DynamicResource Set.SysGpu}" Classes="Switch"/></Grid>
+       <CheckBox Grid.Column="1" IsEnabled="{x:Static platform:PlatformFeatures.WindowsIntegration}" IsChecked="{Binding SysGpu}" AutomationProperties.Name="{DynamicResource Set.SysGpu}" Classes="Switch"/></Grid>
        <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
        <TextBlock Text="{DynamicResource Set.SysVram}" Classes="RowTitle"/>
-       <CheckBox Grid.Column="1" IsChecked="{Binding SysVram}" AutomationProperties.Name="{DynamicResource Set.SysVram}" Classes="Switch"/></Grid>
+       <CheckBox Grid.Column="1" IsEnabled="{x:Static platform:PlatformFeatures.WindowsIntegration}" IsChecked="{Binding SysVram}" AutomationProperties.Name="{DynamicResource Set.SysVram}" Classes="Switch"/></Grid>
        </StackPanel>
       </Expander>
      <Border Margin="0,0,0,10" Classes="Card"><Grid Margin="16,0,40,0" MinHeight="62">
        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-       <Border Classes="FeatureIcon"><TextBlock Text="&#xE839;" Classes="FeatureGlyph"/></Border>
+       <Border Classes="FeatureIcon"><TextBlock Text="&#xE774;" Classes="FeatureGlyph"/></Border>
        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="13,0,12,0"><TextBlock Text="{DynamicResource Nav.Ports}" Classes="RowTitle"/><TextBlock Text="{DynamicResource Feat.Ports}" Margin="0,2,0,0" Classes="RowDesc"/></StackPanel>
        <CheckBox Grid.Column="2" IsChecked="{Binding ShowPorts}" ToolTip.Tip="{DynamicResource Set.ShowPage}" AutomationProperties.Name="{DynamicResource Nav.Ports}" Classes="Switch"/>
       </Grid></Border>
@@ -344,7 +344,7 @@
       </Grid></Border>
       <Expander Classes="Feature">
        <Expander.Header><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-        <Border Classes="FeatureIcon"><TextBlock Text="&#xE91B;" Classes="FeatureGlyph"/></Border>
+        <Border Classes="FeatureIcon"><TextBlock Text="&#xE158;" Classes="FeatureGlyph"/></Border>
         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="13,0,12,0"><TextBlock Text="{DynamicResource Nav.Photos}" Classes="RowTitle"/><TextBlock Text="{DynamicResource Feat.Photos}" Margin="0,2,0,0" Classes="RowDesc"/></StackPanel>
         <CheckBox Grid.Column="2" IsChecked="{Binding ShowPhotos}" ToolTip.Tip="{DynamicResource Set.ShowPage}" AutomationProperties.Name="{DynamicResource Nav.Photos}" Classes="Switch"/>
        </Grid></Expander.Header>
@@ -452,7 +452,7 @@
       <Border Classes="Card"><StackPanel Margin="0,4">
        <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <TextBlock Text="{DynamicResource Set.AiLocal}" Classes="RowTitle"/>
-        <CheckBox Grid.Column="1" IsChecked="{Binding AiLocalTools}" AutomationProperties.Name="{DynamicResource Set.AiLocal}" Classes="Switch"/></Grid>
+        <CheckBox Grid.Column="1" IsEnabled="{x:Static platform:PlatformFeatures.WindowsIntegration}" IsChecked="{Binding AiLocalTools}" AutomationProperties.Name="{DynamicResource Set.AiLocal}" Classes="Switch"/></Grid>
        <Border Classes="Divider"/>
        <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <TextBlock Text="{DynamicResource Set.AiApproval}" Classes="RowTitle"/>

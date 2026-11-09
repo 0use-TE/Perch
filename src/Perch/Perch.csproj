@@ -2,12 +2,21 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <!-- An explicit RID takes precedence over the build host (also supports cross-building Windows on Linux). -->
+    <PerchPlatform Condition="'$(PerchPlatform)' == '' and $(RuntimeIdentifier.StartsWith('win-'))">Windows</PerchPlatform>
+    <PerchPlatform Condition="'$(PerchPlatform)' == '' and $(RuntimeIdentifier.StartsWith('linux-'))">Linux</PerchPlatform>
+    <PerchPlatform Condition="'$(PerchPlatform)' == '' and $(RuntimeIdentifiers.StartsWith('win-'))">Windows</PerchPlatform>
+    <PerchPlatform Condition="'$(PerchPlatform)' == '' and $(RuntimeIdentifiers.StartsWith('linux-'))">Linux</PerchPlatform>
+    <PerchPlatform Condition="'$(PerchPlatform)' == '' and '$(OS)' == 'Windows_NT'">Windows</PerchPlatform>
+    <PerchPlatform Condition="'$(PerchPlatform)' == ''">Linux</PerchPlatform>
+    <TargetFramework Condition="'$(PerchPlatform)' == 'Windows'">net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework Condition="'$(PerchPlatform)' == 'Linux'">net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <PlatformTarget>AnyCPU</PlatformTarget>
-    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RuntimeIdentifiers Condition="'$(PerchPlatform)' == 'Windows'">win-x64;win-arm64</RuntimeIdentifiers>
+    <RuntimeIdentifiers Condition="'$(PerchPlatform)' == 'Linux'">linux-x64</RuntimeIdentifiers>
+    <ApplicationManifest Condition="'$(PerchPlatform)' == 'Windows'">app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\perch.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
@@ -18,13 +27,24 @@
     <PackageReference Include="Avalonia" Version="12.0.0" />
     <PackageReference Include="Avalonia.Desktop" Version="12.0.0" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.0" />
-    <!-- Linux-only D-Bus dependency of Avalonia.Desktop, pinned to a release that fixes GHSA-xrw6-gwf8-vvr9 (not used on Windows). -->
-    <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.2" />
-    <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
-    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
+    <!-- 0.92.0 fixes GHSA-xrw6-gwf8-vvr9 and preserves the Connection API used by Avalonia 12.0.
+         0.93+ removes that API and crashes the X11 backend at startup. -->
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.92.0" />
+    <PackageReference Include="System.Drawing.Common" Version="6.0.0" Condition="'$(PerchPlatform)' == 'Windows'" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" Condition="'$(PerchPlatform)' == 'Windows'" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(PerchPlatform)' == 'Linux'">
+    <Compile Remove="Platform/Windows/**/*.cs;ViewModels/MusicViewModel.cs;Services/AudioActivity.cs;Services/PlayerWatcher.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(PerchPlatform)' == 'Windows'">
+    <Compile Remove="Platform/Linux/**/*.cs" />
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
+    <InternalsVisibleTo Include="Perch.Linux.Tests" />
+    <None Include="../../LICENSE" Link="LICENSE" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="../../THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="Assets/Fonts/*.LICENSE.txt" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- Publish: dotnet publish for example: dotnet publish, runtime win-x64, Release, PublishTrimmed true -->
@@ -35,7 +55,7 @@
     <DebuggerSupport>false</DebuggerSupport>
     <EventSourceSupport>false</EventSourceSupport>
   </PropertyGroup>
-  <ItemGroup Condition="'$(PublishAot)' == 'true'">
+  <ItemGroup Condition="'$(PublishAot)' == 'true' and '$(PerchPlatform)' == 'Windows'">
     <!-- Links SkiaSharp, HarfBuzz and the other native libraries into Perch.exe: a single file. Version matches SkiaSharp 3.119.4 (Avalonia 12). -->
     <PackageReference Include="StaticLink.Avalonia" Version="3.119.4-7922.1" />
   </ItemGroup>

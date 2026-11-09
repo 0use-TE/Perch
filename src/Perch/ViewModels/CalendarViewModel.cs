@@ -4,7 +4,9 @@ using System.Net.Http;
 using System.Windows.Input;
 using Avalonia.Threading;
 using Perch.Services;
+#if WINDOWS
 using Windows.ApplicationModel.Appointments;
+#endif
 
 namespace Perch.ViewModels;
 
@@ -73,7 +75,7 @@ public sealed class CalendarViewModel : Observable
     {
         if (loading) return;
         var feeds = S.CalendarUrls.ReplaceLineEndings("\n").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct().ToList();
-        HasFeeds = feeds.Count > 0 || S.CalendarWindows;
+        HasFeeds = feeds.Count > 0 || (OperatingSystem.IsWindows() && S.CalendarWindows);
         if (!HasFeeds)
         {
             events = [];
@@ -106,6 +108,7 @@ public sealed class CalendarViewModel : Observable
                 failed++;
             }
         }
+#if WINDOWS
         if (S.CalendarWindows)
         {
             try
@@ -120,6 +123,7 @@ public sealed class CalendarViewModel : Observable
                 failed++;
             }
         }
+#endif
         loading = false;
         events = all.OrderBy(e => e.Start).ToList();
         Status = failed > 0 ? Loc.T("Cal.Failed") : Loc.F("Cal.Updated", DateTime.Now.ToString("HH:mm"));

@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows.Input;
 using Avalonia.Media.Imaging;
-using Perch.Platform.Windows;
 using Perch.Services;
 using Perch.Services.Sounds;
 
@@ -124,6 +123,9 @@ public sealed class LauncherViewModel : Observable
 
     internal static List<(string Name, string Path, string Folder)> Scan()
     {
+#if !WINDOWS
+        return DesktopEntries.Scan();
+#else
         var roots = new[]
         {
             Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms),
@@ -145,6 +147,7 @@ public sealed class LauncherViewModel : Observable
             }
         }
         return seen.Values.OrderBy(v => v.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+#endif
     }
 
     // Pinned apps come first; in pin mode every app shows so it can be pinned.

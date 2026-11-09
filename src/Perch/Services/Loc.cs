@@ -42,6 +42,9 @@ public static class Loc
         if (selected != null) merged.Remove(selected);
         selected = code == "en" ? null : Load(code);
         if (selected != null) merged.Add(selected);
+        if (OperatingSystem.IsLinux())
+            foreach (var key in new[] { "Apps.Loading", "Apps.CommandsEmpty", "Settings.LanguageSystem", "Set.GlassUnsupported", "Cal.NoFeeds", "Feat.Music", "Set.AiDesc" })
+                if (Application.Current.TryGetResource(key + ".Linux", null, out var value)) Application.Current.Resources[key] = value;
         var changed = code != Code;
         Code = code;
         Culture = CultureInfo.GetCultureInfo(code == "en" ? "en-US" : code);

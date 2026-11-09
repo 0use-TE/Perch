@@ -1,4 +1,6 @@
+#if WINDOWS
 using Windows.Devices.Geolocation;
+#endif
 
 namespace Perch.Services;
 
@@ -6,6 +8,7 @@ namespace Perch.Services;
 // Nothing is sent anywhere except the coordinates to Open-Meteo for the forecast.
 public static class DeviceLocation
 {
+#if WINDOWS
     public static async Task<(double Latitude, double Longitude)?> GetAsync()
     {
         try
@@ -21,4 +24,7 @@ public static class DeviceLocation
             return null;
         }
     }
+#else
+    public static Task<(double Latitude, double Longitude)?> GetAsync() => Task.FromResult<(double, double)?>(null);
+#endif
 }

@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Avalonia.Input.Platform;
-using Perch.Platform.Windows;
 using System.Windows.Input;
 using Perch.Services;
 using Perch.Services.Sounds;
@@ -73,7 +72,7 @@ public sealed class ClipboardViewModel : Observable
         {
             if (Ui.Clipboard is not { } clipboard) return;
             var formats = await clipboard.GetDataFormatsAsync();
-            if (formats.Any(format => format.Identifier == "ExcludeClipboardContentFromMonitorProcessing")) return; // password managers set this
+            if (formats.Any(format => format.Identifier is "ExcludeClipboardContentFromMonitorProcessing" or "x-kde-passwordManagerHint")) return; // password managers set this
             if (await clipboard.TryGetTextAsync() is not { } text) return;
             if (string.IsNullOrWhiteSpace(text) || text.Length > 100_000) return;
             if (ownCopy != null && ownCopy == text) { ownCopy = null; return; } // what we just put back ourselves

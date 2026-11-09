@@ -83,7 +83,12 @@ public sealed class SystemMonitorViewModel : Observable
 
     private void SampleCpu()
     {
+#if WINDOWS
         if (!GetSystemTimes(out var idle, out var kernel, out var user)) return;
+#else
+        if (!LinuxSystem.Cpu(out var idle, out var kernel)) return;
+        const long user = 0;
+#endif
         if (haveLast)
         {
             // Kernel time already includes idle time.
@@ -97,10 +102,16 @@ public sealed class SystemMonitorViewModel : Observable
 
     private void SampleMemory()
     {
+#if WINDOWS
         var status = new MemoryStatus { Length = (uint)Marshal.SizeOf<MemoryStatus>() };
         if (!GlobalMemoryStatusEx(ref status)) return;
         Memory = (int)status.MemoryLoad;
         MemoryDetail = Loc.F("Sys.Used", Gigabytes(status.TotalPhys - status.AvailPhys), Gigabytes(status.TotalPhys));
+#else
+        if (!LinuxSystem.Memory(out var total, out var available)) return;
+        Memory = (int)Math.Round((total - available) * 100.0 / total);
+        MemoryDetail = Loc.F("Sys.Used", Gigabytes(total - available), Gigabytes(total));
+#endif
         Push(memoryHistory, Memory);
     }
 
@@ -108,7 +119,7 @@ public sealed class SystemMonitorViewModel : Observable
     {
         try
         {
-            var root = Path.GetPathRoot(Environment.SystemDirectory) ?? "C:\\";
+            var root = OperatingSystem.IsWindows() ? Path.GetPathRoot(Environment.SystemDirectory) ?? "C:\\" : "/";
             var drive = new DriveInfo(root);
             var used = drive.TotalSize - drive.AvailableFreeSpace;
             Disk = drive.TotalSize > 0 ? (int)Math.Round(used * 100.0 / drive.TotalSize) : 0;

@@ -1,0 +1,89 @@
+<UserControl x:Class="Perch.Views.Pages.AlarmPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:Perch.ViewModels" xmlns:snd="using:Perch.Services.Sounds" x:DataType="vm:AlarmViewModel">
+ <!-- DataContext is the alarm view model. Three faces: the list, the editor, and the ringing screen. -->
+ <UserControl.Styles>
+  <Style Selector="Button.Pill"><Setter Property="Padding" Value="22,10"/><Setter Property="Cursor" Value="Hand"/>
+   <Setter Property="Template"><ControlTemplate><Border x:Name="Body" CornerRadius="22" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"><ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter></Style>
+  <Style Selector="Button.Pill:pointerover /template/ Border#Body"><Setter Property="Opacity" Value="0.85"/></Style>
+ </UserControl.Styles>
+ <Grid>
+  <!-- ============ The list ============ -->
+  <Grid IsVisible="{Binding IsListMode}">
+   <Grid.RowDefinitions><RowDefinition Height="34"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+   <Grid>
+    <TextBlock VerticalAlignment="Center" Margin="4,0,0,0"><Run Text="{DynamicResource Alarm.Title}" FontSize="13" FontWeight="SemiBold"/><Run Text="  "/><Run Text="{Binding NextText, Mode=OneWay}" FontSize="11.5" Foreground="#8A8A92"/></TextBlock>
+    <Button Command="{Binding Add}" HorizontalAlignment="Right" ToolTip.Tip="{DynamicResource Alarm.Add}" AutomationProperties.Name="{DynamicResource Alarm.Add}" Classes="Nav">
+     <StackPanel Orientation="Horizontal" Spacing="7"><TextBlock Text="&#xE710;" FontSize="13" Foreground="#FFAE54" VerticalAlignment="Center" Classes="Glyph"/><TextBlock Text="{DynamicResource Alarm.Add}" FontSize="12.5" Foreground="#E0E0E4" VerticalAlignment="Center"/></StackPanel>
+    </Button>
+   </Grid>
+   <TextBlock Grid.Row="1" Text="{DynamicResource Alarm.Empty}" HorizontalAlignment="Center" Margin="0,34,0,0" IsVisible="{Binding IsEmpty}" Classes="Placeholder"/>
+   <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Focusable="False" IsVisible="{Binding HasItems}">
+    <ItemsControl ItemsSource="{Binding Items}" Margin="0,0,8,0">
+     <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:AlarmItem">
+      <Border Margin="0,3" CornerRadius="14" Background="#151517" Padding="14,6" Opacity="{Binding Enabled, Converter={StaticResource Pick}, ConverterParameter=1|0.5}">
+       <Grid ColumnDefinitions="Auto,24,Auto,24,*,Auto,Auto">
+        <CheckBox IsChecked="{Binding Enabled}" AutomationProperties.Name="{Binding TimeText}" VerticalAlignment="Center" Classes="Switch"/>
+        <TextBlock Grid.Column="2" Text="{Binding TimeText}" FontSize="26" FontWeight="SemiBold" FontFamily="Segoe UI Variable Display" VerticalAlignment="Center"/>
+        <StackPanel Grid.Column="4" VerticalAlignment="Center">
+         <TextBlock Text="{Binding Name}" FontSize="13.5" TextTrimming="CharacterEllipsis"/>
+         <TextBlock Text="{Binding DaysText}" Classes="Caption"/>
+        </StackPanel>
+        <Button Grid.Column="5" Command="{Binding $parent[UserControl].((vm:AlarmViewModel)DataContext).Edit}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Alarm.Edit}" AutomationProperties.Name="{DynamicResource Alarm.Edit}" Classes="Nav Small">
+         <TextBlock Text="&#xE70F;" FontSize="13" Foreground="#9A9AA2" Classes="Glyph"/>
+        </Button>
+        <Button Grid.Column="6" Command="{Binding $parent[UserControl].((vm:AlarmViewModel)DataContext).Delete}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Common.Delete}" AutomationProperties.Name="{DynamicResource Common.Delete}" Classes="Nav Small">
+         <TextBlock Text="&#xE74D;" FontSize="13" Foreground="#77777D" Classes="Glyph"/>
+        </Button>
+       </Grid>
+      </Border>
+     </DataTemplate></ItemsControl.ItemTemplate>
+    </ItemsControl>
+   </ScrollViewer>
+  </Grid>
+
+  <!-- ============ The editor ============ -->
+  <Grid IsVisible="{Binding IsEditing}" RowDefinitions="34,Auto,Auto,*,Auto">
+   <TextBlock Text="{Binding EditTitle}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Margin="4,0,0,0"/>
+   <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,Auto,16,*" Margin="0,2,0,8">
+    <NumericUpDown Value="{Binding EditHour}" Minimum="0" Maximum="23" Increment="1" FormatString="00" Width="104" ShowButtonSpinner="True" AutomationProperties.Name="{DynamicResource Alarm.Hour}"/>
+    <TextBlock Grid.Column="1" Text=":" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,8,2"/>
+    <NumericUpDown Grid.Column="2" Value="{Binding EditMinute}" Minimum="0" Maximum="59" Increment="1" FormatString="00" Width="104" ShowButtonSpinner="True" AutomationProperties.Name="{DynamicResource Alarm.Minute}"/>
+    <Grid Grid.Column="4">
+     <TextBox MinHeight="34" Text="{Binding EditLabel}" MaxLength="40" AutomationProperties.Name="{DynamicResource Alarm.LabelHint}" Classes="Quiet Compact"/>
+     <TextBlock Text="{DynamicResource Alarm.LabelHint}" Margin="13,0,0,0" IsHitTestVisible="False" Classes="Placeholder" IsVisible="{Binding EditLabel, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+    </Grid>
+   </Grid>
+   <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="5" Margin="0,0,0,8">
+    <ToggleButton Content="{DynamicResource Alarm.Day1}" IsChecked="{Binding Day0}" Classes="Chip"/>
+    <ToggleButton Content="{DynamicResource Alarm.Day2}" IsChecked="{Binding Day1}" Classes="Chip"/>
+    <ToggleButton Content="{DynamicResource Alarm.Day3}" IsChecked="{Binding Day2}" Classes="Chip"/>
+    <ToggleButton Content="{DynamicResource Alarm.Day4}" IsChecked="{Binding Day3}" Classes="Chip"/>
+    <ToggleButton Content="{DynamicResource Alarm.Day5}" IsChecked="{Binding Day4}" Classes="Chip"/>
+    <ToggleButton Content="{DynamicResource Alarm.Day6}" IsChecked="{Binding Day5}" Classes="Chip"/>
+    <ToggleButton Content="{DynamicResource Alarm.Day7}" IsChecked="{Binding Day6}" Classes="Chip"/>
+    <TextBlock Text="{DynamicResource Alarm.RepeatHint}" VerticalAlignment="Center" Margin="10,0,0,0" Classes="Caption"/>
+   </StackPanel>
+   <Grid Grid.Row="4" ColumnDefinitions="Auto,Auto,*,Auto,8,Auto">
+    <TextBlock Text="{DynamicResource Alarm.Sound}" VerticalAlignment="Center" Margin="4,0,10,0" Classes="Caption"/>
+    <ComboBox Grid.Column="1" ItemsSource="{Binding SoundChoices}" SelectedItem="{Binding EditSound}" MinWidth="190" AutomationProperties.Name="{DynamicResource Alarm.Sound}">
+     <ComboBox.ItemTemplate><DataTemplate x:DataType="snd:SoundOption"><TextBlock Text="{Binding Name}" FontSize="13"/></DataTemplate></ComboBox.ItemTemplate>
+    </ComboBox>
+    <Button Grid.Column="2" Command="{Binding Preview}" HorizontalAlignment="Left" ToolTip.Tip="{DynamicResource Alarm.Preview}" AutomationProperties.Name="{DynamicResource Alarm.Preview}" Margin="6,0,0,0" Classes="Nav Small">
+     <TextBlock Text="&#xE768;" FontSize="13" Foreground="#FFAE54" Classes="Glyph"/>
+    </Button>
+    <Button Grid.Column="3" Content="{DynamicResource Alarm.Cancel}" Command="{Binding Cancel}" Classes="Text"/>
+    <Button Grid.Column="5" Content="{DynamicResource Alarm.Save}" Command="{Binding Save}" Background="#FFAE54" Foreground="#1A1208" FontWeight="SemiBold" Padding="20,8" Classes="Pill"/>
+   </Grid>
+  </Grid>
+
+  <!-- ============ Ringing ============ -->
+  <StackPanel IsVisible="{Binding IsRinging}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6">
+   <TextBlock Text="&#xE121;" FontSize="24" Foreground="#FFAE54" HorizontalAlignment="Center" Classes="Glyph"/>
+   <TextBlock Text="{Binding RingingTime}" FontSize="54" FontWeight="Bold" FontFamily="Segoe UI Variable Display" HorizontalAlignment="Center" Margin="0,-6,0,0"/>
+   <TextBlock Text="{Binding RingingName}" FontSize="14" Foreground="#A9A9AF" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="480"/>
+   <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center" Margin="0,8,0,0">
+    <Button Content="{Binding SnoozeText}" Command="{Binding Snooze}" Background="#2A2A2F" Foreground="#E8E8EC" Classes="Pill"/>
+    <Button Content="{DynamicResource Alarm.Stop}" Command="{Binding Stop}" Background="#FFAE54" Foreground="#1A1208" FontWeight="SemiBold" Classes="Pill"/>
+   </StackPanel>
+  </StackPanel>
+ </Grid>
+</UserControl>

@@ -13,6 +13,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Perch.Platform.Windows;
 using Perch.Services;
+using Perch.Services.Sounds;
 
 namespace Perch.Views;
 
@@ -35,7 +36,9 @@ public partial class SettingsWindow : Window
     {
         this.settings = settings;
         InitializeComponent();
-        pages = [PageIsland, PageFeatures, PageReminders, PageGeneral];
+        pages = [PageIsland, PageFeatures, PageReminders, PageGeneral, PageAi, PageLog];
+        BuildProviders();
+        FillSounds();
         FillLanguages();
         DataContext = settings;
         placeTimer.Tick += OnPlaceTimer;
@@ -45,9 +48,19 @@ public partial class SettingsWindow : Window
         Closed += (_, _) => Loc.Changed -= OnLanguageChanged;
         RefreshPreview();
         ApplyChrome();
+        Opened += (_, _) => ApplyChrome(); // hiding from capture needs the native window to exist
+        backdropTimer.Tick += (_, _) => RefreshBackdrop();
+        ShowLog();
+        ShowSearchFields();
+        Log.Added += OnLogLine;
+        Closed += (_, _) => Log.Added -= OnLogLine;
+        PositionChanged += (_, _) => RefreshBackdrop();
+        Closed += (_, _) => backdropTimer.Stop();
+        WindowBackdrop.KeepActive(this); // the frosted backdrop stays frosted while another program has the focus
 
         // Bubbled from the switches and segmented choices; sliders and the language list are watched directly.
         AddHandler(Button.ClickEvent, (_, _) => Changed());
+        AddHandler(TextBox.TextChangedEvent, (_, _) => { if (IsLoaded) Changed(); }); // the AI servers' fields
         GlassSlider.PropertyChanged += (_, e) => { if (e.Property == RangeBase.ValueProperty) Changed(); };
         ExpandDelaySlider.PropertyChanged += (_, e) => { if (e.Property == RangeBase.ValueProperty) Changed(); };
         CollapseDelaySlider.PropertyChanged += (_, e) => { if (e.Property == RangeBase.ValueProperty) Changed(); };
@@ -87,6 +100,7 @@ public partial class SettingsWindow : Window
             Applied?.Invoke(); // applies the theme too, so the preview below reads the new brushes
             ApplyChrome();
             RefreshPreview();
+            if (NavFeatureSignature() != navSignature) BuildNav(); // a feature was switched on or off: its row greys out or comes back
         }, DispatcherPriority.Background);
     }
 
@@ -131,11 +145,38 @@ public partial class SettingsWindow : Window
     // Frosted material: translucent acrylic window. Solid material: an ordinary opaque window in the theme colour.
     private void ApplyChrome()
     {
+        Translucency.Refresh();
         var light = ThemeManager.IsLight(settings.Theme);
         var frosted = IslandLook.IsGlass(settings);
-        TransparencyLevelHint = frosted ? [WindowTransparencyLevel.AcrylicBlur, WindowTransparencyLevel.Blur] : [WindowTransparencyLevel.None];
-        this.Bind(BackgroundProperty, this.GetResourceObservable(frosted ? "Ui.Tint" : "Ui.Fallback"));
+        SetFrosted(frosted);
         WindowBackdrop.SetBorder(this, light);
+        // Where the environment cannot do translucency the choice is switched off and says why.
+        GlassRadio.IsEnabled = Translucency.Supported;
+        GlassUnsupported.IsVisible = !Translucency.Supported;
+    }
+
+    // ---- frosted window. Windows will not show other windows through this one (its acrylic paints black here), so the
+    // frosted look is made the same way as the island's: the window is hidden from screen capture, the screen behind it is
+    // photographed a few times a second, blurred, and drawn under the theme tint.
+    private readonly DispatcherTimer backdropTimer = new() { Interval = TimeSpan.FromMilliseconds(120) };
+    private bool frostedOn;
+
+    private void SetFrosted(bool on)
+    {
+        if (!OperatingSystem.IsWindows()) on = false;
+        if (on && TryGetPlatformHandle() is { } handle && !WindowBackdrop.ExcludeFromCapture(handle.Handle, true)) on = false;
+        if (!on && frostedOn && TryGetPlatformHandle() is { } h) WindowBackdrop.ExcludeFromCapture(h.Handle, false);
+        frostedOn = on;
+        TintLayer.IsVisible = on;
+        BackdropLayer.IsVisible = on;
+        if (on) { RefreshBackdrop(); backdropTimer.Start(); } else backdropTimer.Stop();
+    }
+
+    private void RefreshBackdrop()
+    {
+        if (!frostedOn || !IsVisible || WindowState == WindowState.Minimized || TryGetPlatformHandle() is not { } handle) return;
+        var picture = BackdropCapture.Grab(WindowBackdrop.ScreenRect(handle.Handle), 12);
+        if (picture != null) BackdropLayer.Background = new ImageBrush(picture) { Stretch = Stretch.Fill };
     }
 
     // The preview shows the selected material: closed is always black, open is translucent in glass mode.
@@ -173,6 +214,162 @@ public partial class SettingsWindow : Window
         for (var i = 0; i < pages.Length; i++) pages[i].IsVisible = i == index;
     }
 
+    // ---- sounds
+
+    private static readonly SoundOption[] SoundList = [.. SoundBank.Options, new(SoundBank.Off, "Sound.off")];
+
+    private void FillSounds()
+    {
+        void Setup(ComboBox box, Func<string> read, Action<string> write)
+        {
+            box.ItemsSource = SoundList;
+            box.SelectedItem = SoundList.FirstOrDefault(o => o.Id == read()) ?? SoundList[0];
+            box.SelectionChanged += (_, _) => { if (box.SelectedItem is SoundOption o && o.Id != read()) { write(o.Id); Audio.Preview(o.Id); } };
+        }
+        Setup(SoundReminderBox, () => settings.SoundReminder, id => settings.SoundReminder = id);
+        Setup(SoundPomodoroBox, () => settings.SoundPomodoro, id => settings.SoundPomodoro = id);
+        Setup(SoundAlarmBox, () => settings.SoundAlarm, id => settings.SoundAlarm = id);
+    }
+
+    // The play button next to a list: hear the chosen sound at the chosen volume.
+    private void OnPlaySound(object? sender, RoutedEventArgs e)
+    {
+        var box = ((sender as Control)?.Tag as string) switch { "pomodoro" => SoundPomodoroBox, "alarm" => SoundAlarmBox, _ => SoundReminderBox };
+        if (box.SelectedItem is SoundOption option) Audio.Preview(option.Id);
+    }
+
+    // ---- AI servers
+    private CancellationTokenSource? fetching;
+
+    private void BuildProviders()
+    {
+        if (settings.AiProviders.Count == 0) settings.AiProviders.Add(AiProvider.DeepSeek());
+        // A fresh copy each time: handing the list back after changing it in place left the item panel counting the old
+        // number of cards, and clearing it then ran past the end (the crash on "Add server").
+        ProviderList.ItemsSource = settings.AiProviders.ToList();
+    }
+
+    // Jumps to the AI page (the chat page's "open settings" button).
+    public void ShowAiPage() { if (Sidebar.Children.ElementAtOrDefault(4) is RadioButton ai) ai.IsChecked = true; }
+
+    // "Add server" lists the well-known services; picking one fills in its address and models, leaving only the key.
+    private void OnAddProvider(object? sender, RoutedEventArgs e)
+    {
+        var menu = new MenuFlyout { Placement = PlacementMode.BottomEdgeAlignedLeft };
+        foreach (var preset in Perch.Services.Ai.AiPresets.All)
+        {
+            var item = new MenuItem { Header = preset.Name };
+            item.Click += (_, _) => AddProvider(new AiProvider { Name = preset.Name, BaseUrl = preset.BaseUrl, Models = [.. preset.Models] });
+            menu.Items.Add(item);
+        }
+        menu.Items.Add(new Separator());
+        var custom = new MenuItem { Header = Loc.T("Set.AiCustom") };
+        custom.Click += (_, _) => AddProvider(new AiProvider { Name = Loc.T("Set.AiNewName") });
+        menu.Items.Add(custom);
+        menu.ShowAt(AddProviderButton);
+    }
+
+    private void AddProvider(AiProvider provider)
+    {
+        settings.AiProviders.Add(provider);
+        BuildProviders();
+        Changed();
+    }
+
+    // The search service: the fields change with the engine (SearXNG has an address instead of a key).
+    private void OnSearchEngine(object? sender, RoutedEventArgs e)
+    {
+        OnSegment(sender, e);
+        ShowSearchFields();
+    }
+
+    private void ShowSearchFields()
+    {
+        var engine = settings.SearchEngine;
+        SearchKeyRow.IsVisible = engine is "tavily" or "bocha";
+        SearchUrlRow.IsVisible = engine == "searxng";
+        SearchFieldsDivider.IsVisible = engine != "local";
+    }
+
+    // Enter adds the typed model name to the provider's list.
+    private void OnModelAddKey(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || sender is not TextBox box || box.DataContext is not AiProvider provider) return;
+        e.Handled = true;
+        provider.AddModel(box.Text ?? "");
+        box.Text = "";
+        Changed();
+    }
+
+    // A saved key shows as stars; the first keystroke replaces them all.
+    private void OnKeyFocus(object? sender, RoutedEventArgs e) { if (sender is TextBox box) box.SelectAll(); }
+
+    // Once a key is typed in, the service is asked for its models (which also shows at once whether the key works).
+    private void OnKeyEntered(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is AiProvider provider && provider.ApiKey.Length > 0 && provider.BaseUrl.Length > 0) _ = FetchModels(provider);
+    }
+
+    private void OnRemoveProvider(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is not AiProvider provider) return;
+        settings.AiProviders.Remove(provider);
+        BuildProviders();
+    }
+
+    // ---- log: the newest lines of Perch's log, live while the window is open
+    private void ShowLog()
+    {
+        LogBox.Text = Log.Tail();
+        LogBox.CaretIndex = LogBox.Text?.Length ?? 0;
+    }
+
+    private void OnLogLine(string line) => Dispatcher.UIThread.Post(() =>
+    {
+        LogBox.Text = string.IsNullOrEmpty(LogBox.Text) ? line : LogBox.Text + Environment.NewLine + line;
+        LogBox.CaretIndex = LogBox.Text.Length;
+    });
+
+    private void OnLogRefresh(object? sender, RoutedEventArgs e) => ShowLog();
+    private async void OnLogCopy(object? sender, RoutedEventArgs e) { if (Clipboard is { } clipboard) await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, LogBox.Text ?? ""); }
+
+    private void OnLogOpen(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            System.IO.Directory.CreateDirectory(Log.Folder);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = Log.Folder, UseShellExecute = true });
+        }
+        catch (Exception ex) { Log.Warn("Could not open the log folder", ex); }
+    }
+
+    // Asks the server which models it offers (GET /models); this doubles as a test of the address and the key.
+    private void OnFetchModels(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is AiProvider provider) _ = FetchModels(provider);
+    }
+
+    private async Task FetchModels(AiProvider provider)
+    {
+        fetching?.Cancel();
+        using var cancel = fetching = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        provider.Status = Loc.T("Set.AiFetching");
+        try
+        {
+            var key = provider.ApiKey;
+            if (key.Length == 0 && provider.Id == AiProvider.DeepSeekId) key = Perch.Services.Ai.AiConfig.Key ?? "";
+            var models = await Perch.Services.Ai.OpenAiClient.ListModelsAsync(Perch.Services.Ai.OpenAiClient.Normalize(provider.BaseUrl), key, cancel.Token);
+            if (models.Count > 0) provider.SetModels(models);
+            provider.Status = Loc.F("Set.AiFetched", models.Count);
+        }
+        catch (Exception ex)
+        {
+            provider.Status = Loc.F("Set.AiFetchFailed", ex is OperationCanceledException ? "timeout" : ex.Message);
+            Log.Warn($"Fetching the models of {provider.Name} ({provider.BaseUrl}) failed", ex);
+        }
+        Changed();
+    }
+
     private async void OnPickFolder(object? sender, RoutedEventArgs e)
     {
         var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = Loc.T("Settings.PickFolder"), AllowMultiple = false });
@@ -190,13 +387,27 @@ public partial class SettingsWindow : Window
         public string Glyph { get; init; } = "";
         public string Name { get; init; } = "";
         public bool Pinned { get; set; }
+        // A page whose feature is switched off (Features page) is not on the island at all, so it cannot be pinned.
+        public bool Enabled { get; init; } = true;
+        public bool Disabled => !Enabled;
     }
+
+    private static bool FeatureOn(Settings s, string id) => id switch
+    {
+        "music" => s.ShowMusic, "focus" => s.ShowFocus, "todo" => s.ShowTodo, "notes" => s.ShowNotes, "info" => s.ShowInfo,
+        "calendar" => s.ShowCalendar, "apps" => s.ShowApps, "tray" => s.ShowTray, "photos" => s.ShowPhotos,
+        "clipboard" => s.ShowClipboard, "system" => s.ShowSystem, "ports" => s.ShowPorts, "ai" => s.ShowAi, "alarm" => s.ShowAlarm, "dino" => s.ShowDino, _ => true,
+    };
+
+    // Changes when a feature is switched on or off, so the navigation list can be redrawn.
+    private string NavFeatureSignature() => string.Concat(NavPages.Select(p => FeatureOn(settings, p.Id) ? '1' : '0'));
+    private string navSignature = "";
 
     private static readonly NavMeta[] NavPages =
     [
         new("music", "", "Nav.Music"), new("focus", "", "Nav.Focus"), new("todo", "", "Nav.Todo"), new("notes", "", "Nav.Notes"),
         new("info", "", "Nav.Info"), new("calendar", "", "Nav.Calendar"), new("apps", "", "Nav.Apps"), new("tray", "", "Nav.Tray"),
-        new("photos", "", "Nav.Photos"), new("clipboard", "", "Nav.Clipboard"), new("system", "", "Nav.System"),
+        new("photos", "", "Nav.Photos"), new("clipboard", "", "Nav.Clipboard"), new("system", "", "Nav.System"), new("ports", "", "Nav.Ports"), new("ai", "", "Nav.Ai"), new("alarm", "", "Nav.Alarm"), new("dino", "󰀀", "Nav.Dino"),
     ];
 
     private const int MaxPinned = 7;
@@ -211,8 +422,9 @@ public partial class SettingsWindow : Window
         navEntries = settings.NavOrder
             .Select(id => NavPages.FirstOrDefault(p => p.Id == id))
             .Where(p => p != null)
-            .Select(p => new NavEntry { Id = p!.Id, Glyph = p.Glyph, Name = Loc.T(p.NameKey), Pinned = settings.NavPinned.Contains(p.Id) })
+            .Select(p => new NavEntry { Id = p!.Id, Glyph = p.Glyph, Name = Loc.T(p.NameKey), Pinned = settings.NavPinned.Contains(p.Id), Enabled = FeatureOn(settings, p.Id) })
             .ToList();
+        navSignature = NavFeatureSignature();
         NavList.ItemsSource = navEntries;
     }
 

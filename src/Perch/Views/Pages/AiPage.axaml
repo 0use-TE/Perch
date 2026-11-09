@@ -1,0 +1,235 @@
+<UserControl x:Class="Perch.Views.Pages.AiPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:Perch.ViewModels" x:DataType="vm:AiViewModel">
+ <!-- DataContext is the AI chat view model. This is the one page that is taller than the others (see IslandWindow). -->
+ <UserControl.Styles>
+  <!-- The message box lives inside a rounded card, so the box itself has no frame, background or focus line. -->
+  <Style Selector="TextBox.Chat"><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="2,6"/><Setter Property="MinHeight" Value="0"/></Style>
+  <Style Selector="TextBox.Chat:focus /template/ Border#PART_BorderElement"><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/></Style>
+  <Style Selector="TextBox.Chat:pointerover /template/ Border#PART_BorderElement"><Setter Property="Background" Value="Transparent"/></Style>
+  <!-- Round accent button for sending and stopping. -->
+  <Style Selector="Button.Round"><Setter Property="Width" Value="32"/><Setter Property="Height" Value="32"/><Setter Property="Padding" Value="0"/><Setter Property="Cursor" Value="Hand"/>
+   <Setter Property="Template"><ControlTemplate><Border x:Name="Disc" CornerRadius="16" Background="#FFAE54"><ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter></Style>
+  <Style Selector="Button.Round:pointerover /template/ Border#Disc"><Setter Property="Background" Value="#FFC07A"/></Style>
+  <!-- Allow / decline an action. -->
+  <Style Selector="Button.Allow"><Setter Property="Padding" Value="16,6"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Foreground" Value="#1A1208"/><Setter Property="FontSize" Value="12.5"/><Setter Property="FontWeight" Value="SemiBold"/>
+   <Setter Property="Template"><ControlTemplate><Border x:Name="Body" CornerRadius="14" Background="#FFAE54" Padding="{TemplateBinding Padding}"><ContentPresenter Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center"/></Border></ControlTemplate></Setter></Style>
+  <Style Selector="Button.Allow:pointerover /template/ Border#Body"><Setter Property="Background" Value="#FFC07A"/></Style>
+  <Style Selector="Button.Deny"><Setter Property="Padding" Value="14,6"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Foreground" Value="#C9C9CE"/><Setter Property="FontSize" Value="12.5"/>
+   <Setter Property="Template"><ControlTemplate><Border x:Name="Body" CornerRadius="14" Background="Transparent" BorderBrush="#3A3A40" BorderThickness="1" Padding="{TemplateBinding Padding}"><ContentPresenter Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center"/></Border></ControlTemplate></Setter></Style>
+  <Style Selector="Button.Deny:pointerover /template/ Border#Body"><Setter Property="Background" Value="#24242A"/></Style>
+  <!-- Model pill, its menu, and the thinking switch. -->
+  <Style Selector="Button.Pill"><Setter Property="Background" Value="Transparent"/><Setter Property="Padding" Value="10,5"/><Setter Property="Cursor" Value="Hand"/>
+   <Setter Property="Template"><ControlTemplate><Border x:Name="Body" CornerRadius="14" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"><ContentPresenter Content="{TemplateBinding Content}"/></Border></ControlTemplate></Setter></Style>
+  <Style Selector="Button.Pill:pointerover /template/ Border#Body"><Setter Property="Background" Value="#24242A"/></Style>
+  <Style Selector="Button.MenuRow"><Setter Property="Background" Value="Transparent"/><Setter Property="Padding" Value="10,7"/><Setter Property="Cursor" Value="Hand"/><Setter Property="HorizontalAlignment" Value="Stretch"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+   <Setter Property="Template"><ControlTemplate><Border x:Name="Body" CornerRadius="9" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"><ContentPresenter Content="{TemplateBinding Content}" HorizontalContentAlignment="Stretch"/></Border></ControlTemplate></Setter></Style>
+  <Style Selector="Button.MenuRow:pointerover /template/ Border#Body"><Setter Property="Background" Value="#26262C"/></Style>
+  <Style Selector="FlyoutPresenter.ModelMenu"><Setter Property="Background" Value="#18181B"/><Setter Property="BorderBrush" Value="#2C2C32"/><Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="14"/><Setter Property="Padding" Value="5"/><Setter Property="MinWidth" Value="0"/></Style>
+  <Style Selector="ToggleButton.Think"><Setter Property="Padding" Value="10,5"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Foreground" Value="#9A9AA2"/><Setter Property="Background" Value="Transparent"/>
+   <Setter Property="Template"><ControlTemplate><Border x:Name="Body" CornerRadius="14" Background="{TemplateBinding Background}" BorderBrush="#2C2C32" BorderThickness="1" Padding="{TemplateBinding Padding}"><ContentPresenter Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"/></Border></ControlTemplate></Setter></Style>
+  <Style Selector="ToggleButton.Think:pointerover /template/ Border#Body"><Setter Property="Background" Value="#202025"/></Style>
+  <Style Selector="ToggleButton.Think:checked"><Setter Property="Foreground" Value="#FFAE54"/></Style>
+  <Style Selector="ToggleButton.Think:checked /template/ Border#Body"><Setter Property="Background" Value="#2A2118"/><Setter Property="BorderBrush" Value="#5A4226"/></Style>
+ </UserControl.Styles>
+
+ <Grid>
+  <Grid.RowDefinitions><RowDefinition Height="40"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+
+  <!-- Header: history, the conversation's title, new chat -->
+  <Grid Margin="0,0,0,2">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <Button Command="{Binding ToggleHistory}" ToolTip.Tip="{DynamicResource Ai.History}" AutomationProperties.Name="{DynamicResource Ai.History}" Classes="Nav">
+    <TextBlock Text="&#xE81C;" FontSize="16" Foreground="#C9C9CE" Classes="Glyph"/>
+   </Button>
+   <Grid Grid.Column="1" Margin="6,0,10,0">
+    <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding NotRenaming}">
+     <TextBlock Text="{Binding Title}" FontSize="13.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" MaxWidth="560" Background="Transparent" DoubleTapped="OnTitleDoubleTapped"/>
+     <Button Command="{Binding BeginRename}" IsVisible="{Binding CanRename}" ToolTip.Tip="{DynamicResource Ai.Rename}" AutomationProperties.Name="{DynamicResource Ai.Rename}" Classes="Nav Small">
+      <TextBlock Text="&#xE70F;" FontSize="12" Foreground="#8A8A92" Classes="Glyph"/>
+     </Button>
+    </StackPanel>
+    <TextBox x:Name="TitleBox" Text="{Binding RenameText}" MaxLength="60" MinHeight="30" VerticalAlignment="Center" IsVisible="{Binding IsRenaming}" AutomationProperties.Name="{DynamicResource Ai.Rename}" LostFocus="OnTitleLostFocus" Classes="Quiet Compact"/>
+   </Grid>
+   <Button Grid.Column="2" Command="{Binding NewChat}" ToolTip.Tip="{DynamicResource Ai.New}" AutomationProperties.Name="{DynamicResource Ai.New}" Classes="Nav">
+    <StackPanel Orientation="Horizontal" Spacing="7"><TextBlock Text="&#xE710;" FontSize="14" Foreground="#FFAE54" VerticalAlignment="Center" Classes="Glyph"/><TextBlock Text="{DynamicResource Ai.New}" FontSize="12.5" Foreground="#E0E0E4" VerticalAlignment="Center"/></StackPanel>
+   </Button>
+  </Grid>
+
+  <!-- Conversation -->
+  <Grid Grid.Row="1">
+   <!-- Nothing said yet: a hint, or the way to set up a server -->
+   <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="460" Spacing="10" IsVisible="{Binding NoMessages}">
+    <Border Width="44" Height="44" CornerRadius="22" Background="#2A2012" HorizontalAlignment="Center"><TextBlock Text="&#xE8BD;" FontSize="20" Foreground="#FFAE54" HorizontalAlignment="Center" VerticalAlignment="Center" Classes="Glyph"/></Border>
+    <TextBlock Text="{Binding GreetingText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" FontSize="22" FontWeight="SemiBold" Foreground="#ECECF0" MinHeight="34"/>
+    <TextBlock Text="{DynamicResource Ai.SetupText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" FontSize="13" Foreground="#9A9AA2" IsVisible="{Binding NeedsSetup}"/>
+    <Button Content="{DynamicResource Ai.OpenSettings}" Command="{Binding OpenSettings}" HorizontalAlignment="Center" IsVisible="{Binding NeedsSetup}" Classes="Text"/>
+   </StackPanel>
+
+   <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Auto" Focusable="False" IsVisible="{Binding HasMessages}">
+    <ItemsControl ItemsSource="{Binding Messages}" Margin="2,2,12,6">
+     <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:ChatLine">
+      <Grid Margin="0,7">
+       <!-- You: a quiet bubble on the right -->
+       <Border IsVisible="{Binding IsUser}" HorizontalAlignment="Right" MaxWidth="500" CornerRadius="16,16,4,16" Padding="14,9" Background="#2A2A2F">
+        <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="13.5" LineHeight="20" Foreground="#F2F2F4"/>
+       </Border>
+       <!-- The assistant: no bubble, a small mark on the left -->
+       <Grid IsVisible="{Binding IsAssistant}" ColumnDefinitions="30,*">
+        <Border Width="22" Height="22" CornerRadius="11" Background="#2A2012" VerticalAlignment="Top" Margin="0,2,0,0"><TextBlock Text="&#xE8BD;" FontSize="11" Foreground="#FFAE54" HorizontalAlignment="Center" VerticalAlignment="Center" Classes="Glyph"/></Border>
+        <StackPanel Grid.Column="1" Spacing="6">
+         <!-- Thinking models: the thought process, folded away once the answer starts -->
+         <Border IsVisible="{Binding HasThinking}" CornerRadius="10" Padding="10,5" Background="#131315" BorderBrush="#232327" BorderThickness="1">
+          <StackPanel>
+           <Button Command="{Binding ToggleThinking}" HorizontalAlignment="Left" Padding="0" Background="Transparent" BorderThickness="0" Cursor="Hand">
+            <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="{Binding ThinkingGlyph}" FontSize="10" Foreground="#8A8A92" VerticalAlignment="Center" Classes="Glyph"/><TextBlock Text="{DynamicResource Ai.Thinking}" FontSize="12" Foreground="#8A8A92"/></StackPanel>
+           </Button>
+           <SelectableTextBlock Text="{Binding Thinking}" IsVisible="{Binding ThinkingOpen}" TextWrapping="Wrap" FontSize="12" LineHeight="18" Foreground="#80808A" Margin="0,5,0,2"/>
+          </StackPanel>
+         </Border>
+         <!-- What the agent did: one quiet line per search or page read -->
+         <ItemsControl ItemsSource="{Binding Steps}" IsVisible="{Binding HasSteps}">
+          <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:AgentStepLine">
+           <StackPanel Orientation="Horizontal" Spacing="7" Margin="0,2">
+            <TextBlock Text="&#xE73E;" IsVisible="{Binding Done}" FontSize="10" Foreground="#6E9B6E" VerticalAlignment="Center" Classes="Glyph"/>
+            <TextBlock Text="&#xE895;" IsVisible="{Binding Running}" FontSize="10" Foreground="#FFAE54" VerticalAlignment="Center" Classes="Glyph"/>
+            <TextBlock Text="{Binding Label}" FontSize="12" Foreground="#9A9AA2" TextTrimming="CharacterEllipsis" MaxWidth="420"/>
+            <TextBlock Text="{Binding Summary}" IsVisible="{Binding HasSummary}" FontSize="12" Foreground="#6A6A72" TextTrimming="CharacterEllipsis" MaxWidth="260"/>
+           </StackPanel>
+          </DataTemplate></ItemsControl.ItemTemplate>
+         </ItemsControl>
+         <!-- An action waiting for the user's OK -->
+         <Border IsVisible="{Binding HasConfirm}" CornerRadius="12" Padding="12,10" Background="#1B1710" BorderBrush="#4A3A22" BorderThickness="1" Classes="Ask">
+          <StackPanel Spacing="8">
+           <TextBlock Text="{Binding Confirm.Title}" TextWrapping="Wrap" FontSize="13" FontWeight="SemiBold" Foreground="#F0E4D0"/>
+           <Border IsVisible="{Binding Confirm.HasDetail}" CornerRadius="8" Background="#0C0C0E" BorderBrush="#26262A" BorderThickness="1" Padding="10,8">
+            <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+             <SelectableTextBlock Text="{Binding Confirm.Detail}" TextWrapping="Wrap" FontFamily="Cascadia Mono, Consolas" FontSize="12" LineHeight="17" Foreground="#E6E6EA"/>
+            </ScrollViewer>
+           </Border>
+           <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+            <Button Content="{DynamicResource Ai.Deny}" Command="{Binding Confirm.Deny}" Classes="Deny"/>
+            <Button Content="{DynamicResource Ai.Allow}" Command="{Binding Confirm.Allow}" Classes="Allow"/>
+           </StackPanel>
+          </StackPanel>
+         </Border>
+         <TextBlock Text="{DynamicResource Ai.Working}" IsVisible="{Binding IsPending}" FontSize="13" Foreground="#80808A"/>
+         <ItemsControl ItemsSource="{Binding Segments}">
+          <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:ChatSegment">
+           <Grid>
+            <SelectableTextBlock Text="{Binding Text}" IsVisible="{Binding IsText}" TextWrapping="Wrap" FontSize="13.5" LineHeight="21" Margin="0,2" Foreground="{Binding IsError, Converter={StaticResource Pick}, ConverterParameter=#FF9A8A|#E8E8EC}"/>
+            <Border IsVisible="{Binding IsCode}" CornerRadius="10" Padding="12,9" Margin="0,5" Background="#0C0C0E" BorderBrush="#1F1F23" BorderThickness="1">
+             <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" FontFamily="Cascadia Mono, Consolas" FontSize="12.5" LineHeight="18" Foreground="#E6E6EA"/>
+            </Border>
+           </Grid>
+          </DataTemplate></ItemsControl.ItemTemplate>
+         </ItemsControl>
+        </StackPanel>
+       </Grid>
+      </Grid>
+     </DataTemplate></ItemsControl.ItemTemplate>
+    </ItemsControl>
+   </ScrollViewer>
+
+   <!-- A reminder when no key is set but there is already a conversation on screen -->
+   <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" CornerRadius="10" Padding="12,6" Background="#2A2012" IsVisible="{Binding NeedsSetup}" Margin="0,0,0,4">
+    <StackPanel Orientation="Horizontal" Spacing="12" IsVisible="{Binding HasMessages}">
+     <TextBlock Text="{DynamicResource Ai.SetupShort}" FontSize="12" Foreground="#FFAE54" VerticalAlignment="Center"/>
+     <Button Content="{DynamicResource Ai.OpenSettings}" Command="{Binding OpenSettings}" Classes="Text"/>
+    </StackPanel>
+   </Border>
+
+   <!-- History: slides over the left of the conversation -->
+   <Border HorizontalAlignment="Left" Width="280" CornerRadius="14" Padding="10,8" Background="#131315" BorderBrush="#27272B" BorderThickness="1" IsVisible="{Binding HistoryOpen}" BoxShadow="0 8 24 0 #90000000">
+    <Grid RowDefinitions="Auto,*">
+     <Grid Margin="4,0,0,6">
+      <TextBlock Text="{DynamicResource Ai.History}" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+      <Button Content="{DynamicResource Ai.ClearAll}" Command="{Binding ClearHistory}" HorizontalAlignment="Right" IsVisible="{Binding !NoHistory}" Classes="Text"/>
+     </Grid>
+     <TextBlock Grid.Row="1" Text="{DynamicResource Ai.NoHistory}" HorizontalAlignment="Center" Margin="0,24,0,0" IsVisible="{Binding NoHistory}" Classes="Placeholder"/>
+     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Focusable="False" IsVisible="{Binding !NoHistory}">
+      <ItemsControl ItemsSource="{Binding History}">
+       <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:ConversationItem">
+        <Grid Margin="0,1">
+         <Button Command="{Binding $parent[UserControl].((vm:AiViewModel)DataContext).OpenChat}" CommandParameter="{Binding}" HorizontalContentAlignment="Stretch" Padding="10,7,34,7" Background="{Binding IsCurrent, Converter={StaticResource Pick}, ConverterParameter=#26262B|Transparent}" Classes="Tile">
+          <StackPanel>
+           <TextBlock Text="{Binding Title}" FontSize="12.5" TextTrimming="CharacterEllipsis"/>
+           <TextBlock Text="{Binding TimeLabel}" Classes="Caption"/>
+          </StackPanel>
+         </Button>
+         <Button HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,4,0" Command="{Binding $parent[UserControl].((vm:AiViewModel)DataContext).DeleteChat}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Common.Delete}" AutomationProperties.Name="{DynamicResource Common.Delete}" Classes="Nav Small">
+          <TextBlock Text="&#xE74D;" FontSize="11" Foreground="#77777D" Classes="Glyph"/>
+         </Button>
+        </Grid>
+       </DataTemplate></ItemsControl.ItemTemplate>
+      </ItemsControl>
+     </ScrollViewer>
+    </Grid>
+   </Border>
+  </Grid>
+
+  <!-- Input card: the message, the model, send -->
+  <Border Grid.Row="2" Margin="0,6,0,0" CornerRadius="18" Background="#161618" BorderBrush="#2B2B30" BorderThickness="1" Padding="12,4,8,6">
+   <Grid RowDefinitions="Auto,Auto">
+    <Grid>
+     <TextBox x:Name="Input" MinHeight="34" MaxHeight="92" AcceptsReturn="True" TextWrapping="Wrap" Text="{Binding Draft}" AutomationProperties.Name="{DynamicResource Ai.Placeholder}" Classes="Chat"/>
+     <TextBlock Text="{DynamicResource Ai.Placeholder}" Margin="4,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" Classes="Placeholder" IsVisible="{Binding Draft, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+    </Grid>
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,2,0,0">
+     <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasChoices}">
+      <!-- The model: a quiet pill that opens a menu of every model, grouped by service. -->
+      <Button x:Name="ModelButton" AutomationProperties.Name="{DynamicResource Ai.Model}" Classes="Pill">
+       <StackPanel Orientation="Horizontal" Spacing="6">
+        <TextBlock Text="{Binding ModelLabel}" FontSize="12.5" Foreground="#E4E4E8" VerticalAlignment="Center"/>
+        <TextBlock Text="&#xE70D;" FontSize="9" Foreground="#8A8A92" VerticalAlignment="Center" Margin="0,1,0,0" Classes="Glyph"/>
+       </StackPanel>
+       <Button.Flyout>
+        <Flyout Placement="TopEdgeAlignedLeft" FlyoutPresenterClasses="ModelMenu">
+         <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto">
+          <ItemsControl ItemsSource="{Binding MenuRows}" MinWidth="220">
+           <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:ModelRow">
+            <StackPanel>
+             <TextBlock Text="{Binding Header}" IsVisible="{Binding HasHeader}" FontSize="11" Foreground="#7A7A84" Margin="10,8,0,3"/>
+             <Button Command="{Binding $parent[UserControl].((vm:AiViewModel)DataContext).PickModel}" CommandParameter="{Binding}" Classes="MenuRow">
+              <Grid ColumnDefinitions="*,Auto">
+               <TextBlock Text="{Binding Choice.Label}" FontSize="13" Foreground="#ECECF0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+               <TextBlock Grid.Column="1" Text="&#xE73E;" FontSize="12" Foreground="#FFAE54" VerticalAlignment="Center" Margin="12,0,0,0" IsVisible="{Binding IsCurrent}" Classes="Glyph"/>
+              </Grid>
+             </Button>
+            </StackPanel>
+           </DataTemplate></ItemsControl.ItemTemplate>
+          </ItemsControl>
+         </ScrollViewer>
+        </Flyout>
+       </Button.Flyout>
+      </Button>
+      <!-- Deep thinking (shown for services that offer a thinking twin of the model, e.g. DeepSeek). -->
+      <ToggleButton IsChecked="{Binding Thinking}" IsVisible="{Binding CanThink}" AutomationProperties.Name="{DynamicResource Ai.Think}" Classes="Think">
+       <StackPanel Orientation="Horizontal" Spacing="5">
+        <TextBlock Text="&#xE945;" FontSize="12" VerticalAlignment="Center" Classes="Glyph"/>
+        <TextBlock Text="{DynamicResource Ai.Think}" FontSize="12.5" VerticalAlignment="Center"/>
+       </StackPanel>
+      </ToggleButton>
+      <ToggleButton IsChecked="{Binding WebSearch}" AutomationProperties.Name="{DynamicResource Ai.Web}" Classes="Think">
+       <StackPanel Orientation="Horizontal" Spacing="5">
+        <TextBlock Text="&#xE774;" FontSize="12" VerticalAlignment="Center" Classes="Glyph"/>
+        <TextBlock Text="{DynamicResource Ai.Web}" FontSize="12.5" VerticalAlignment="Center"/>
+       </StackPanel>
+      </ToggleButton>
+      <ToggleButton IsChecked="{Binding LocalTools}" AutomationProperties.Name="{DynamicResource Ai.Local}" ToolTip.Tip="{DynamicResource Ai.LocalTip}" Classes="Think">
+       <StackPanel Orientation="Horizontal" Spacing="5">
+        <TextBlock Text="&#xE7F4;" FontSize="12" VerticalAlignment="Center" Classes="Glyph"/>
+        <TextBlock Text="{DynamicResource Ai.Local}" FontSize="12.5" VerticalAlignment="Center"/>
+       </StackPanel>
+      </ToggleButton>
+     </StackPanel>
+     <TextBlock Text="{DynamicResource Ai.NoModels}" IsVisible="{Binding NoChoices}" FontSize="12" Foreground="#80808A" VerticalAlignment="Center" Margin="6,0,0,0"/>
+     <Button Grid.Column="1" Command="{Binding Send}" IsVisible="{Binding IsIdle}" ToolTip.Tip="{DynamicResource Ai.Send}" AutomationProperties.Name="{DynamicResource Ai.Send}" Classes="Round">
+      <TextBlock Text="&#xE74A;" FontSize="14" Foreground="#1A1208" Classes="Glyph"/>
+     </Button>
+     <Button Grid.Column="1" Command="{Binding Stop}" IsVisible="{Binding IsBusy}" ToolTip.Tip="{DynamicResource Ai.Stop}" AutomationProperties.Name="{DynamicResource Ai.Stop}" Classes="Round">
+      <TextBlock Text="&#xE71A;" FontSize="13" Foreground="#1A1208" Classes="Glyph"/>
+     </Button>
+    </Grid>
+   </Grid>
+  </Border>
+ </Grid>
+</UserControl>

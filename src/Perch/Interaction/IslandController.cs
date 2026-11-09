@@ -20,6 +20,7 @@ public sealed class IslandController : IDisposable
     public void Pointer(bool inside)
     {
         hovered = inside;
+        Dbg.Log($"Pointer({inside}) editing={editing} pinned={pinned} state={State}");
         delay.Stop();
         if (editing || pinned) return;
         if (inside && !HoverEnabled) return;
@@ -29,15 +30,16 @@ public sealed class IslandController : IDisposable
     }
     private void OnDelay(object? sender, EventArgs e) { delay.Stop(); SetState(hovered ? InteractionState.Expanded : InteractionState.Compact); }
     public void TogglePin() { pinned = !pinned; Reconcile(); }
-    public void Edit(bool value) { editing = value; Reconcile(); }
+    public void Edit(bool value) { Dbg.Log($"Edit({value}) hovered={hovered}"); editing = value; Reconcile(); }
     // Explicit close (click outside the island): also ends editing, but never overrides the pin.
     public void Collapse()
     {
+        Dbg.Log("Collapse()");
         delay.Stop();
         editing = false;
         if (!pinned) SetState(InteractionState.Compact);
     }
-    public void Open() => SetState(pinned ? InteractionState.Pinned : InteractionState.Expanded);
+    public void Open() { Dbg.Log("Open()"); SetState(pinned ? InteractionState.Pinned : InteractionState.Expanded); }
     private void Reconcile()
     {
         delay.Stop();
@@ -46,6 +48,6 @@ public sealed class IslandController : IDisposable
         else if (hovered || (!CollapseOnLeave && State != InteractionState.Compact)) SetState(InteractionState.Expanded);
         else Pointer(false);
     }
-    private void SetState(InteractionState value) { State = value; ExpansionChanged?.Invoke(value != InteractionState.Compact); }
+    private void SetState(InteractionState value) { Dbg.Log($"SetState({value}) hovered={hovered}"); State = value; ExpansionChanged?.Invoke(value != InteractionState.Compact); }
     public void Dispose() { delay.Stop(); delay.Tick -= OnDelay; }
 }

@@ -4,6 +4,7 @@ using System.Windows.Input;
 using Avalonia.Media.Imaging;
 using Perch.Platform.Windows;
 using Perch.Services;
+using Perch.Services.Sounds;
 
 namespace Perch.ViewModels;
 
@@ -87,7 +88,7 @@ public sealed class LauncherViewModel : Observable
         {
             if (p is not CommandItem c) return;
             var ok = ShellActions.Run(c.Command);
-            alerts.Show(ok ? AlertQueue.Done : AlertQueue.Warning, Loc.F(ok ? "Apps.Ran" : "Apps.RunFailed", c.Name));
+            alerts.Show(ok ? AlertQueue.Done : AlertQueue.Warning, Loc.F(ok ? "Apps.Ran" : "Apps.RunFailed", c.Name), ok ? SoundKind.None : SoundKind.Reminder);
         });
         RemoveCommand = new RelayCommand(p =>
         {
@@ -121,7 +122,7 @@ public sealed class LauncherViewModel : Observable
         });
     }
 
-    private static List<(string Name, string Path, string Folder)> Scan()
+    internal static List<(string Name, string Path, string Folder)> Scan()
     {
         var roots = new[]
         {

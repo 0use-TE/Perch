@@ -2,7 +2,7 @@ using Avalonia.Threading;
 
 namespace Perch.Services;
 
-public sealed record IslandAlert(string Glyph, string Text);
+public sealed record IslandAlert(string Glyph, string Text, Sounds.SoundKind Sound);
 
 // Short messages the island shows one at a time: widened compact island when closed, a banner when open.
 public sealed class AlertQueue
@@ -11,14 +11,14 @@ public sealed class AlertQueue
     private readonly Queue<IslandAlert> pending = new();
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(5) };
     public IslandAlert? Current { get; private set; }
-    public bool Sound { get; set; } = true;
     public event Action? Changed;
 
     public AlertQueue() => timer.Tick += (_, _) => Next();
 
-    public void Show(string glyph, string text)
+    // `sound` says which of the user's sounds goes with the message; None is for quiet feedback (a copy, a finished zip).
+    public void Show(string glyph, string text, Sounds.SoundKind sound = Sounds.SoundKind.Reminder)
     {
-        pending.Enqueue(new(glyph, text));
+        pending.Enqueue(new(glyph, text, sound));
         if (Current == null) Next();
     }
 
@@ -29,7 +29,7 @@ public sealed class AlertQueue
         Current = pending.Count > 0 ? pending.Dequeue() : null;
         if (Current != null)
         {
-            if (Sound) Platform.Windows.Beep.Play();
+            Sounds.Audio.Play(Current.Sound);
             timer.Start();
         }
         Changed?.Invoke();

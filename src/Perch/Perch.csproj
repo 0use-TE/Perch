@@ -21,6 +21,7 @@
     <!-- Linux-only D-Bus dependency of Avalonia.Desktop, pinned to a release that fixes GHSA-xrw6-gwf8-vvr9 (not used on Windows). -->
     <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.2" />
     <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />

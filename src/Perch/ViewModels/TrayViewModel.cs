@@ -5,6 +5,7 @@ using System.Windows.Input;
 using Avalonia.Media.Imaging;
 using Perch.Platform.Windows;
 using Perch.Services;
+using Perch.Services.Sounds;
 
 namespace Perch.ViewModels;
 
@@ -19,7 +20,24 @@ public sealed class TrayFile : Observable
         IsImage = !IsFolder && ImageTypes.Contains(Path.GetExtension(fullPath).ToLowerInvariant());
         length = !IsFolder && File.Exists(fullPath) ? new FileInfo(fullPath).Length : null;
         Icon = ShellIcons.Get(fullPath);
+        if (IsImage) _ = LoadPreviewAsync();
     }
+
+    // A small picture of the image itself instead of the generic file icon (loaded in the background; other formats keep the icon).
+    private async Task LoadPreviewAsync()
+    {
+        var picture = await Task.Run(() =>
+        {
+            try { using var stream = File.OpenRead(FullPath); return Bitmap.DecodeToWidth(stream, 180); }
+            catch (Exception) { return null; }
+        });
+        Preview = picture;
+    }
+
+    private Bitmap? preview;
+    public Bitmap? Preview { get => preview; private set { if (Set(ref preview, value)) { Changed(nameof(HasPreview)); Changed(nameof(NoPreview)); } } }
+    public bool HasPreview => preview != null;
+    public bool NoPreview => preview == null;
     public string FullPath { get; }
     public string Name { get; }
     private readonly long? length;
@@ -147,7 +165,7 @@ public sealed class TrayViewModel : Observable
                 }
             });
             Add([target]);
-            alerts.Show(AlertQueue.Done, Loc.F("Tray.Zipped", Path.GetFileName(target)));
+            alerts.Show(AlertQueue.Done, Loc.F("Tray.Zipped", Path.GetFileName(target)), SoundKind.None);
         }
         catch
         {
@@ -172,7 +190,7 @@ public sealed class TrayViewModel : Observable
         {
             await Task.Run(() => Platform.Windows.ImageConversion.Save(source.FullPath, target, format == "jpg"));
             Add([target]);
-            alerts.Show(AlertQueue.Done, Loc.F("Tray.Saved", Path.GetFileName(target)));
+            alerts.Show(AlertQueue.Done, Loc.F("Tray.Saved", Path.GetFileName(target)), SoundKind.None);
         }
         catch
         {

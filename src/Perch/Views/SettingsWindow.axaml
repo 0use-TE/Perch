@@ -1,7 +1,7 @@
-<Window x:Class="Perch.Views.SettingsWindow" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Perch.Views" xmlns:svc="using:Perch.Services" x:DataType="svc:Settings"
+<Window x:Class="Perch.Views.SettingsWindow" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Perch.Views" xmlns:svc="using:Perch.Services" xmlns:snd="using:Perch.Services.Sounds" x:DataType="svc:Settings"
         Title="{DynamicResource Settings.Title}" Icon="avares://Perch/Assets/perch.ico" Width="820" Height="640" MinWidth="720" MinHeight="500" WindowStartupLocation="CenterScreen"
         WindowDecorations="BorderOnly" ExtendClientAreaToDecorationsHint="True" ExtendClientAreaTitleBarHeightHint="-1"
-        TransparencyLevelHint="AcrylicBlur" Background="{DynamicResource Ui.Tint}" Foreground="{DynamicResource Ui.Text}" FontFamily="Segoe UI Variable Text, Microsoft YaHei UI" UseLayoutRounding="True">
+        Background="{DynamicResource Ui.Fallback}" Foreground="{DynamicResource Ui.Text}" FontFamily="Segoe UI Variable Text, Microsoft YaHei UI" UseLayoutRounding="True">
  <Window.Styles>
   <Style Selector="Border.FeatureIcon"><Setter Property="Width" Value="34"/><Setter Property="Height" Value="34"/><Setter Property="CornerRadius" Value="9"/><Setter Property="Background" Value="{DynamicResource Ui.Tile}"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
   <Style Selector="TextBlock.FeatureGlyph"><Setter Property="FontFamily" Value="Segoe Fluent Icons"/><Setter Property="FontSize" Value="16"/><Setter Property="Foreground" Value="{DynamicResource Ui.TileIcon}"/><Setter Property="HorizontalAlignment" Value="Center"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
@@ -32,6 +32,10 @@
   <Style Selector="Button.Caption.Close:pointerover /template/ TextBlock#Glyph"><Setter Property="Foreground" Value="White"/></Style>
  </Window.Styles>
 
+ <Panel>
+ <!-- Frosted look: a blurred picture of the screen behind the window, under the theme tint (filled in from code). -->
+ <Border x:Name="BackdropLayer" IsVisible="False" IsHitTestVisible="False"/>
+ <Border x:Name="TintLayer" Background="{DynamicResource Ui.Tint}" IsVisible="False" IsHitTestVisible="False"/>
  <Grid>
   <Grid.ColumnDefinitions><ColumnDefinition Width="216"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
 
@@ -48,6 +52,8 @@
      <RadioButton GroupName="page" Tag="&#xE8F1;" Content="{DynamicResource Set.Widgets}" Classes="SidebarItem"/>
      <RadioButton GroupName="page" Tag="&#xEA8F;" Content="{DynamicResource Set.Reminders}" Classes="SidebarItem"/>
      <RadioButton GroupName="page" Tag="&#xE713;" Content="{DynamicResource Set.General}" Classes="SidebarItem"/>
+     <RadioButton GroupName="page" Tag="&#xE8BD;" Content="{DynamicResource Set.Ai}" Classes="SidebarItem"/>
+     <RadioButton GroupName="page" Tag="&#xE9F9;" Content="{DynamicResource Set.Log}" Classes="SidebarItem"/>
     </StackPanel>
    </Grid>
   </Border>
@@ -80,10 +86,10 @@
         </StackPanel></Border></Grid>
        <Border Classes="Divider"/>
        <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-        <TextBlock Text="{DynamicResource Set.Appearance}" Classes="RowTitle"/>
+        <StackPanel><TextBlock Text="{DynamicResource Set.Appearance}" Classes="RowTitle"/><TextBlock x:Name="GlassUnsupported" Text="{DynamicResource Set.GlassUnsupported}" IsVisible="False" TextWrapping="Wrap" MaxWidth="360" Classes="RowDesc"/></StackPanel>
         <Border Grid.Column="1" Classes="Segmented"><StackPanel Orientation="Horizontal">
          <RadioButton Content="{DynamicResource Set.Solid}" IsChecked="{Binding Appearance, Mode=OneTime, Converter={StaticResource StrEq}, ConverterParameter=black}" GroupName="segAppearance" Tag="Appearance|black" Click="OnSegment" Classes="Segment"/>
-         <RadioButton Content="{DynamicResource Set.Glass}" IsChecked="{Binding Appearance, Mode=OneTime, Converter={StaticResource StrEq}, ConverterParameter=glass}" GroupName="segAppearance" Tag="Appearance|glass" Click="OnSegment" Classes="Segment"/>
+         <RadioButton x:Name="GlassRadio" Content="{DynamicResource Set.Glass}" IsChecked="{Binding Appearance, Mode=OneTime, Converter={StaticResource StrEq}, ConverterParameter=glass}" GroupName="segAppearance" Tag="Appearance|glass" Click="OnSegment" Classes="Segment"/>
         </StackPanel></Border></Grid>
        <Border Classes="Divider"/>
        <Grid x:Name="GlassRow" Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -144,14 +150,15 @@
         <ItemsControl x:Name="NavList" Background="Transparent">
          <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:SettingsWindow+NavEntry">
           <!-- Drag a row by its handle: the row follows the pointer and the others slide aside to show the new order. -->
-          <Grid x:Name="NavRowRoot" Background="Transparent">
+          <Grid x:Name="NavRowRoot" Background="Transparent" Opacity="{Binding Enabled, Converter={StaticResource Pick}, ConverterParameter=1|0.45}">
            <Grid Margin="18,6">
             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <TextBlock Text="&#x2807;&#x2807;" FontFamily="Segoe UI Symbol" FontSize="15" Foreground="{DynamicResource Ui.Muted}" VerticalAlignment="Center" Margin="0,0,12,0" Cursor="SizeAll"/>
             <Border Grid.Column="1" Width="30" Height="30" Classes="FeatureIcon"><TextBlock Text="{Binding Glyph}" FontSize="14" Classes="FeatureGlyph"/></Border>
             <TextBlock Grid.Column="2" Text="{Binding Name}" Margin="12,0,8,0" FontSize="13" Classes="RowTitle"/>
-            <TextBlock Grid.Column="3" Text="{DynamicResource Set.NavPin}" Margin="0,0,10,0" VerticalAlignment="Center" Classes="RowDesc"/>
-            <CheckBox Grid.Column="4" IsChecked="{Binding Pinned}" Click="OnNavPin" AutomationProperties.Name="{DynamicResource Set.NavPin}" Classes="Switch"/>
+            <TextBlock Grid.Column="3" Text="{DynamicResource Set.NavPin}" Margin="0,0,10,0" VerticalAlignment="Center" IsVisible="{Binding Enabled}" Classes="RowDesc"/>
+            <TextBlock Grid.Column="3" Text="{DynamicResource Set.NavOff}" Margin="0,0,10,0" VerticalAlignment="Center" IsVisible="{Binding Disabled}" Classes="RowDesc"/>
+            <CheckBox Grid.Column="4" IsChecked="{Binding Pinned}" IsEnabled="{Binding Enabled}" Click="OnNavPin" AutomationProperties.Name="{DynamicResource Set.NavPin}" Classes="Switch"/>
            </Grid>
           </Grid>
          </DataTemplate></ItemsControl.ItemTemplate>
@@ -294,11 +301,46 @@
        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="13,0,12,0"><TextBlock Text="{DynamicResource Nav.Clipboard}" Classes="RowTitle"/><TextBlock Text="{DynamicResource Feat.Clipboard}" Margin="0,2,0,0" Classes="RowDesc"/></StackPanel>
        <CheckBox Grid.Column="2" IsChecked="{Binding ShowClipboard}" ToolTip.Tip="{DynamicResource Set.ShowPage}" AutomationProperties.Name="{DynamicResource Nav.Clipboard}" Classes="Switch"/>
       </Grid></Border>
+      <Expander Classes="Feature">
+       <Expander.Header><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <Border Classes="FeatureIcon"><TextBlock Text="&#xE7F4;" Classes="FeatureGlyph"/></Border>
+        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="13,0,12,0"><TextBlock Text="{DynamicResource Nav.System}" Classes="RowTitle"/><TextBlock Text="{DynamicResource Feat.System}" Margin="0,2,0,0" Classes="RowDesc"/></StackPanel>
+        <CheckBox Grid.Column="2" IsChecked="{Binding ShowSystem}" ToolTip.Tip="{DynamicResource Set.ShowPage}" AutomationProperties.Name="{DynamicResource Nav.System}" Classes="Switch"/>
+       </Grid></Expander.Header>
+       <StackPanel><Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+       <TextBlock Text="{DynamicResource Set.SysCpuTemp}" Classes="RowTitle"/>
+       <CheckBox Grid.Column="1" IsChecked="{Binding SysCpuTemp}" AutomationProperties.Name="{DynamicResource Set.SysCpuTemp}" Classes="Switch"/></Grid>
+       <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+       <TextBlock Text="{DynamicResource Set.SysGpu}" Classes="RowTitle"/>
+       <CheckBox Grid.Column="1" IsChecked="{Binding SysGpu}" AutomationProperties.Name="{DynamicResource Set.SysGpu}" Classes="Switch"/></Grid>
+       <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+       <TextBlock Text="{DynamicResource Set.SysVram}" Classes="RowTitle"/>
+       <CheckBox Grid.Column="1" IsChecked="{Binding SysVram}" AutomationProperties.Name="{DynamicResource Set.SysVram}" Classes="Switch"/></Grid>
+       </StackPanel>
+      </Expander>
      <Border Margin="0,0,0,10" Classes="Card"><Grid Margin="16,0,40,0" MinHeight="62">
        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-       <Border Classes="FeatureIcon"><TextBlock Text="&#xE7F4;" Classes="FeatureGlyph"/></Border>
-       <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="13,0,12,0"><TextBlock Text="{DynamicResource Nav.System}" Classes="RowTitle"/><TextBlock Text="{DynamicResource Feat.System}" Margin="0,2,0,0" Classes="RowDesc"/></StackPanel>
-       <CheckBox Grid.Column="2" IsChecked="{Binding ShowSystem}" ToolTip.Tip="{DynamicResource Set.ShowPage}" AutomationProperties.Name="{DynamicResource Nav.System}" Classes="Switch"/>
+       <Border Classes="FeatureIcon"><TextBlock Text="&#xE839;" Classes="FeatureGlyph"/></Border>
+       <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="13,0,12,0"><TextBlock Text="{DynamicResource Nav.Ports}" Classes="RowTitle"/><TextBlock Text="{DynamicResource Feat.Ports}" Margin="0,2,0,0" Classes="RowDesc"/></StackPanel>
+       <CheckBox Grid.Column="2" IsChecked="{Binding ShowPorts}" ToolTip.Tip="{DynamicResource Set.ShowPage}" AutomationProperties.Name="{DynamicResource Nav.Ports}" Classes="Switch"/>
+      </Grid></Border>
+     <Border Margin="0,0,0,10" Classes="Card"><Grid Margin="16,0,40,0" MinHeight="62">
+       <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+       <Border Classes="FeatureIcon"><TextBlock Text="&#xE8BD;" Classes="FeatureGlyph"/></Border>
+       <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="13,0,12,0"><TextBlock Text="{DynamicResource Nav.Ai}" Classes="RowTitle"/><TextBlock Text="{DynamicResource Feat.Ai}" Margin="0,2,0,0" Classes="RowDesc"/></StackPanel>
+       <CheckBox Grid.Column="2" IsChecked="{Binding ShowAi}" ToolTip.Tip="{DynamicResource Set.ShowPage}" AutomationProperties.Name="{DynamicResource Nav.Ai}" Classes="Switch"/>
+      </Grid></Border>
+     <Border Margin="0,0,0,10" Classes="Card"><Grid Margin="16,0,40,0" MinHeight="62">
+       <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+       <Border Classes="FeatureIcon"><TextBlock Text="&#xE121;" Classes="FeatureGlyph"/></Border>
+       <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="13,0,12,0"><TextBlock Text="{DynamicResource Nav.Alarm}" Classes="RowTitle"/><TextBlock Text="{DynamicResource Feat.Alarm}" Margin="0,2,0,0" Classes="RowDesc"/></StackPanel>
+       <CheckBox Grid.Column="2" IsChecked="{Binding ShowAlarm}" ToolTip.Tip="{DynamicResource Set.ShowPage}" AutomationProperties.Name="{DynamicResource Nav.Alarm}" Classes="Switch"/>
+      </Grid></Border>
+     <Border Margin="0,0,0,10" Classes="Card"><Grid Margin="16,0,40,0" MinHeight="62">
+       <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+       <Border Classes="FeatureIcon"><TextBlock Text="&#xF0000;" Classes="FeatureGlyph"/></Border>
+       <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="13,0,12,0"><TextBlock Text="{DynamicResource Nav.Dino}" Classes="RowTitle"/><TextBlock Text="{DynamicResource Feat.Dino}" Margin="0,2,0,0" Classes="RowDesc"/></StackPanel>
+       <CheckBox Grid.Column="2" IsChecked="{Binding ShowDino}" ToolTip.Tip="{DynamicResource Set.ShowPage}" AutomationProperties.Name="{DynamicResource Nav.Dino}" Classes="Switch"/>
       </Grid></Border>
       <Expander Classes="Feature">
        <Expander.Header><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -339,6 +381,32 @@
         <TextBlock Text="{DynamicResource Settings.Sound}" Classes="RowTitle"/>
         <CheckBox Grid.Column="1" IsChecked="{Binding AlertSound}" AutomationProperties.Name="{DynamicResource Settings.Sound}" Classes="Switch"/></Grid>
       </StackPanel></Border>
+      <TextBlock Text="{DynamicResource Set.Sounds}" Classes="GroupTitle"/>
+      <Border Classes="Card"><StackPanel>
+       <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="240"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <TextBlock Text="{DynamicResource Set.SoundVolume}" Classes="RowTitle"/>
+        <Slider x:Name="SoundVolumeSlider" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding SoundVolume}" AutomationProperties.Name="{DynamicResource Set.SoundVolume}" Classes="Dotted"/>
+        <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=SoundVolumeSlider, Converter={StaticResource Percent}}" Classes="Value"/></Grid>
+       <Border Classes="Divider"/>
+       <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="200"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <TextBlock Text="{DynamicResource Set.SoundReminder}" Classes="RowTitle"/>
+        <ComboBox x:Name="SoundReminderBox" Grid.Column="1" AutomationProperties.Name="{DynamicResource Set.SoundReminder}"><ComboBox.ItemTemplate><DataTemplate x:DataType="snd:SoundOption"><TextBlock Text="{Binding Name}"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+        <Button Grid.Column="2" Tag="reminder" Click="OnPlaySound" Margin="8,0,0,0" ToolTip.Tip="{DynamicResource Set.SoundPlay}" AutomationProperties.Name="{DynamicResource Set.SoundPlay}" Classes="Nav Small"><TextBlock Text="&#xE768;" FontSize="13" Foreground="#FFAE54" Classes="Glyph"/></Button></Grid>
+       <Border Classes="Divider"/>
+       <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="200"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <TextBlock Text="{DynamicResource Set.SoundPomodoro}" Classes="RowTitle"/>
+        <ComboBox x:Name="SoundPomodoroBox" Grid.Column="1" AutomationProperties.Name="{DynamicResource Set.SoundPomodoro}"><ComboBox.ItemTemplate><DataTemplate x:DataType="snd:SoundOption"><TextBlock Text="{Binding Name}"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+        <Button Grid.Column="2" Tag="pomodoro" Click="OnPlaySound" Margin="8,0,0,0" ToolTip.Tip="{DynamicResource Set.SoundPlay}" AutomationProperties.Name="{DynamicResource Set.SoundPlay}" Classes="Nav Small"><TextBlock Text="&#xE768;" FontSize="13" Foreground="#FFAE54" Classes="Glyph"/></Button></Grid>
+       <Border Classes="Divider"/>
+       <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="200"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <TextBlock Text="{DynamicResource Set.SoundAlarm}" Classes="RowTitle"/>
+        <ComboBox x:Name="SoundAlarmBox" Grid.Column="1" AutomationProperties.Name="{DynamicResource Set.SoundAlarm}"><ComboBox.ItemTemplate><DataTemplate x:DataType="snd:SoundOption"><TextBlock Text="{Binding Name}"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+        <Button Grid.Column="2" Tag="alarm" Click="OnPlaySound" Margin="8,0,0,0" ToolTip.Tip="{DynamicResource Set.SoundPlay}" AutomationProperties.Name="{DynamicResource Set.SoundPlay}" Classes="Nav Small"><TextBlock Text="&#xE768;" FontSize="13" Foreground="#FFAE54" Classes="Glyph"/></Button></Grid>
+       <Border Classes="Divider"/>
+       <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <TextBlock Text="{DynamicResource Set.SnoozeMinutes}" Classes="RowTitle"/>
+        <TextBox Grid.Column="1" Text="{Binding SnoozeMinutes}" Classes="Quiet Compact Field Number"/></Grid>
+      </StackPanel></Border>
      </StackPanel>
 
      <!-- General -->
@@ -378,8 +446,96 @@
       <TextBlock Text="{DynamicResource Set.HotkeyHint}" Margin="6,-10,0,0" Classes="RowDesc"/>
       <TextBlock x:Name="HotkeyStatus" Foreground="#FF7A6B" Margin="6,6,0,0" IsVisible="False" Classes="RowDesc"/>
      </StackPanel>
+     <!-- AI: the servers the chat can talk to -->
+     <StackPanel x:Name="PageAi" IsVisible="False">
+      <TextBlock Text="{DynamicResource Set.Ai}" Classes="Heading"/>
+      <Border Classes="Card"><StackPanel Margin="0,4">
+       <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <TextBlock Text="{DynamicResource Set.AiLocal}" Classes="RowTitle"/>
+        <CheckBox Grid.Column="1" IsChecked="{Binding AiLocalTools}" AutomationProperties.Name="{DynamicResource Set.AiLocal}" Classes="Switch"/></Grid>
+       <Border Classes="Divider"/>
+       <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <TextBlock Text="{DynamicResource Set.AiApproval}" Classes="RowTitle"/>
+        <Border Grid.Column="1" Classes="Segmented"><StackPanel Orientation="Horizontal">
+         <RadioButton Content="{DynamicResource Set.ApprovalAsk}" IsChecked="{Binding AiApproval, Mode=OneTime, Converter={StaticResource StrEq}, ConverterParameter=ask}" GroupName="segApproval" Tag="AiApproval|ask" Click="OnSegment" Classes="Segment"/>
+         <RadioButton Content="{DynamicResource Set.ApprovalScript}" IsChecked="{Binding AiApproval, Mode=OneTime, Converter={StaticResource StrEq}, ConverterParameter=script}" GroupName="segApproval" Tag="AiApproval|script" Click="OnSegment" Classes="Segment"/>
+         <RadioButton Content="{DynamicResource Set.ApprovalNone}" IsChecked="{Binding AiApproval, Mode=OneTime, Converter={StaticResource StrEq}, ConverterParameter=none}" GroupName="segApproval" Tag="AiApproval|none" Click="OnSegment" Classes="Segment"/>
+        </StackPanel></Border></Grid>
+      </StackPanel></Border>
+      <TextBlock Text="{DynamicResource Set.Search}" Classes="GroupTitle" Margin="6,18,0,8"/>
+      <Border Classes="Card" Margin="0,0,0,18"><StackPanel Margin="0,4">
+       <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="200"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+        <TextBlock Text="{DynamicResource Set.SearchEngine}" Classes="RowTitle"/>
+        <Border Grid.Column="1" Classes="Segmented" HorizontalAlignment="Right"><StackPanel Orientation="Horizontal">
+         <RadioButton Content="{DynamicResource Set.SearchLocal}" IsChecked="{Binding SearchEngine, Mode=OneTime, Converter={StaticResource StrEq}, ConverterParameter=local}" GroupName="segSearch" Tag="SearchEngine|local" Click="OnSearchEngine" Classes="Segment"/>
+         <RadioButton Content="Tavily" IsChecked="{Binding SearchEngine, Mode=OneTime, Converter={StaticResource StrEq}, ConverterParameter=tavily}" GroupName="segSearch" Tag="SearchEngine|tavily" Click="OnSearchEngine" Classes="Segment"/>
+         <RadioButton Content="{DynamicResource Set.SearchBocha}" IsChecked="{Binding SearchEngine, Mode=OneTime, Converter={StaticResource StrEq}, ConverterParameter=bocha}" GroupName="segSearch" Tag="SearchEngine|bocha" Click="OnSearchEngine" Classes="Segment"/>
+         <RadioButton Content="SearXNG" IsChecked="{Binding SearchEngine, Mode=OneTime, Converter={StaticResource StrEq}, ConverterParameter=searxng}" GroupName="segSearch" Tag="SearchEngine|searxng" Click="OnSearchEngine" Classes="Segment"/>
+        </StackPanel></Border></Grid>
+       <Border x:Name="SearchFieldsDivider" Classes="Divider"/>
+       <Grid x:Name="SearchKeyRow" Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="200"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+        <TextBlock Text="{DynamicResource Set.AiKey}" Classes="RowTitle"/>
+        <TextBox Grid.Column="1" PasswordChar="*" RevealPassword="False" VerticalAlignment="Center" Text="{Binding SearchKeyInput}" GotFocus="OnKeyFocus" AutomationProperties.Name="{DynamicResource Set.SearchEngine}" Classes="Quiet Compact Field"/></Grid>
+       <Grid x:Name="SearchUrlRow" Classes="Row" IsVisible="False"><Grid.ColumnDefinitions><ColumnDefinition Width="200"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+        <TextBlock Text="{DynamicResource Set.AiUrl}" Classes="RowTitle"/>
+        <TextBox Grid.Column="1" VerticalAlignment="Center" Text="{Binding SearchUrl}" AutomationProperties.Name="{DynamicResource Set.AiUrl}" Classes="Quiet Compact Field"/></Grid>
+      </StackPanel></Border>
+      <TextBlock Text="{DynamicResource Set.AiServers}" Classes="GroupTitle" Margin="6,0,0,8"/>
+      <ItemsControl x:Name="ProviderList">
+       <ItemsControl.ItemTemplate><DataTemplate x:DataType="svc:AiProvider">
+        <Border Classes="Card" Margin="0,0,0,14"><StackPanel Margin="0,4">
+         <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="200"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+          <TextBlock Text="{DynamicResource Set.AiName}" Classes="RowTitle"/>
+          <TextBox Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" Classes="Quiet Compact Field"/>
+          <Button Grid.Column="2" Content="{DynamicResource Set.AiRemove}" Click="OnRemoveProvider" Margin="12,0,0,0" Classes="Text"/></Grid>
+         <Border Classes="Divider"/>
+         <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="200"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+          <TextBlock Text="{DynamicResource Set.AiUrl}" Classes="RowTitle"/>
+          <TextBox Grid.Column="1" Text="{Binding BaseUrl}" VerticalAlignment="Center" Classes="Quiet Compact Field"/></Grid>
+         <Border Classes="Divider"/>
+         <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="200"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+          <TextBlock Text="{DynamicResource Set.AiKey}" Classes="RowTitle"/>
+          <TextBox Grid.Column="1" PasswordChar="*" RevealPassword="False" VerticalAlignment="Center" Text="{Binding KeyInput}" GotFocus="OnKeyFocus" LostFocus="OnKeyEntered" AutomationProperties.Name="{DynamicResource Set.AiKey}" Classes="Quiet Compact Field"/></Grid>
+         <Border Classes="Divider"/>
+         <Grid Classes="Row" VerticalAlignment="Top"><Grid.ColumnDefinitions><ColumnDefinition Width="200"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+          <TextBlock Text="{DynamicResource Set.AiModels}" VerticalAlignment="Top" Margin="0,8,0,0" Classes="RowTitle"/>
+          <StackPanel Grid.Column="1" Spacing="6">
+           <ListBox ItemsSource="{Binding ModelItems}" MaxHeight="170" SelectionMode="Toggle" Classes="Place">
+            <ListBox.ItemTemplate><DataTemplate x:DataType="svc:ModelItem">
+             <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,0">
+              <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontSize="13" TextTrimming="CharacterEllipsis"/>
+              <Button Grid.Column="1" Command="{Binding Remove}" ToolTip.Tip="{DynamicResource Set.AiRemove}" AutomationProperties.Name="{DynamicResource Set.AiRemove}" Classes="Nav Small">
+               <TextBlock Text="&#xE711;" FontSize="10" Foreground="{DynamicResource Ui.Muted}" Classes="Glyph"/>
+              </Button>
+             </Grid>
+            </DataTemplate></ListBox.ItemTemplate>
+           </ListBox>
+           <Grid ColumnDefinitions="*,Auto">
+            <Grid>
+             <TextBox x:Name="ModelAddBox" KeyDown="OnModelAddKey" AutomationProperties.Name="{DynamicResource Set.AiAddModel}" Classes="Quiet Compact Field"/>
+             <TextBlock Text="{DynamicResource Set.AiAddModel}" Margin="13,0,0,0" IsHitTestVisible="False" VerticalAlignment="Center" Foreground="{DynamicResource Ui.Muted}" FontSize="12.5" IsVisible="{Binding Text, ElementName=ModelAddBox, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+            </Grid>
+            <Button Grid.Column="1" Content="{DynamicResource Set.AiFetch}" Click="OnFetchModels" Margin="10,0,0,0" Classes="Text"/>
+           </Grid>
+          </StackPanel></Grid>
+         <TextBlock Text="{Binding Status}" IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Margin="18,0,18,10" Classes="RowDesc"/>
+        </StackPanel></Border>
+       </DataTemplate></ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <Button x:Name="AddProviderButton" Content="{DynamicResource Set.AiAdd}" Click="OnAddProvider" HorizontalAlignment="Left" Margin="2,0,0,18" Classes="Text"/>
+     </StackPanel>
+     <!-- Log -->
+     <StackPanel x:Name="PageLog" IsVisible="False">
+      <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+       <TextBlock Text="{DynamicResource Set.Log}" Classes="Heading"/>
+       <Button Grid.Column="1" Content="{DynamicResource Set.LogRefresh}" Click="OnLogRefresh" VerticalAlignment="Top" Classes="Text"/>
+       <Button Grid.Column="2" Content="{DynamicResource Set.LogCopy}" Click="OnLogCopy" VerticalAlignment="Top" Classes="Text"/>
+       <Button Grid.Column="3" Content="{DynamicResource Set.LogOpen}" Click="OnLogOpen" VerticalAlignment="Top" Classes="Text"/></Grid>
+      <Border Classes="Card"><TextBox x:Name="LogBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" Height="470" Margin="6" FontFamily="Cascadia Mono, Consolas, Microsoft YaHei UI" FontSize="11.5" AutomationProperties.Name="{DynamicResource Set.Log}" Classes="Quiet"/></Border>
+     </StackPanel>
     </Grid>
    </ScrollViewer>
   </Grid>
  </Grid>
+ </Panel>
 </Window>

@@ -1,8 +1,8 @@
 <Window x:Class="Perch.Views.IslandWindow" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:pages="using:Perch.Views.Pages" xmlns:vm="using:Perch.ViewModels" x:DataType="vm:IslandViewModel"
- Title="{DynamicResource App.Title}" Width="872" Height="294" WindowDecorations="None" CanResize="False" TransparencyLevelHint="Transparent" Background="Transparent" Topmost="True" ShowInTaskbar="False" ShowActivated="False" Focusable="False" UseLayoutRounding="True"
+ Title="{DynamicResource App.Title}" Width="872" Height="464" WindowDecorations="None" CanResize="False" TransparencyLevelHint="Transparent" Background="Transparent" Topmost="True" ShowInTaskbar="False" ShowActivated="False" Focusable="False" UseLayoutRounding="True"
  RequestedThemeVariant="Dark" Foreground="#F5F5F5" FontFamily="Segoe UI Variable Text, Microsoft YaHei UI">
  <Canvas x:Name="Stage" Background="Transparent">
-  <Grid x:Name="Shell" Width="872" Height="294" Canvas.Left="0" Canvas.Top="0">
+  <Grid x:Name="Shell" Width="872" Height="464" Canvas.Left="0" Canvas.Top="0">
    <Border x:Name="ShellBackdrop" IsHitTestVisible="False" IsVisible="False"/>
    <Path x:Name="ShellOutline" Fill="Black"/>
    <Grid x:Name="ShellContent">
@@ -31,6 +31,10 @@
        <Button x:Name="CalendarTab" Tag="9" Click="OnTab" Margin="4,0,0,0" ToolTip.Tip="{DynamicResource Nav.Calendar}" AutomationProperties.Name="{DynamicResource Nav.Calendar}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE787;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource IslandMuted}"/><TextBlock Text="{DynamicResource Nav.Calendar}" FontSize="13" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="9,0,0,0" IsVisible="False"/></StackPanel></Button>
        <Button x:Name="ClipboardTab" Tag="10" Click="OnTab" Margin="4,0,0,0" ToolTip.Tip="{DynamicResource Nav.Clipboard}" AutomationProperties.Name="{DynamicResource Nav.Clipboard}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE77F;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource IslandMuted}"/><TextBlock Text="{DynamicResource Nav.Clipboard}" FontSize="13" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="9,0,0,0" IsVisible="False"/></StackPanel></Button>
        <Button x:Name="SystemTab" Tag="11" Click="OnTab" Margin="4,0,0,0" ToolTip.Tip="{DynamicResource Nav.System}" AutomationProperties.Name="{DynamicResource Nav.System}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE7F4;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource IslandMuted}"/><TextBlock Text="{DynamicResource Nav.System}" FontSize="13" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="9,0,0,0" IsVisible="False"/></StackPanel></Button>
+       <Button x:Name="PortsTab" Tag="12" Click="OnTab" Margin="4,0,0,0" ToolTip.Tip="{DynamicResource Nav.Ports}" AutomationProperties.Name="{DynamicResource Nav.Ports}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE839;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource IslandMuted}"/><TextBlock Text="{DynamicResource Nav.Ports}" FontSize="13" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="9,0,0,0" IsVisible="False"/></StackPanel></Button>
+       <Button x:Name="AiTab" Tag="13" Click="OnTab" Margin="4,0,0,0" ToolTip.Tip="{DynamicResource Nav.Ai}" AutomationProperties.Name="{DynamicResource Nav.Ai}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8BD;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource IslandMuted}"/><TextBlock Text="{DynamicResource Nav.Ai}" FontSize="13" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="9,0,0,0" IsVisible="False"/></StackPanel></Button>
+       <Button x:Name="AlarmTab" Tag="14" Click="OnTab" Margin="4,0,0,0" ToolTip.Tip="{DynamicResource Nav.Alarm}" AutomationProperties.Name="{DynamicResource Nav.Alarm}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE121;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource IslandMuted}"/><TextBlock Text="{DynamicResource Nav.Alarm}" FontSize="13" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="9,0,0,0" IsVisible="False"/></StackPanel></Button>
+       <Button x:Name="DinoTab" Tag="15" Click="OnTab" Margin="4,0,0,0" ToolTip.Tip="{DynamicResource Nav.Dino}" AutomationProperties.Name="{DynamicResource Nav.Dino}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xF0000;" FontFamily="Segoe Fluent Icons" FontSize="21" Foreground="{DynamicResource IslandMuted}"/><TextBlock Text="{DynamicResource Nav.Dino}" FontSize="13" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="9,0,0,0" IsVisible="False"/></StackPanel></Button>
        <Button x:Name="MoreButton" Click="OnMore" Margin="4,0,0,0" IsVisible="False" ToolTip.Tip="{DynamicResource Nav.More}" AutomationProperties.Name="{DynamicResource Nav.More}" Classes="Nav"><TextBlock Text="&#xE712;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource IslandMuted}"/></Button>
       </StackPanel>
       <Border Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,0" Padding="10,4" CornerRadius="12" Background="#2A1F12" MaxWidth="190" IsVisible="{Binding HasAlert}">
@@ -48,7 +52,7 @@
        <StackPanel Margin="0,18,0,0">
         <TextBlock Text="{Binding Date}" FontSize="12" Foreground="#A9A9AF"/>
         <TextBlock FontSize="52" FontWeight="Bold" FontFamily="Segoe UI Variable Display" Margin="-3,8,0,0"><Run Text="{Binding Hours, Mode=OneWay}"/><Run Text=":"/><Run Text="{Binding Minutes, Mode=OneWay}" Foreground="{DynamicResource IslandAccent}"/></TextBlock>
-        <Button x:Name="HomeWeatherButton" Tag="5" Click="OnTab" HorizontalAlignment="Left" Height="30" Padding="0,3" Margin="0,5,0,0" AutomationProperties.Name="{DynamicResource Home.OpenWeather}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Weather.Glyph}" FontFamily="Segoe UI Symbol" FontSize="13" Foreground="#C9C9CE" VerticalAlignment="Center"/><TextBlock Text="{Binding Weather.ShortText}" FontSize="12" Foreground="#929298" Margin="8,0,0,0"/></StackPanel></Button>
+        <Button x:Name="HomeWeatherButton" Tag="5" Click="OnTab" HorizontalAlignment="Left" Height="30" Padding="10,3" Margin="-10,5,0,0" AutomationProperties.Name="{DynamicResource Home.OpenWeather}" Classes="Nav"><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Weather.Glyph}" FontFamily="Segoe UI Symbol" FontSize="13" Foreground="#C9C9CE" VerticalAlignment="Center"/><TextBlock Text="{Binding Weather.ShortText}" FontSize="12" Foreground="#929298" Margin="8,0,0,0"/></StackPanel></Button>
        </StackPanel>
        <StackPanel Grid.Column="1" Width="168" HorizontalAlignment="Left" Margin="0,9,0,0">
         <TextBlock Text="{Binding MonthTitle}" FontSize="11" Foreground="#9C9CA4" Margin="3,0,0,9"/>
@@ -66,7 +70,7 @@
          <Button x:Name="HomeTodoAdd" Tag="3" Click="OnTab" HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip.Tip="{DynamicResource Todo.Add}" Classes="Nav Icon"><TextBlock Text="&#xE710;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="#AAAAAF"/></Button>
          <TextBlock Text="{Binding Todo.Summary}" FontSize="11" Foreground="#727278" VerticalAlignment="Bottom" Margin="0,0,0,7" TextTrimming="CharacterEllipsis"/>
         </Grid>
-        <Button x:Name="HomeNotesButton" Grid.Row="1" Tag="4" Click="OnTab" HorizontalContentAlignment="Left" Padding="0,4" Height="56" VerticalAlignment="Bottom" ToolTip.Tip="{DynamicResource Home.OpenNotes}" Classes="Nav"><StackPanel Width="198"><TextBlock Text="{DynamicResource Nav.Notes}" FontSize="12" Foreground="#929298"/><TextBlock Text="{Binding Notes.OverviewText}" FontSize="13" Foreground="#D9D9DD" Margin="0,8,0,0" TextTrimming="CharacterEllipsis"/></StackPanel></Button>
+        <Button x:Name="HomeNotesButton" Grid.Row="1" Tag="4" Click="OnTab" HorizontalContentAlignment="Left" Padding="14,4" Margin="-14,0,0,0" Height="56" VerticalAlignment="Bottom" ToolTip.Tip="{DynamicResource Home.OpenNotes}" Classes="Nav"><StackPanel Width="196"><TextBlock Text="{DynamicResource Nav.Notes}" FontSize="12" Foreground="#929298"/><TextBlock Text="{Binding Notes.OverviewText}" FontSize="13" Foreground="#D9D9DD" Margin="0,8,0,0" TextTrimming="CharacterEllipsis"/></StackPanel></Button>
        </Grid>
       </Grid>
       <pages:MusicPage x:Name="MusicPanel" DataContext="{Binding Music}" IsVisible="False"/>
@@ -80,6 +84,10 @@
       <pages:CalendarPage x:Name="CalendarPanel" DataContext="{Binding Calendar}" IsVisible="False"/>
       <pages:ClipboardPage x:Name="ClipboardPanel" DataContext="{Binding Clipboard}" IsVisible="False"/>
       <pages:SystemPage x:Name="SystemPanel" DataContext="{Binding Monitor}" IsVisible="False"/>
+      <pages:PortsPage x:Name="PortsPanel" DataContext="{Binding Ports}" IsVisible="False"/>
+      <pages:AiPage x:Name="AiPanel" DataContext="{Binding Ai}" IsVisible="False"/>
+      <pages:AlarmPage x:Name="AlarmPanel" DataContext="{Binding Alarm}" IsVisible="False"/>
+      <pages:DinoPage x:Name="DinoPanel" DataContext="{Binding Dino}" IsVisible="False"/>
      </Grid></Grid>
      <Grid x:Name="MoreLayer" Canvas.Left="0" Canvas.Top="0" Width="840" Height="276" IsVisible="False" Background="#B0000000" ZIndex="50">
       <Border x:Name="MorePanel" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="500,62,0,0" Background="#141416" BorderBrush="#2A2A2E" BorderThickness="1" CornerRadius="18" Padding="6" RenderTransformOrigin="100%,0%">

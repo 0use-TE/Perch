@@ -9,8 +9,9 @@ namespace Perch.ViewModels;
 public sealed class SystemMonitorViewModel : Observable
 {
     private const int Samples = 60;
+    private readonly Store store;
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(1) };
-    private readonly double[] cpuHistory = new double[Samples], memoryHistory = new double[Samples];
+    private readonly double[] cpuHistory = new double[Samples], memoryHistory = new double[Samples], gpuHistory = new double[Samples];
     private long lastIdle, lastKernel, lastUser;
     private bool haveLast;
 
@@ -24,13 +25,25 @@ public sealed class SystemMonitorViewModel : Observable
     public string DiskDetail { get; private set; } = "";
     public string DiskName { get; private set; } = "";
     public string CpuDetail { get; private set; } = "";
+    // The optional extras (read from the settings each second, so switching them takes effect at once).
+    // They are measured only while the page is on screen.
+    public bool Active { get; set; }
+    public bool ShowGpu { get; private set; }
+    public Avalonia.Controls.GridLength GpuWidth => ShowGpu ? new Avalonia.Controls.GridLength(1, Avalonia.Controls.GridUnitType.Star) : new Avalonia.Controls.GridLength(0);
+    public string GpuText { get; private set; } = "--";
+    public string GpuMemoryText { get; private set; } = "";
+    public string GpuTempText { get; private set; } = "";
+    public Avalonia.Collections.AvaloniaList<Avalonia.Point> GpuLine { get; private set; } = [];
+    private int? cpuTemp;
+   
     public string Uptime => Loc.F("Sys.Uptime", Duration(TimeSpan.FromMilliseconds(Environment.TickCount64)));
     public Avalonia.Collections.AvaloniaList<Avalonia.Point> CpuLine { get; private set; } = [];
     public Avalonia.Collections.AvaloniaList<Avalonia.Point> MemoryLine { get; private set; } = [];
 
-    public SystemMonitorViewModel()
+    public SystemMonitorViewModel(Store store)
     {
-        CpuDetail = Loc.F("Sys.Cores", Environment.ProcessorCount);
+        this.store = store;
+        CpuDetail = CoresText();
         timer.Tick += (_, _) => Sample();
         timer.Start();
         Sample();
@@ -41,8 +54,31 @@ public sealed class SystemMonitorViewModel : Observable
         SampleCpu();
         SampleMemory();
         SampleDisk();
-        CpuLine = Line(cpuHistory); MemoryLine = Line(memoryHistory);
+        SampleExtras();
+        CpuLine = Line(cpuHistory); MemoryLine = Line(memoryHistory); GpuLine = Line(gpuHistory);
         Changed(string.Empty);
+    }
+
+    private string CoresText() => Loc.F("Sys.Cores", Environment.ProcessorCount) + (cpuTemp is { } t ? "  ·  " + Loc.F("Sys.Temp", t) : "");
+
+    private void SampleExtras()
+    {
+        var s = store.State.Settings;
+        var source = Hardware.Source;
+        var wasShowing = ShowGpu;
+        ShowGpu = s.SysGpu;
+        if (ShowGpu != wasShowing) Changed(nameof(GpuWidth));
+        if (source == null || !Active) { if (!s.SysCpuTemp) cpuTemp = null; CpuDetail = CoresText(); return; }
+        cpuTemp = s.SysCpuTemp ? source.CpuTemperature() : null;
+        CpuDetail = CoresText();
+        if (!ShowGpu) { return; }
+        var gpu = source.Gpu();
+        if (gpu is not { } g) { GpuText = "--"; GpuMemoryText = Loc.T("Sys.NoGpu"); GpuTempText = ""; Push(gpuHistory, 0); return; }
+        GpuText = g.Usage is { } u ? $"{u}%" : "--";
+        Push(gpuHistory, g.Usage ?? 0);
+        GpuMemoryText = !s.SysVram || g.MemoryUsedGb is not { } used ? ""
+            : g.MemoryTotalGb is { } total && total >= used ? Loc.F("Sys.Vram", $"{used:0.0}", $"{total:0.0}") : Loc.F("Sys.VramUsed", $"{used:0.0}");
+        GpuTempText = g.Temperature is { } temp ? Loc.F("Sys.GpuTemp", temp) : "";
     }
 
     private void SampleCpu()
@@ -109,7 +145,7 @@ public sealed class SystemMonitorViewModel : Observable
 
     public void Relocalize()
     {
-        CpuDetail = Loc.F("Sys.Cores", Environment.ProcessorCount);
+        CpuDetail = CoresText();
         Sample();
     }
 

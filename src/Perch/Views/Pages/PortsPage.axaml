@@ -1,0 +1,47 @@
+<UserControl x:Class="Perch.Views.Pages.PortsPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:Perch.ViewModels" x:DataType="vm:PortsViewModel">
+ <!-- DataContext is the ports view model: programs listening on this machine, and who can reach them. -->
+ <Grid>
+  <Grid.RowDefinitions><RowDefinition Height="34"/><RowDefinition Height="20"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+  <Grid>
+   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+    <ToggleButton Content="{DynamicResource Ports.All}" IsChecked="{Binding ShowsAll, Mode=OneWay}" Command="{Binding SetFilter}" CommandParameter="all" Classes="Chip"/>
+    <ToggleButton Content="{DynamicResource Ports.Local}" IsChecked="{Binding ShowsLocal, Mode=OneWay}" Command="{Binding SetFilter}" CommandParameter="local" Margin="4,0,0,0" Classes="Chip"/>
+    <ToggleButton Content="{DynamicResource Ports.Exposed}" IsChecked="{Binding ShowsExposed, Mode=OneWay}" Command="{Binding SetFilter}" CommandParameter="exposed" Margin="4,0,0,0" Classes="Chip"/>
+   </StackPanel>
+   <Grid Grid.Column="2" Width="230" HorizontalAlignment="Right" VerticalAlignment="Center">
+    <TextBox MinHeight="30" Text="{Binding Search}" AutomationProperties.Name="{DynamicResource Ports.Search}" Classes="Quiet Compact"/>
+    <TextBlock Text="{DynamicResource Ports.Search}" Margin="13,0,0,0" Classes="Placeholder" IsVisible="{Binding Search, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+   </Grid>
+  </Grid>
+
+  <!-- Column captions -->
+  <Grid Grid.Row="1" Margin="14,0,24,0">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/><ColumnDefinition Width="86"/><ColumnDefinition Width="150"/></Grid.ColumnDefinitions>
+   <TextBlock Grid.Column="1" Text="{DynamicResource Ports.Process}" VerticalAlignment="Center" Classes="Caption"/>
+   <TextBlock Grid.Column="2" Text="{DynamicResource Ports.Port}" VerticalAlignment="Center" Classes="Caption"/>
+   <TextBlock Grid.Column="3" Text="{DynamicResource Ports.Reach}" VerticalAlignment="Center" Classes="Caption"/>
+  </Grid>
+
+  <TextBlock Grid.Row="2" Text="{DynamicResource Ports.Empty}" HorizontalAlignment="Center" Margin="0,24,0,0" IsVisible="{Binding IsEmpty}" Classes="Placeholder"/>
+  <ListBox Grid.Row="2" ItemsSource="{Binding Items}" ScrollViewer.VerticalScrollBarVisibility="Auto" Classes="Bare">
+   <ListBox.ItemTemplate><DataTemplate x:DataType="vm:PortEntry">
+    <Grid Margin="6,0,10,0" Height="36" Background="Transparent" ToolTip.Tip="{Binding Tip}">
+     <Grid.ColumnDefinitions><ColumnDefinition Width="34"/><ColumnDefinition Width="*"/><ColumnDefinition Width="86"/><ColumnDefinition Width="150"/></Grid.ColumnDefinitions>
+     <Grid Width="26" Height="26" HorizontalAlignment="Left">
+      <Image Source="{Binding Icon}" Width="24" Height="24" IsVisible="{Binding HasIcon}" RenderOptions.BitmapInterpolationMode="HighQuality"/>
+      <TextBlock Text="&#xE71D;" FontSize="17" Foreground="#77777D" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding NoIcon}" Classes="Glyph"/>
+     </Grid>
+     <StackPanel Grid.Column="1" VerticalAlignment="Center">
+      <TextBlock Text="{Binding Process}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+      <TextBlock Text="{Binding Detail}" Classes="Caption"/>
+     </StackPanel>
+     <TextBlock Grid.Column="2" Text="{Binding Port}" FontSize="14" FontWeight="SemiBold" FontFamily="Cascadia Mono, Consolas" Foreground="#FFAE54" VerticalAlignment="Center"/>
+     <Border Grid.Column="3" HorizontalAlignment="Left" VerticalAlignment="Center" CornerRadius="9" Padding="9,2" Background="{Binding Exposed, Converter={StaticResource Pick}, ConverterParameter=#2A1F12|#242428}">
+      <TextBlock Text="{Binding ScopeText}" FontSize="11.5" TextTrimming="CharacterEllipsis" MaxWidth="132" Foreground="{Binding Exposed, Converter={StaticResource Pick}, ConverterParameter=#FFAE54|#B9B9C0}"/>
+     </Border>
+    </Grid>
+   </DataTemplate></ListBox.ItemTemplate>
+  </ListBox>
+ </Grid>
+</UserControl>

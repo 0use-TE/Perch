@@ -48,8 +48,15 @@ public partial class IslandWindow : Window
     // the native region keeps the transparent part from catching clicks.
     private bool largeHost = true, closing, userHidden;
     private bool Capsule => store.State.Settings.Shape == "capsule";
+    // 0 = the standard shape, 1 = the floating capsule; it slides between them when the form is changed.
+    private double capsuleT, appliedGap = -1;
+    private int capsuleVersion;
+    private bool lookShown;
+    private Rect hoverStrip; // the gap above the floating capsule, in window coordinates (empty in the notch form)
     // Closed: always black. Open: black at the user's opacity (translucent) when the material is "glass".
-    private bool Glass => store.State.Settings.Appearance == "glass";
+    private bool Glass => IslandLook.IsGlass(store.State.Settings); // chosen in the settings and supported by the environment
+    private readonly DispatcherTimer pointerWatch = new() { Interval = TimeSpan.FromMilliseconds(50) };
+    private bool pointerOver;
     private readonly DispatcherTimer outsideWatch = new() { Interval = TimeSpan.FromMilliseconds(60) };
     private readonly DispatcherTimer backdropTimer = new() { Interval = TimeSpan.FromMilliseconds(100) };
     private readonly DispatcherTimer menuWatch = new() { Interval = TimeSpan.FromMilliseconds(40) };
@@ -75,8 +82,8 @@ public partial class IslandWindow : Window
         reminders = new Reminders(store, model.Alerts);
         InitializeComponent();
         DataContext = model;
-        pages = [HomePage, MusicPanel, FocusPanel, TodoPanel, NotesPanel, InfoPanel, AppsPanel, TrayPanel, PhotosPanel, CalendarPanel, ClipboardPanel, SystemPanel];
-        tabs = [HomeTab, MusicTab, FocusTab, TodoTab, NoteTab, InfoTab, AppsTab, TrayTab, PhotosTab, CalendarTab, ClipboardTab, SystemTab];
+        pages = [HomePage, MusicPanel, FocusPanel, TodoPanel, NotesPanel, InfoPanel, AppsPanel, TrayPanel, PhotosPanel, CalendarPanel, ClipboardPanel, SystemPanel, PortsPanel, AiPanel, AlarmPanel, DinoPanel];
+        tabs = [HomeTab, MusicTab, FocusTab, TodoTab, NoteTab, InfoTab, AppsTab, TrayTab, PhotosTab, CalendarTab, ClipboardTab, SystemTab, PortsTab, AiTab, AlarmTab, DinoTab];
         ExpandedContent.Margin = new Thickness(IslandOutline.PadX, 0, 0, 0);
         ExpandedContent.RenderTransform = contentOffset;
         PageHost.RenderTransform = pageOffset;
@@ -93,13 +100,31 @@ public partial class IslandWindow : Window
         backdropTimer.Tick += (_, _) => RefreshBackdrop();
         controller.ExpansionChanged += _ => UpdateShape();
         model.ShapeChanged += UpdateShape;
+        model.Ai.SettingsRequested += OpenAiSettings;
+        model.Alarm.RingingChanged += OnAlarmRinging;
+        model.Ai.ConfirmChanged += OnAiConfirm;
+        model.Dino.Engaged += () => { host?.BeginEditing(); controller.Edit(true); }; // the game takes the keyboard and keeps the island open
+        Program.SecondInstance += () => Dispatcher.UIThread.Post(() => { if (IsVisible) controller.Open(); }); // started again: show the island
         animator.Frame += Draw;
-        dragWatch.Tick += (_, _) => { if (!CursorOverIsland()) { dragWatch.Stop(); controller.Pointer(false); } };
+        dragWatch.Tick += (_, _) => { if (!CursorOverIsland()) { dragWatch.Stop(); pointerOver = false; controller.Pointer(false); } };
 
-        Stage.PointerEntered += (_, _) => { if (CursorOverIsland()) controller.Pointer(true); };
-        Stage.PointerExited += (_, _) => controller.Pointer(false);
+        // Whether the pointer is on the island is decided from the cursor position, not from enter/leave events alone:
+        // an event is missed when the pointer slips in over a curved edge, while the shape is still moving, or while
+        // another program is in front, and then the island would never open under a pointer that is resting on it.
+        // The events only make the reaction quicker; the timer below is the safety net.
+        Stage.PointerEntered += (_, _) => UpdatePointer();
+        Stage.PointerMoved += (_, _) => UpdatePointer();
+        Stage.PointerExited += (_, _) => UpdatePointer();
+        pointerWatch.Tick += (_, _) => UpdatePointer();
+        pointerWatch.Start();
         CompactHeader.PointerReleased += (_, e) => { if (e.InitialPressMouseButton == MouseButton.Left) controller.Open(); };
+        Stage.PointerReleased += (_, e) => { if (e.InitialPressMouseButton == MouseButton.Left && hoverStrip.Contains(e.GetPosition(Stage))) controller.Open(); };
         NavRow.AddHandler(PointerWheelChangedEvent, OnNavWheel, RoutingStrategies.Tunnel);
+        NavStack.AddHandler(PointerPressedEvent, OnNavPressed, RoutingStrategies.Tunnel);
+        NavStack.AddHandler(PointerMovedEvent, OnNavMoved, RoutingStrategies.Tunnel);
+        NavStack.AddHandler(PointerReleasedEvent, OnNavReleased, RoutingStrategies.Tunnel);
+        NavStack.AddHandler(PointerCaptureLostEvent, (_, e) => { if (tabDragging && e.Source != NavStack) return; if (!navDropping) EndTabDrag(); }, RoutingStrategies.Tunnel);
+        navHold.Tick += (_, _) => BeginTabDrag();
         MoreLayer.PointerPressed += (_, e) => { HideMore(); e.Handled = true; };
         MorePanel.PointerPressed += (_, e) => e.Handled = true;
         AddHandler(PointerReleasedEvent, OnContextMenu, RoutingStrategies.Tunnel);
@@ -110,7 +135,7 @@ public partial class IslandWindow : Window
         AddHandler(DragDrop.DragEnterEvent, OnDragEnter);
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
         AddHandler(DragDrop.DropEvent, OnDrop);
-        Deactivated += (_, _) => { host?.Passive(); FocusManager?.Focus(null); controller.Edit(false); };
+        Deactivated += (_, _) => { Perch.Interaction.Dbg.Log("window deactivated"); host?.Passive(); FocusManager?.Focus(null); if (!model.Alarm.IsRinging) controller.Edit(false); };
         clock.Tick += OnClock;
         PropertyChanged += (_, e) => { if (e.Property == IsVisibleProperty) { if (IsVisible) RefreshClock(); else clock.Stop(); } };
         Opened += OnSourceReady;
@@ -151,6 +176,7 @@ public partial class IslandWindow : Window
     {
         var expanded = controller.State != InteractionState.Compact;
         if (!expanded) HideMore();
+        UpdatePortsActive();
         var w = expanded ? 1 : model.IsWide ? WideProgress : 0;
         var h = expanded ? 1.0 : 0.0;
         if ((w > 0 || h > 0) && !largeHost)
@@ -212,15 +238,49 @@ public partial class IslandWindow : Window
         Shell.Width = width; Shell.Height = height;
     }
 
+    // How tall the island is when open. Most pages use the standard height; the AI chat opens taller, and the island
+    // grows or shrinks to match when you switch to or from it.
+    private double expandedHeight = IslandOutline.ExpandedHeight;
+    private int heightVersion;
+    private const int AiPage = 13, AlarmPage = 14;
+
+    private void ApplyPageHeight(bool animate)
+    {
+        var extra = page == AiPage ? IslandOutline.TallExtra : 0;
+        PageStage.Height = 176 + extra;
+        var target = IslandOutline.ExpandedHeight + extra;
+        if (Math.Abs(target - expandedHeight) < 0.5) return;
+        var version = ++heightVersion;
+        var from = expandedHeight;
+        if (!animate || animator.ReducedMotion) { expandedHeight = target; Draw(shapeW, shapeH, !animator.IsRunning); return; }
+        animator.Tween(240, t =>
+        {
+            if (version != heightVersion) return; // another page was chosen meanwhile
+            expandedHeight = from + (target - from) * (1 - (1 - t) * (1 - t));
+            Draw(shapeW, shapeH, !animator.IsRunning);
+        });
+    }
+
     private void Draw(double w, double h, bool settled)
     {
         shapeW = Math.Clamp(w, 0, 1.04);
         shapeH = Math.Clamp(h, 0, 1.03);
         var width = IslandOutline.CompactWidth + (IslandOutline.ExpandedWidth - IslandOutline.CompactWidth) * shapeW;
-        var height = IslandOutline.CompactHeight + (IslandOutline.ExpandedHeight - IslandOutline.CompactHeight) * shapeH;
+        var height = IslandOutline.CompactHeight + (expandedHeight - IslandOutline.CompactHeight) * shapeH;
         var stageWidth = largeHost ? IslandOutline.HostWidth : IslandOutline.CompactWidth;
-        var polygon = IslandOutline.Polygon((stageWidth - width) / 2, width, height, Math.Clamp(shapeH, 0, 1), Capsule);
+        var polygon = IslandOutline.Morph((stageWidth - width) / 2, width, height, Math.Clamp(shapeH, 0, 1), capsuleT);
+        // The compact text and the open content sit lower by the capsule's gap as it detaches from the top edge.
+        var gap = IslandOutline.CapsuleGap * capsuleT;
+        if (Math.Abs(gap - appliedGap) > 0.01)
+        {
+            appliedGap = gap;
+            CompactHeader.Margin = new Thickness(0, gap, 0, 0);
+            ExpandedContent.Margin = new Thickness(IslandOutline.PadX, gap, 0, 0);
+        }
         var outline = IslandOutline.ToGeometry(polygon);
+        // The floating capsule leaves a gap above itself. That gap counts as part of the island for hover and clicks,
+        // otherwise a pointer pushed against the top edge of the screen would never reach it.
+        hoverStrip = capsuleT > 0.01 ? new Rect((stageWidth - width) / 2, 0, width, IslandOutline.CapsuleGap * capsuleT + 2) : default;
         ShellOutline.Data = outline;
         ShellContent.Clip = outline;
         // Solid black when small, increasingly translucent as it opens.
@@ -252,19 +312,34 @@ public partial class IslandWindow : Window
 
         // The native region follows the drawn shape exactly: anything more would show unrendered pixels or catch the pointer.
         if (host == null) return;
-        host.Region(IslandOutline.Grown(polygon, 1.5), 0);
+        host.Region(IslandOutline.Grown(polygon, 1.5), 0, capsuleT > 0.01 ? hoverStrip : null);
     }
 
     // Form (notch / floating capsule) and appearance (solid black / frosted glass) are settings, applied live.
     private void ApplyLook()
     {
-        var gap = Capsule ? IslandOutline.CapsuleGap : 0;
-        CompactHeader.Margin = new Thickness(0, gap, 0, 0);
-        ExpandedContent.Margin = new Thickness(IslandOutline.PadX, gap, 0, 0);
+        MoveToForm();
         IslandLook.Apply(ShellOutline, Glass);
         backdropReady = host != null && host.ExcludeFromCapture(Glass);
         PlaceHost();
         Draw(shapeW, shapeH, !animator.IsRunning);
+    }
+
+    // Switching between the standard shape and the capsule slides the outline from one to the other (the first time, and with
+    // "reduce motion", it simply snaps).
+    private void MoveToForm()
+    {
+        var target = Capsule ? 1.0 : 0.0;
+        var version = ++capsuleVersion;
+        if (!lookShown || host == null || animator.ReducedMotion || Math.Abs(target - capsuleT) < 0.001) { capsuleT = target; lookShown = true; return; }
+        var from = capsuleT;
+        animator.Tween(300, t =>
+        {
+            if (version != capsuleVersion) return; // another change came in meanwhile
+            var ease = t < 0.5 ? 4 * t * t * t : 1 - Math.Pow(-2 * t + 2, 3) / 2; // ease in and out
+            capsuleT = from + (target - from) * ease;
+            Draw(shapeW, shapeH, !animator.IsRunning);
+        });
     }
 
     // Samples the screen behind the island, blurs it and paints it under the black tint: a frosted-glass texture.
@@ -312,14 +387,21 @@ public partial class IslandWindow : Window
         menu.Resources["MenuFlyoutSubItemBackgroundPressed"] = Brush("#2EFFFFFF", "#16000000");
         menu.Resources["MenuFlyoutSubItemBackgroundPointerOver"] = Brush("#2EFFFFFF", "#16000000");
         menu.Resources["MenuFlyoutSeparatorBackground"] = Brush("#26FFFFFF", "#18000000");
+        if (AddPageItems(menu, e.GetPosition(this))) menu.Items.Add(new Separator());
         menu.Items.Add(Item("Menu.Settings", OpenSettings));
         menu.Items.Add(new Separator());
         menu.Items.Add(Group("Menu.Form",
             Item("Menu.FormStandard", () => { s.Shape = "standard"; ApplyLook(); }, s.Shape != "capsule"),
             Item("Menu.FormCapsule", () => { s.Shape = "capsule"; ApplyLook(); }, s.Shape == "capsule")));
+        MenuItem GlassItem()
+        {
+            var item = Item("Menu.AppearanceGlass", () => { s.Appearance = "glass"; ApplyLook(); }, s.Appearance == "glass");
+            item.IsEnabled = Translucency.Supported;
+            return item;
+        }
         menu.Items.Add(Group("Menu.Appearance",
             Item("Menu.AppearanceBlack", () => { s.Appearance = "black"; ApplyLook(); }, s.Appearance != "glass"),
-            Item("Menu.AppearanceGlass", () => { s.Appearance = "glass"; ApplyLook(); }, s.Appearance == "glass")));
+            GlassItem()));
         menu.Items.Add(Group("Menu.Expand",
             Item("Menu.ExpandHover", () => SetHover(true), s.HoverExpand),
             Item("Menu.ExpandClick", () => SetHover(false), !s.HoverExpand)));
@@ -344,6 +426,91 @@ public partial class IslandWindow : Window
         e.Handled = true;
     }
 
+    // Right-click on a page: the actions for whatever is under the pointer (a note, a to-do, a clipboard entry, a shelf file)
+    // come first, then the island's own menu. Returns whether anything was added.
+    private bool AddPageItems(ContextMenu menu, Point point)
+    {
+        if (controller.State == InteractionState.Compact) return false;
+        object? hit = null;
+        for (var visual = this.InputHitTest(point) as Visual; visual != null && hit == null; visual = visual.GetVisualParent())
+            if (visual is StyledElement { DataContext: NoteItem or TodoItem or ClipItem or TrayFile or CommandItem or PortEntry or ChatLine } element) hit = element.DataContext;
+
+        var first = menu.Items.Count;
+        void Act(string key, Action action, bool? check = null)
+        {
+            var item = new MenuItem { Header = Loc.T(key) };
+            if (check is { } value) { item.ToggleType = MenuItemToggleType.CheckBox; item.IsChecked = value; }
+            item.Click += (_, _) => { action(); store.Touch(); };
+            menu.Items.Add(item);
+        }
+        void Copy(string text) { if (Ui.Clipboard is { } clipboard) _ = Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, text); }
+
+        var current = pages[page];
+        if (current == NotesPanel)
+        {
+            if (hit is NoteItem note)
+            {
+                Act("Notes.Highlight", () => { model.Notes.Selected = note; model.Notes.ToggleHighlight.Execute(null); }, note.Highlight);
+                Act("Menu.Copy", () => Copy(string.Join(Environment.NewLine, new[] { note.Title, note.Text }.Where(part => !string.IsNullOrEmpty(part)))));
+                Act("Notes.Delete", () => { model.Notes.Selected = note; model.Notes.Delete.Execute(null); });
+                menu.Items.Add(new Separator());
+            }
+            Act("Notes.New", () => model.Notes.New.Execute(null));
+        }
+        else if (current == TodoPanel)
+        {
+            if (hit is TodoItem todo)
+            {
+                Act(todo.Done ? "Menu.MarkNotDone" : "Menu.MarkDone", () => todo.Done = !todo.Done);
+                Act("Common.Delete", () => model.Todo.Delete.Execute(todo));
+                menu.Items.Add(new Separator());
+            }
+            Act("Todo.ClearDone", () => model.Todo.ClearDone.Execute(null));
+        }
+        else if (current == ClipboardPanel)
+        {
+            if (hit is ClipItem clip)
+            {
+                Act("Menu.Copy", () => model.Clipboard.Copy.Execute(clip));
+                Act("Clip.Remove", () => model.Clipboard.Remove.Execute(clip));
+                menu.Items.Add(new Separator());
+            }
+            Act(model.Clipboard.Paused ? "Clip.Resume" : "Clip.Pause", () => model.Clipboard.TogglePause.Execute(null));
+            Act("Clip.Clear", () => model.Clipboard.Clear.Execute(null));
+        }
+        else if (current == TrayPanel)
+        {
+            if (hit is TrayFile file)
+            {
+                Act("Common.Open", () => model.Tray.Open.Execute(file));
+                Act("Tray.Reveal", () => model.Tray.Reveal.Execute(file));
+                Act("Common.Remove", () => model.Tray.Remove.Execute(file));
+                menu.Items.Add(new Separator());
+            }
+            Act("Common.Clear", () => model.Tray.Clear.Execute(null));
+        }
+        else if (current == AiPanel)
+        {
+            if (hit is ChatLine { Text.Length: > 0 } line) Act("Menu.Copy", () => Copy(line.Text));
+            Act("Ai.New", () => model.Ai.NewChat.Execute(null));
+        }
+        else if (current == PortsPanel && hit is PortEntry port)
+        {
+            Act("Ports.CopyPort", () => model.Ports.CopyPort.Execute(port));
+            Act("Ports.CopyAddress", () => model.Ports.CopyAddress.Execute(port));
+            Act("Ports.OpenBrowser", () => model.Ports.OpenBrowser.Execute(port));
+            if (port.Path != null) Act("Tray.Reveal", () => model.Ports.Reveal.Execute(port));
+        }
+        else if (current == AppsPanel && hit is CommandItem command)
+        {
+            Act("Common.Run", () => model.Launcher.RunCommand.Execute(command));
+            Act("Common.Delete", () => model.Launcher.RemoveCommand.Execute(command));
+        }
+        // A trailing separator would double up with the one the caller adds.
+        if (menu.Items.Count > first && menu.Items[^1] is Separator) menu.Items.RemoveAt(menu.Items.Count - 1);
+        return menu.Items.Count > first;
+    }
+
     private void SetCollapse(bool onLeave)
     {
         store.State.Settings.CollapseOnLeave = onLeave;
@@ -364,9 +531,15 @@ public partial class IslandWindow : Window
         ThemeManager.Apply(s.Theme);
         if (hoverItem != null) hoverItem.IsChecked = s.HoverExpand;
         if (motionItem != null) motionItem.IsChecked = animator.ReducedMotion;
+        Translucency.Refresh();
+        model.Ai.RefreshProviders();
         ApplyLook();
         ApplyPages();
         RegisterHotkeys();
+        // What the closed island shows (network speed, music, the focus timer) follows the settings immediately.
+        if (!s.ShowFocus && model.Focus.Running) { model.Focus.Suspend(); model.Alerts.Show(AlertQueue.Timer, Loc.T("Focus.Suspended")); }
+        model.Focus.SettingsChanged();
+        model.UpdateCompact();
         var calendarKey = (s.CalendarUrls, s.CalendarReminder);
         if (calendarKey != appliedCalendar) { appliedCalendar = calendarKey; model.Calendar.SettingsChanged(); }
         var weatherKey = (s.Latitude, s.Longitude, s.Fahrenheit);
@@ -402,6 +575,7 @@ public partial class IslandWindow : Window
 
     private void OnTab(object? sender, RoutedEventArgs e)
     {
+        if (tabDragged || (DateTime.Now - tabDropped).TotalMilliseconds < 400) { tabDragged = false; return; } // the release that ends a drag is not a click
         FocusManager?.Focus(null);
         controller.Edit(false);
         SelectPage(int.Parse((string)((Button)sender!).Tag!));
@@ -451,8 +625,8 @@ public partial class IslandWindow : Window
     }
 
     // ---- navigation bar: pinned pages on the bar (the current one always shown), the rest under "More"
-    private static readonly string[] NavNameKeys = ["Nav.Overview", "Nav.Music", "Nav.Focus", "Nav.Todo", "Nav.Notes", "Nav.Info", "Nav.Apps", "Nav.Tray", "Nav.Photos", "Nav.Calendar", "Nav.Clipboard", "Nav.System"];
-    private static readonly string[] NavIds = ["home", "music", "focus", "todo", "notes", "info", "apps", "tray", "photos", "calendar", "clipboard", "system"];
+    private static readonly string[] NavNameKeys = ["Nav.Overview", "Nav.Music", "Nav.Focus", "Nav.Todo", "Nav.Notes", "Nav.Info", "Nav.Apps", "Nav.Tray", "Nav.Photos", "Nav.Calendar", "Nav.Clipboard", "Nav.System", "Nav.Ports", "Nav.Ai", "Nav.Alarm", "Nav.Dino"];
+    private static readonly string[] NavIds = ["home", "music", "focus", "todo", "notes", "info", "apps", "tray", "photos", "calendar", "clipboard", "system", "ports", "ai", "alarm", "dino"];
     private readonly List<int> morePages = [];
     private DateTime lastWheel;
 
@@ -529,6 +703,246 @@ public partial class IslandWindow : Window
     private void HideMore() => MoreLayer.IsVisible = false;
     private void OnMoreItem(object? sender, RoutedEventArgs e) { HideMore(); SelectPage(int.Parse((string)((Button)sender!).Tag!)); }
 
+    // ---- reordering the bar, like the Windows taskbar or a browser tab strip: press a pinned page icon and drag it sideways
+    // (or hold it a moment first). The icon follows the hand; the others glide aside to open the slot it would land in.
+    // Nothing in the bar is rebuilt until the drop, and every icon eases toward its target on each rendered frame.
+    // Icons are shifted with their margins (a negative right margin cancels the shift for the icons after it).
+    private readonly DispatcherTimer navHold = new() { Interval = TimeSpan.FromMilliseconds(260) };
+    private Button? dragTab;
+    private Point dragStart;
+    private double dragGrab, dragPointerX;
+    private bool tabDragging, tabDragged, stripBusy, navDropping;
+    // Dragging the page borrowed from "More" swaps it with a pinned icon instead: the icon under it slides over to the
+    // borrowed one's place, and on the drop that icon goes into "More" while the borrowed page stays on the bar.
+    private bool dragBorrowed;
+    private Button? swapTarget;
+    private IPointer? dragPointer;
+    private DateTime tabDropped;
+    private readonly Dictionary<Button, double> stripOffset = [];     // how far each icon is drawn from its slot
+    private TimeSpan stripLast;
+
+    private List<Button> BarTabs() => NavStack.Children.OfType<Button>().Where(b => b != HomeTab && b != MoreButton && b.IsVisible).ToList();
+
+    // Left edges of the icons in the given order (the bar spacing: 10 px before the first, 4 between), measured from the
+    // end of the Overview button, which never moves.
+    private Dictionary<Button, double> Slots(List<Button> order)
+    {
+        var x = HomeTab.Bounds.Right + HomeTab.Margin.Right;
+        var result = new Dictionary<Button, double>();
+        for (var i = 0; i < order.Count; i++)
+        {
+            x += i == 0 ? 10 : 4;
+            result[order[i]] = x;
+            x += order[i].Bounds.Width;
+        }
+        return result;
+    }
+
+    private Dictionary<Button, double> SlotsWith(List<Button> bar, Button moving, int at)
+    {
+        var order = bar.Where(b => b != moving).ToList();
+        order.Insert(Math.Clamp(at, 0, order.Count), moving);
+        return Slots(order);
+    }
+
+    // The slot whose centre is nearest to the dragged icon (only among the pinned icons; a page borrowed onto the bar stays last).
+    private int TargetSlot(List<Button> bar, Button moving)
+    {
+        var pinned = store.State.Settings.NavPinned;
+        var limit = bar.Count(b => pinned.Contains(NavIds[Array.IndexOf(tabs, b)]));
+        var center = dragPointerX - dragGrab + moving.Bounds.Width / 2;
+        var best = 0;
+        var bestGap = double.MaxValue;
+        for (var j = 0; j < limit; j++)
+        {
+            var gap = Math.Abs(SlotsWith(bar, moving, j)[moving] + moving.Bounds.Width / 2 - center);
+            if (gap < bestGap) { bestGap = gap; best = j; }
+        }
+        return best;
+    }
+
+    // The pinned icon the borrowed page is held over (its middle within reach of the dragged icon's middle).
+    private Button? SwapTarget(List<Button> bar, Button moving, Dictionary<Button, double> home)
+    {
+        var pinned = store.State.Settings.NavPinned;
+        var center = dragPointerX - dragGrab + moving.Bounds.Width / 2;
+        Button? best = null;
+        var bestGap = double.MaxValue;
+        foreach (var b in bar)
+        {
+            if (b == moving || !pinned.Contains(NavIds[Array.IndexOf(tabs, b)])) continue;
+            var gap = Math.Abs(home[b] + b.Bounds.Width / 2 - center);
+            if (gap < b.Bounds.Width / 2 + 10 && gap < bestGap) { bestGap = gap; best = b; }
+        }
+        return best;
+    }
+
+    private static void Shift(List<Button> bar, Button b, double offset)
+    {
+        var left = bar.IndexOf(b) == 0 ? 10 : 4;
+        b.Margin = Math.Abs(offset) < 0.01 ? new Thickness(left, 0, 0, 0) : new Thickness(left + offset, 0, -offset, 0);
+    }
+
+    private void OnNavPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (tabDragging) return;
+        EndTabDrag();
+        tabDragged = false;
+        if (!e.GetCurrentPoint(NavStack).Properties.IsLeftButtonPressed) return;
+        var hit = e.Source as Visual;
+        while (hit != null && !(hit is Button b && tabs.Contains(b))) hit = hit.GetVisualParent();
+        if (hit is not Button tab || tab == HomeTab) return;
+        if (!BarTabs().Contains(tab)) return;
+        dragTab = tab;
+        dragStart = e.GetPosition(NavStack);
+        dragPointerX = dragStart.X;
+        dragPointer = e.Pointer;
+        navHold.Start();
+    }
+
+    private void BeginTabDrag()
+    {
+        navHold.Stop();
+        if (dragTab == null || tabDragging) return;
+        var bar = BarTabs();
+        if (!bar.Contains(dragTab)) { dragTab = null; return; }
+        tabDragging = true;
+        dragBorrowed = !store.State.Settings.NavPinned.Contains(NavIds[Array.IndexOf(tabs, dragTab)]);
+        swapTarget = null;
+        dragGrab = dragStart.X - Slots(bar)[dragTab];
+        dragTab.ZIndex = 10;
+        dragPointer?.Capture(NavStack); // the bar keeps the pointer for the whole drag
+        StartStrip();
+    }
+
+    private void OnNavMoved(object? sender, PointerEventArgs e)
+    {
+        if (dragTab == null) return;
+        var at = e.GetPosition(NavStack);
+        if (!tabDragging)
+        {
+            // Sliding sideways starts the drag at once (as on the taskbar); straying up or down means it was not one.
+            if (Math.Abs(at.Y - dragStart.Y) > 14) { navHold.Stop(); dragTab = null; return; }
+            if (Math.Abs(at.X - dragStart.X) < 6) return;
+            BeginTabDrag();
+            if (!tabDragging) return;
+        }
+        e.Handled = true;
+        tabDragged = true;
+        dragPointerX = at.X;
+    }
+
+    private void OnNavReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (!tabDragging) { EndTabDrag(); return; }
+        e.Handled = true;
+        tabDropped = DateTime.Now;
+        var moving = dragTab!;
+        var bar = BarTabs();
+        var before = Slots(bar);
+        // Where every icon is drawn right now, so the settle starts from there.
+        var drawn = bar.ToDictionary(b => b, b => before[b] + stripOffset.GetValueOrDefault(b));
+        drawn[moving] = dragPointerX - dragGrab;
+        if (dragBorrowed)
+        {
+            var target = swapTarget;
+            swapTarget = null;
+            if (target != null)
+            {
+                var s = store.State.Settings;
+                var newId = NavIds[Array.IndexOf(tabs, moving)];
+                var oldId = NavIds[Array.IndexOf(tabs, target)];
+                var at = s.NavPinned.IndexOf(oldId);
+                if (at >= 0) s.NavPinned[at] = newId;
+                var i = s.NavOrder.IndexOf(newId);
+                var j = s.NavOrder.IndexOf(oldId);
+                if (i >= 0 && j >= 0) (s.NavOrder[i], s.NavOrder[j]) = (s.NavOrder[j], s.NavOrder[i]);
+            }
+        }
+        else
+        {
+        var final = SlotsWith(bar, moving, TargetSlot(bar, moving));
+        // New order: the pinned icons in their new sequence take the places the pinned icons held in the saved order.
+        var pinned = store.State.Settings.NavPinned;
+        var ids = final.OrderBy(p => p.Value).Select(p => NavIds[Array.IndexOf(tabs, p.Key)]).Where(pinned.Contains).ToList();
+        var order = store.State.Settings.NavOrder;
+        var places = order.Select((id, i) => (id, i)).Where(t => ids.Contains(t.id)).Select(t => t.i).ToList();
+        for (var k = 0; k < Math.Min(places.Count, ids.Count); k++) order[places[k]] = ids[k];
+        }
+        tabDragging = false;
+        dragTab = null;
+        navDropping = true;
+        ApplyNav();
+        dragPointer?.Capture(null);
+        navDropping = false;
+        var newBar = BarTabs();
+        var after = Slots(newBar);
+        foreach (var b in newBar)
+        {
+            stripOffset[b] = drawn.TryGetValue(b, out var x) ? x - after[b] : 0;
+            Shift(newBar, b, stripOffset[b]);
+        }
+        moving.ZIndex = 10; // stays on top while it settles
+        StartStrip();
+        store.Touch();
+        settingsWindow?.Refresh();
+    }
+
+    private void EndTabDrag()
+    {
+        navHold.Stop();
+        var was = tabDragging;
+        dragTab = null;
+        tabDragging = false;
+        if (was) { dragPointer?.Capture(null); StartStrip(); }
+    }
+
+    private void StartStrip()
+    {
+        if (stripBusy) return;
+        stripBusy = true;
+        stripLast = TimeSpan.Zero;
+        RequestAnimationFrame(StripFrame);
+    }
+
+    // One frame of the bar: the dragged icon sits under the pointer, the rest ease toward their goals (0 once dropped).
+    private void StripFrame(TimeSpan now)
+    {
+        var dt = stripLast == TimeSpan.Zero ? 0.016 : Math.Clamp((now - stripLast).TotalSeconds, 0.001, 0.05);
+        stripLast = now;
+        var smooth = animator.ReducedMotion ? 1.0 : 1 - Math.Exp(-dt * 20); // about a 50 ms time constant
+        var moving = tabDragging ? dragTab : null;
+        var bar = BarTabs();
+        var home = Slots(bar);
+        Dictionary<Button, double>? goals = null;
+        if (moving != null && bar.Contains(moving))
+        {
+            if (dragBorrowed)
+            {
+                swapTarget = SwapTarget(bar, moving, home);
+                goals = bar.ToDictionary(b => b, b => home[b]);
+                if (swapTarget != null) goals[swapTarget] = home[moving];
+            }
+            else goals = SlotsWith(bar, moving, TargetSlot(bar, moving));
+        }
+        var busy = moving != null;
+        foreach (var b in bar)
+        {
+            var current = stripOffset.GetValueOrDefault(b);
+            if (b == moving) current = dragPointerX - dragGrab - home[b];
+            else current += ((goals != null ? goals[b] - home[b] : 0) - current) * smooth;
+            if (moving == null && Math.Abs(current) < 0.3)
+            {
+                if (stripOffset.Remove(b)) { Shift(bar, b, 0); b.ZIndex = 0; }
+                continue;
+            }
+            if (moving == null) busy = true;
+            stripOffset[b] = current;
+            Shift(bar, b, current);
+        }
+        if (busy) RequestAnimationFrame(StripFrame); else stripBusy = false;
+    }
+
     // The wheel over the bar steps through the pages (Overview first, then in the configured order).
     private void OnNavWheel(object? sender, PointerWheelEventArgs e)
     {
@@ -549,7 +963,7 @@ public partial class IslandWindow : Window
     private bool[] PageShown()
     {
         var s = store.State.Settings;
-        return [true, s.ShowMusic, s.ShowFocus, s.ShowTodo, s.ShowNotes, s.ShowInfo, s.ShowApps, s.ShowTray, s.ShowPhotos, s.ShowCalendar, s.ShowClipboard, s.ShowSystem];
+        return [true, s.ShowMusic, s.ShowFocus, s.ShowTodo, s.ShowNotes, s.ShowInfo, s.ShowApps, s.ShowTray, s.ShowPhotos, s.ShowCalendar, s.ShowClipboard, s.ShowSystem, s.ShowPorts, s.ShowAi, s.ShowAlarm, s.ShowDino];
     }
 
     private void ApplyPages()
@@ -561,6 +975,20 @@ public partial class IslandWindow : Window
         if (!shown[page]) SelectPage(0);
         ApplyNav();
     }
+
+    // The port list refreshes itself only while it is on screen.
+    private void UpdatePortsActive()
+    {
+        var open = controller.State != InteractionState.Compact;
+        model.Ports.Active = open && pages[page] == PortsPanel;
+        model.Dino.Active = open && pages[page] == DinoPanel;
+        model.Monitor.Active = open && pages[page] == SystemPanel;
+        var aiVisible = open && pages[page] == AiPanel;
+        if (aiVisible && !aiShown) model.Ai.OnShown(); // the greeting types itself out each time the chat comes on screen
+        aiShown = aiVisible;
+    }
+
+    private bool aiShown;
 
     private void SelectPage(int index)
     {
@@ -574,6 +1002,9 @@ public partial class IslandWindow : Window
         }
         if (pages[index] == AppsPanel) model.Launcher.EnsureLoaded();
         if (pages[index] == PhotosPanel) model.Photos.EnsureLoaded();
+        UpdatePortsActive();
+        if (pages[index] == AiPanel) model.Ai.RefreshProviders();
+        ApplyPageHeight(true);
         animator.Reveal(PageHost, pageOffset);
         ApplyNav();
     }
@@ -605,13 +1036,51 @@ public partial class IslandWindow : Window
         if (files.Length > 0) model.Tray.Add(files);
     }
 
+    // Tells the controller when the pointer arrives on or leaves the island (only on a change).
+    private void UpdatePointer()
+    {
+        var over = CursorOverIsland();
+        if (over == pointerOver) return;
+        pointerOver = over;
+        Perch.Interaction.Dbg.Log($"pointer over island: {over}");
+        controller.Pointer(over);
+    }
+
     // During and after a drag the pointer-leave event isn't reported, so the cursor is checked against the outline.
     private bool CursorOverIsland()
     {
         if (!IsVisible || ShellOutline.Data is not Geometry outline) return false;
         var (x, y) = IslandHost.CursorPosition();
-        return outline.FillContains(this.PointToClient(new PixelPoint(x, y)));
+        var point = this.PointToClient(new PixelPoint(x, y));
+        return outline.FillContains(point) || hoverStrip.Contains(point);
     }
+
+    // A ringing alarm opens the island on the alarm page and keeps it open until it is stopped or snoozed.
+    private void OnAlarmRinging(bool ringing)
+    {
+        if (ringing)
+        {
+            if (!IsVisible) { userHidden = false; ApplyVisibility(); }
+            SelectPage(AlarmPage);
+            controller.Edit(true);
+        }
+        else controller.Edit(IsActive && IsKeyboardFocusWithin);
+    }
+
+    // An AI action waits for the user's OK: bring the island up on the chat and keep it open until it is answered.
+    private void OnAiConfirm(bool asking)
+    {
+        if (asking)
+        {
+            if (!IsVisible) { userHidden = false; ApplyVisibility(); }
+            controller.Open();
+            SelectPage(Array.IndexOf(NavIds, "ai"));
+            controller.Edit(true);
+        }
+        else controller.Edit(IsActive && IsKeyboardFocusWithin);
+    }
+
+    private void OpenAiSettings() { OpenSettings(); settingsWindow?.ShowAiPage(); }
 
     private void OpenSettings()
     {
@@ -634,7 +1103,6 @@ public partial class IslandWindow : Window
         var s = store.State.Settings;
         if (s.Language != language) Loc.Apply(s.Language); // raises Changed, which relabels everything
         ApplyLive();
-        model.Alerts.Sound = s.AlertSound;
         StartupEntry.Apply(s.LaunchAtStartup);
         if (s.City != city || s.Fahrenheit != fahrenheit) model.Weather.SettingsChanged();
         if (s.PhotoFolder != photoFolder) model.Photos.SettingsChanged();
@@ -647,7 +1115,7 @@ public partial class IslandWindow : Window
     private void ApplyVisibility()
     {
         var hide = userHidden || (store.State.Settings.HideInFullscreen && fullscreen?.IsFullscreen == true);
-        if (hide && IsVisible) { Hide(); controller.Edit(false); controller.Pointer(false); }
+        if (hide && IsVisible) { Hide(); controller.Edit(false); pointerOver = false; controller.Pointer(false); }
         else if (!hide && !IsVisible) { Show(); Reposition(); }
     }
 
@@ -737,7 +1205,7 @@ public partial class IslandWindow : Window
         Loc.Changed -= OnLanguageChanged;
         store.Flush();
         clock.Stop(); clock.Tick -= OnClock;
-        dragWatch.Stop();
+        dragWatch.Stop(); pointerWatch.Stop();
         outsideWatch.Stop(); outsideWatch.Tick -= OnOutsideWatch;
         backdropTimer.Stop();
         menuWatch.Stop(); menuWatch.Tick -= OnMenuWatch;

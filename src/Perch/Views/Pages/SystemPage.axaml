@@ -1,7 +1,7 @@
 <UserControl x:Class="Perch.Views.Pages.SystemPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:Perch.ViewModels" x:DataType="vm:SystemMonitorViewModel">
  <!-- DataContext is the system monitor view model. -->
  <Grid>
-  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="{Binding GpuWidth}"/></Grid.ColumnDefinitions>
   <Border Margin="0,0,5,0" Padding="20,16" Classes="Card">
    <Grid>
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -25,8 +25,20 @@
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <TextBlock Classes="Caption"><Run Text="{DynamicResource Sys.Disk}"/><Run Text="  "/><Run Text="{Binding DiskName, Mode=OneWay}"/></TextBlock>
     <TextBlock Grid.Row="1" Text="{Binding DiskText}" FontFamily="Segoe UI Variable Display" FontSize="40" FontWeight="SemiBold" Margin="0,2,0,0"/>
-    <ProgressBar Grid.Row="2" Height="6" Minimum="0" Maximum="100" Value="{Binding Disk, Mode=OneWay}" Foreground="#9BE08C" Background="#2A2A2E" BorderThickness="0" VerticalAlignment="Center"/>
+    <ProgressBar Grid.Row="2" Height="6" MinWidth="0" Minimum="0" Maximum="100" Value="{Binding Disk, Mode=OneWay}" Foreground="#9BE08C" Background="#2A2A2E" BorderThickness="0" VerticalAlignment="Center"/>
     <StackPanel Grid.Row="3"><TextBlock Text="{Binding DiskDetail}" Classes="Caption"/><TextBlock Text="{Binding Uptime}" Margin="0,2,0,0" Classes="Caption"/></StackPanel>
+   </Grid>
+  </Border>
+  <Border Grid.Column="3" Margin="10,0,0,0" Padding="20,16" IsVisible="{Binding ShowGpu}" Classes="Card">
+   <Grid>
+    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <TextBlock Text="{DynamicResource Sys.Gpu}" Classes="Caption"/>
+    <TextBlock Grid.Row="1" Text="{Binding GpuText}" FontFamily="Segoe UI Variable Display" FontSize="40" FontWeight="SemiBold" Margin="0,2,0,0"/>
+    <Polyline Grid.Row="2" Points="{Binding GpuLine}" Stretch="Fill" Stroke="#C58BFF" StrokeThickness="1.8" StrokeJoin="Round" Margin="0,8,0,8"/>
+    <StackPanel Grid.Row="3">
+     <TextBlock Text="{Binding GpuMemoryText}" IsVisible="{Binding GpuMemoryText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Classes="Caption"/>
+     <TextBlock Text="{Binding GpuTempText}" Margin="0,2,0,0" IsVisible="{Binding GpuTempText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Classes="Caption"/>
+    </StackPanel>
    </Grid>
   </Border>
  </Grid>

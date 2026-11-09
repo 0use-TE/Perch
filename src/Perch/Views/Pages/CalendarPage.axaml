@@ -1,28 +1,58 @@
 <UserControl x:Class="Perch.Views.Pages.CalendarPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:Perch.ViewModels" x:DataType="vm:CalendarViewModel">
- <!-- DataContext is the calendar view model (events from .ics links). -->
+ <!-- DataContext is the calendar view model: a month grid on the left, the events of the selected day on the right. -->
  <Grid>
-  <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+  <Grid.ColumnDefinitions><ColumnDefinition Width="320"/><ColumnDefinition Width="36"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+
+  <!-- Month -->
   <Grid>
-   <TextBlock VerticalAlignment="Center" Margin="4,0,0,0"><Run Text="{DynamicResource Cal.Title}" FontSize="13" FontWeight="SemiBold"/><Run Text="  "/><Run Text="{Binding Status, Mode=OneWay}" FontSize="11" Foreground="#8A8A90"/></TextBlock>
-   <Button HorizontalAlignment="Right" Command="{Binding Refresh}" ToolTip.Tip="{DynamicResource Common.Refresh}" AutomationProperties.Name="{DynamicResource Common.Refresh}" Classes="Nav Small"><TextBlock Text="&#xE72C;" FontSize="12" Foreground="#AAAAAF" Classes="Glyph"/></Button>
-  </Grid>
-  <TextBlock Grid.Row="1" Text="{DynamicResource Cal.NoFeeds}" HorizontalAlignment="Center" Margin="0,30,0,0" IsVisible="{Binding NoFeeds}" Classes="Placeholder"/>
-  <TextBlock Grid.Row="1" Text="{DynamicResource Cal.Nothing}" HorizontalAlignment="Center" Margin="0,30,0,0" IsVisible="{Binding IsEmpty}" Classes="Placeholder"/>
-  <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Focusable="False" Margin="0,6,0,0">
-   <ItemsControl ItemsSource="{Binding Rows}">
-    <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:CalendarRow">
-     <StackPanel>
-      <TextBlock Text="{Binding DayLabel}" Margin="4,10,0,4" IsVisible="{Binding ShowDay}" Classes="Caption"/>
-      <Grid Margin="4,3,4,3">
-       <Grid.ColumnDefinitions><ColumnDefinition Width="4"/><ColumnDefinition Width="128"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-       <Border CornerRadius="2" Margin="0,2" Background="{Binding Now, Converter={StaticResource Pick}, ConverterParameter=#FFAE54|#3A3A3E}"/>
-       <TextBlock Grid.Column="1" Text="{Binding TimeText}" FontSize="12.5" Foreground="#C9C9CE" Margin="12,0,0,0" VerticalAlignment="Center"/>
-       <TextBlock Grid.Column="2" Text="{Binding Title}" FontSize="13.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-       <TextBlock Grid.Column="3" Text="{Binding Location}" TextTrimming="CharacterEllipsis" MaxWidth="220" Margin="12,0,0,0" VerticalAlignment="Center" Classes="Caption"/>
-      </Grid>
-     </StackPanel>
+   <Grid.RowDefinitions><RowDefinition Height="30"/><RowDefinition Height="18"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+   <Grid>
+    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+    <TextBlock Text="{Binding MonthTitle}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" Margin="3,0,0,0"/>
+    <Button Grid.Column="1" Content="{DynamicResource Common.Today}" Command="{Binding GoToday}" Classes="Text"/>
+    <Button Grid.Column="2" Command="{Binding PrevMonth}" AutomationProperties.Name="{DynamicResource Cal.Prev}" ToolTip.Tip="{DynamicResource Cal.Prev}" Classes="Nav Small"><TextBlock Text="&#xE76B;" FontSize="11" Foreground="#AAAAAF" Classes="Glyph"/></Button>
+    <Button Grid.Column="3" Command="{Binding NextMonth}" AutomationProperties.Name="{DynamicResource Cal.Next}" ToolTip.Tip="{DynamicResource Cal.Next}" Classes="Nav Small"><TextBlock Text="&#xE76C;" FontSize="11" Foreground="#AAAAAF" Classes="Glyph"/></Button>
+   </Grid>
+   <UniformGrid Grid.Row="1" Columns="7"><UniformGrid.Styles><Style Selector="TextBlock"><Setter Property="FontSize" Value="9.5"/><Setter Property="Foreground" Value="#68686E"/><Setter Property="HorizontalAlignment" Value="Center"/></Style></UniformGrid.Styles><TextBlock Text="{DynamicResource Week.Mon}"/><TextBlock Text="{DynamicResource Week.Tue}"/><TextBlock Text="{DynamicResource Week.Wed}"/><TextBlock Text="{DynamicResource Week.Thu}"/><TextBlock Text="{DynamicResource Week.Fri}"/><TextBlock Text="{DynamicResource Week.Sat}"/><TextBlock Text="{DynamicResource Week.Sun}"/></UniformGrid>
+   <ItemsControl Grid.Row="2" ItemsSource="{Binding Cells}">
+    <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="7"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+    <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:CalendarCell">
+     <Button Padding="0" Margin="2,1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Command="{Binding $parent[UserControl].((vm:CalendarViewModel)DataContext).SelectDay}" CommandParameter="{Binding Date}" Classes="Tile">
+      <Border CornerRadius="6" BorderThickness="1" Background="{Binding Today, Converter={StaticResource Pick}, ConverterParameter=#FFAE54|#19191B}" BorderBrush="{Binding Selected, Converter={StaticResource Pick}, ConverterParameter=#E6E6EA|Transparent}" Opacity="{Binding InMonth, Converter={StaticResource Pick}, ConverterParameter=1|0.32}">
+       <Grid>
+        <TextBlock Text="{Binding Label}" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{Binding Today, Converter={StaticResource Pick}, ConverterParameter=#1A1208|#C9C9CE}" FontWeight="{Binding Today, Converter={StaticResource Pick}, ConverterParameter=Bold|Normal}"/>
+        <Ellipse Width="4" Height="4" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,4,0" Fill="{Binding Today, Converter={StaticResource Pick}, ConverterParameter=#1A1208|#FFAE54}" IsVisible="{Binding HasEvents}"/>
+       </Grid>
+      </Border>
+     </Button>
     </DataTemplate></ItemsControl.ItemTemplate>
    </ItemsControl>
-  </ScrollViewer>
+  </Grid>
+
+  <!-- Events of the selected day -->
+  <Grid Grid.Column="2">
+   <Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+   <Grid>
+    <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,36,0"><Run Text="{Binding SelectedLabel, Mode=OneWay}" FontSize="14" FontWeight="SemiBold"/><Run Text="  "/><Run Text="{Binding Status, Mode=OneWay}" FontSize="11" Foreground="#8A8A90"/></TextBlock>
+    <Button HorizontalAlignment="Right" Command="{Binding Refresh}" ToolTip.Tip="{DynamicResource Common.Refresh}" AutomationProperties.Name="{DynamicResource Common.Refresh}" Classes="Nav Small"><TextBlock Text="&#xE72C;" FontSize="12" Foreground="#AAAAAF" Classes="Glyph"/></Button>
+   </Grid>
+   <TextBlock Grid.Row="1" Text="{DynamicResource Cal.NoFeeds}" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="8,22,8,0" IsVisible="{Binding NoFeeds}" Classes="Placeholder"/>
+   <TextBlock Grid.Row="1" Text="{DynamicResource Cal.NothingDay}" HorizontalAlignment="Center" Margin="0,30,0,0" IsVisible="{Binding DayEmpty}" Classes="Placeholder"/>
+   <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Focusable="False" Margin="0,4,0,0">
+    <ItemsControl ItemsSource="{Binding DayEvents}">
+     <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:CalendarRow">
+      <Grid Margin="0,3,6,3">
+       <Grid.ColumnDefinitions><ColumnDefinition Width="4"/><ColumnDefinition Width="106"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+       <Border CornerRadius="2" Margin="0,2" Background="{Binding Now, Converter={StaticResource Pick}, ConverterParameter=#FFAE54|#3A3A3E}"/>
+       <TextBlock Grid.Column="1" Text="{Binding TimeText}" FontSize="12" Foreground="#C9C9CE" Margin="10,0,0,0" VerticalAlignment="Center"/>
+       <StackPanel Grid.Column="2" VerticalAlignment="Center">
+        <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+        <TextBlock Text="{Binding Location}" TextTrimming="CharacterEllipsis" Classes="Caption"/>
+       </StackPanel>
+      </Grid>
+     </DataTemplate></ItemsControl.ItemTemplate>
+    </ItemsControl>
+   </ScrollViewer>
+  </Grid>
  </Grid>
 </UserControl>

@@ -1,6 +1,7 @@
 using System.Windows.Input;
 using Avalonia.Threading;
 using Perch.Services;
+using Perch.Services.Sounds;
 
 namespace Perch.ViewModels;
 
@@ -75,6 +76,10 @@ public sealed class FocusViewModel : Observable
 
     public void Relocalize() => Changed(string.Empty);
 
+    // The focus page was switched off while a round was running: keep the remaining time but stop the clock,
+    // so nothing keeps running that can no longer be seen or stopped.
+    public void Suspend() { if (Running) Pause(); }
+
     // Durations changed in settings take effect when the timer isn't running.
     public void SettingsChanged()
     {
@@ -117,13 +122,13 @@ public sealed class FocusViewModel : Observable
             {
                 rounds++;
                 Record(Duration(Phase));
-                alerts.Show(AlertQueue.Timer, Loc.T(rounds % 4 == 0 ? "Focus.DoneFour" : "Focus.DoneOne"));
+                alerts.Show(AlertQueue.Timer, Loc.T(rounds % 4 == 0 ? "Focus.DoneFour" : "Focus.DoneOne"), SoundKind.Pomodoro);
             }
             Phase = rounds > 0 && rounds % 4 == 0 && finished ? FocusPhase.LongBreak : FocusPhase.ShortBreak;
         }
         else
         {
-            if (finished) alerts.Show(AlertQueue.Timer, Loc.T("Focus.BreakOver"));
+            if (finished) alerts.Show(AlertQueue.Timer, Loc.T("Focus.BreakOver"), SoundKind.Pomodoro);
             Phase = FocusPhase.Focus;
         }
         left = Duration(Phase);

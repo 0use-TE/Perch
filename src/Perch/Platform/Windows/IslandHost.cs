@@ -68,11 +68,19 @@ public sealed class IslandHost : IDisposable
     }
 
     // Clips the window to the given outline (in DIP, window coordinates).
-    public void Region(IReadOnlyList<Point> outline, double offsetX)
+    // The optional rectangle is added to the region: the floating capsule uses it for the strip above the pill,
+    // so a pointer pushed against the top edge of the screen still counts as being on the island.
+    public void Region(IReadOnlyList<Point> outline, double offsetX, Rect? extra = null)
     {
         var scale = GetDpiForWindow(handle) / 96d;
         var points = outline.Select(p => new POINT { X = (int)Math.Round((p.X + offsetX) * scale), Y = (int)Math.Round(p.Y * scale) }).ToArray();
         var region = CreatePolygonRgn(points, points.Length, 1);
+        if (extra is { } strip)
+        {
+            var bar = CreateRectRgn((int)Math.Floor(strip.Left * scale), (int)Math.Floor(strip.Top * scale), (int)Math.Ceiling(strip.Right * scale), (int)Math.Ceiling(strip.Bottom * scale));
+            CombineRgn(region, region, bar, 2 /* RGN_OR */);
+            DeleteObject(bar);
+        }
         if (SetWindowRgn(handle, region, true) == 0) DeleteObject(region); // Success transfers ownership to Windows.
     }
 
@@ -116,5 +124,7 @@ public sealed class IslandHost : IDisposable
     [DllImport("user32.dll")] private static extern bool SetWindowPos(nint hwnd, nint after, int x, int y, int width, int height, uint flags);
     [DllImport("user32.dll")] private static extern int SetWindowRgn(nint hwnd, nint region, bool redraw);
     [DllImport("gdi32.dll")] private static extern nint CreatePolygonRgn([In] POINT[] points, int count, int fillMode);
+    [DllImport("gdi32.dll")] private static extern nint CreateRectRgn(int left, int top, int right, int bottom);
+    [DllImport("gdi32.dll")] private static extern int CombineRgn(nint destination, nint source1, nint source2, int mode);
     [DllImport("gdi32.dll")] private static extern bool DeleteObject(nint obj);
 }

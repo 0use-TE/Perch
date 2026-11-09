@@ -8,7 +8,8 @@ namespace Perch.Views;
 // "Translucent" lets the open island show the frosted screen behind it through a black tint.
 internal static class IslandLook
 {
-    public static bool IsGlass(Settings s) => s.Appearance == "glass";
+    // The frosted material is chosen in the settings but only used where the environment supports it.
+    public static bool IsGlass(Settings s) => s.Appearance == "glass" && Translucency.Supported;
 
     public static void Apply(Path outline, bool translucent)
     {

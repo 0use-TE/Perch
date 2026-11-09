@@ -5,6 +5,7 @@ using Avalonia.Input.Platform;
 using Perch.Platform.Windows;
 using System.Windows.Input;
 using Perch.Services;
+using Perch.Services.Sounds;
 
 namespace Perch.ViewModels;
 
@@ -59,7 +60,7 @@ public sealed class ClipboardViewModel : Observable
         {
             if (Ui.Clipboard is not { } clipboard) return;
             await clipboard.SetTextAsync(text);
-            alerts.Show(AlertQueue.Done, Loc.T("Clip.Copied"));
+            alerts.Show(AlertQueue.Done, Loc.T("Clip.Copied"), SoundKind.None);
         }
         catch (Exception) { ownCopy = null; }
     }

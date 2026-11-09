@@ -18,8 +18,11 @@
              Classes="Bare Selectable">
     <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
     <ListBox.ItemTemplate><DataTemplate x:DataType="vm:TrayFile">
-     <StackPanel Width="90" Margin="4,8" ToolTip.Tip="{Binding FullPath}">
-      <Image Source="{Binding Icon}" Width="32" Height="32"/>
+     <StackPanel Width="96" Margin="4,8" ToolTip.Tip="{Binding FullPath}">
+      <Grid Width="76" Height="52" HorizontalAlignment="Center">
+       <Border IsVisible="{Binding HasPreview}" CornerRadius="7" ClipToBounds="True"><Image Source="{Binding Preview}" Stretch="UniformToFill"/></Border>
+       <Image Source="{Binding Icon}" Width="32" Height="32" IsVisible="{Binding NoPreview}"/>
+      </Grid>
       <TextBlock Text="{Binding Name}" FontSize="11" TextAlignment="Center" TextTrimming="CharacterEllipsis" Margin="2,6,2,0"/>
       <TextBlock Text="{Binding Detail}" FontSize="10" HorizontalAlignment="Center" Classes="Caption"/>
      </StackPanel>

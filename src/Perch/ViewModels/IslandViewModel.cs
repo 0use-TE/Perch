@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Perch.Services;
+using Perch.Services.Sounds;
 
 namespace Perch.ViewModels;
 
@@ -27,6 +28,10 @@ public sealed class IslandViewModel : Observable
     public SystemMonitorViewModel Monitor { get; }
     public ClipboardViewModel Clipboard { get; }
     public CalendarViewModel Calendar { get; }
+    public PortsViewModel Ports { get; }
+    public DinoViewModel Dino { get; }
+    public AiViewModel Ai { get; }
+    public AlarmViewModel Alarm { get; }
 
     public string Time { get => time; private set => Set(ref time, value); }
     public string Date { get => date; private set => Set(ref date, value); }
@@ -48,7 +53,8 @@ public sealed class IslandViewModel : Observable
     public IslandViewModel(Store store)
     {
         this.store = store;
-        Alerts = new AlertQueue { Sound = store.State.Settings.AlertSound };
+        Audio.Settings = store.State.Settings;
+        Alerts = new AlertQueue();
         Todo = new TodoViewModel(store);
         Notes = new NotesViewModel(store);
         Focus = new FocusViewModel(store, Alerts);
@@ -58,9 +64,14 @@ public sealed class IslandViewModel : Observable
         Tray = new TrayViewModel(store, Alerts);
         Photos = new PhotosViewModel(store);
         Music = new MusicViewModel(store);
-        Monitor = new SystemMonitorViewModel();
+        Monitor = new SystemMonitorViewModel(store);
         Clipboard = new ClipboardViewModel(Alerts);
         Calendar = new CalendarViewModel(store, Alerts);
+        Ports = new PortsViewModel();
+        Dino = new DinoViewModel(store);
+        Ai = new AiViewModel(store);
+        Alarm = new AlarmViewModel(store, Alerts);
+        Alarm.PropertyChanged += (_, e) => { if (e.PropertyName is nameof(AlarmViewModel.IsRinging) or nameof(AlarmViewModel.CompactText)) UpdateCompact(); };
         Music.PropertyChanged += (_, e) => { if (string.IsNullOrEmpty(e.PropertyName) || e.PropertyName is nameof(MusicViewModel.IsPlaying) or nameof(MusicViewModel.Title) or nameof(MusicViewModel.Artist)) UpdateCompact(); };
         Alerts.Changed += () => { Changed(nameof(AlertText)); Changed(nameof(HasAlert)); UpdateCompact(); };
         Focus.PropertyChanged += (_, _) => UpdateCompact();
@@ -85,6 +96,9 @@ public sealed class IslandViewModel : Observable
         Monitor.Relocalize();
         Clipboard.Relocalize();
         Calendar.Relocalize();
+        Ports.Relocalize();
+        Ai.Relocalize();
+        Alarm.Relocalize();
         UpdateCompact();
         Changed(string.Empty);
     }
@@ -94,13 +108,14 @@ public sealed class IslandViewModel : Observable
         var settings = store.State.Settings;
         var showNet = settings.ShowNetworkSpeed;
         var music = settings.ShowMusic && settings.MusicInCompact && Music.IsPlaying;
-        if (Alerts.Current is { } alert) { CompactGlyph = alert.Glyph; CompactText = alert.Text; }
+        if (Alarm.IsRinging) { CompactGlyph = "\uE121"; CompactText = Alarm.CompactText; }
+        else if (Alerts.Current is { } alert) { CompactGlyph = alert.Glyph; CompactText = alert.Text; }
         else if (Focus.Running) { CompactGlyph = ""; CompactText = $"{Focus.PhaseLabel}  {Focus.Remaining}"; }
         else if (music) { CompactGlyph = "\uE8D6"; CompactText = Music.CompactText; }
         else if (showNet) { CompactGlyph = ""; CompactText = Status.NetText; }
         else { CompactGlyph = ""; CompactText = "Perch"; }
-        CompactActive = Alerts.Current != null || Focus.Running;
-        var wide = Alerts.Current != null || Focus.Running || music || showNet;
+        CompactActive = Alarm.IsRinging || Alerts.Current != null || Focus.Running;
+        var wide = Alarm.IsRinging || Alerts.Current != null || Focus.Running || music || showNet;
         if (wide == isWide) return;
         isWide = wide;
         ShapeChanged?.Invoke();

@@ -155,13 +155,6 @@ public sealed class FullscreenWatcher : IDisposable
     [DllImport("user32.dll")] private static extern bool GetMonitorInfo(nint monitor, ref MONITORINFO info);
 }
 
-// The Windows "asterisk" notification sound.
-public static class Beep
-{
-    public static void Play() => MessageBeep(0x40);
-    [DllImport("user32.dll")] private static extern bool MessageBeep(uint type);
-}
-
 // Battery state (the same data the Windows power flyout reads).
 public static class PowerInfo
 {

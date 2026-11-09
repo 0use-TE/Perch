@@ -1,0 +1,6 @@
+<UserControl x:Class="Perch.Views.Pages.DinoPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Perch.Views" xmlns:vm="using:Perch.ViewModels" x:DataType="vm:DinoViewModel">
+ <!-- DataContext is the dinosaur game's view model. -->
+ <Border CornerRadius="14" Background="Black" ClipToBounds="True">
+  <local:DinoView x:Name="Game"/>
+ </Border>
+</UserControl>

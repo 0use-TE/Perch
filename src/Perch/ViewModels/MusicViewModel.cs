@@ -2,7 +2,6 @@ using System.IO;
 using System.Windows.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
-using Perch.Platform.Windows;
 using Perch.Services;
 using Windows.Media.Control;
 

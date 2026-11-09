@@ -500,4 +500,11 @@
  <sys:String x:Key="Format.DayTitle">ddd, MMM d</sys:String>
  <sys:String x:Key="Format.MonthYear">MMMM yyyy</sys:String>
  <sys:String x:Key="Format.Range">%0 – %1</sys:String>
+ <sys:String x:Key="Apps.Loading.Linux">Reading installed applications…</sys:String>
+ <sys:String x:Key="Apps.CommandsEmpty.Linux">Save commands and run them in one click (runs via /bin/sh -c)</sys:String>
+ <sys:String x:Key="Settings.LanguageSystem.Linux">Match system language</sys:String>
+ <sys:String x:Key="Set.GlassUnsupported.Linux">Frosted glass is not available on X11. The solid appearance is used.</sys:String>
+ <sys:String x:Key="Cal.NoFeeds.Linux">Add a calendar link or local .ics file in Settings › Features › Calendar.</sys:String>
+ <sys:String x:Key="Feat.Music.Linux">MPRIS media controls (requires playerctl)</sys:String>
+ <sys:String x:Key="Set.AiDesc.Linux">Compatible chat servers are supported. Saving API keys requires libsecret and an unlocked Secret Service keyring; state.json stores only a reference.</sys:String>
 </ResourceDictionary>

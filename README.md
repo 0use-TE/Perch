@@ -1,6 +1,6 @@
 # 栖点 Perch
 
-Windows 顶部效率岛，C# / Avalonia 12 / .NET 10（仅 Windows）。当前版本先完成核心显示、布局和交互。
+顶部效率岛，C# / Avalonia 12 / .NET 10。支持 Windows；新增实验性的 **Arch Linux x86_64 / X11** 移植，安装、验证及功能差异见 [Linux 文档](docs/linux.md)。以下原有功能说明以 Windows 为准。
 
 ## 构建与运行
 

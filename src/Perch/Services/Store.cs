@@ -81,13 +81,13 @@ public sealed class Settings
     // Web search for the AI chat (the client-side agent's web_search tool): which service, its key (protected) or address.
     public bool WebSearch { get; set; }
     // The AI may offer to act on this computer (create folders, open apps, run scripts); each action still needs the user's OK.
-    public bool AiLocalTools { get; set; } = true;
+    public bool AiLocalTools { get; set; } = OperatingSystem.IsWindows();
     // When an action asks first: "ask" = every one, "script" = only scripts (the dangerous ones), "none" = never.
     public string AiApproval { get; set; } = "ask";
     public string SearchEngine { get; set; } = "local"; // "local" (no key), "tavily", "bocha" or "searxng"
     public string SearchKey { get; set; } = "";
     public string SearchUrl { get; set; } = "";
-    [JsonIgnore] public string SearchKeyPlain { get => Secrets.Unprotect(SearchKey); set => SearchKey = Secrets.Protect(value?.Trim()); }
+    [JsonIgnore] public string SearchKeyPlain { get => Secrets.Unprotect(SearchKey); set => SearchKey = Secrets.Protect(value?.Trim(), SearchKey); }
     [JsonIgnore] public string SearchKeyInput
     {
         get => SearchKey.Length > 0 ? AiProvider.KeyMask : "";
@@ -96,10 +96,10 @@ public sealed class Settings
     public bool ShowSystem { get; set; } = true;
     // Optional extras on the system page.
     public bool SysCpuTemp { get; set; } = true;
-    public bool SysGpu { get; set; } = true;
-    public bool SysVram { get; set; } = true;
+    public bool SysGpu { get; set; } = OperatingSystem.IsWindows();
+    public bool SysVram { get; set; } = OperatingSystem.IsWindows();
     public bool MusicInCompact { get; set; } = true;   // the closed island shows the song that is playing
-    public bool CalendarWindows { get; set; } = true;  // include the calendars of Windows' own calendar store
+    public bool CalendarWindows { get; set; } = OperatingSystem.IsWindows();  // include the calendars of Windows' own calendar store
     public string CalendarUrls { get; set; } = "";     // one .ics link or file path per line
     public int CalendarReminder { get; set; } = 10;    // minutes before a meeting; 0 = off
     public bool HotkeysEnabled { get; set; } = true;
@@ -157,7 +157,7 @@ public sealed class AiProvider : Perch.ViewModels.Observable
     public string Key { get; set; } = "";
     public List<string> Models { get; set; } = [];
 
-    [JsonIgnore] public string ApiKey { get => Secrets.Unprotect(Key); set => Key = Secrets.Protect(value?.Trim()); }
+    [JsonIgnore] public string ApiKey { get => Secrets.Unprotect(Key); set => Key = Secrets.Protect(value?.Trim(), Key); }
     // What the key box in Settings shows: a row of stars when a key is saved, never the key itself. Typing replaces it.
     public const string KeyMask = "************";
     [JsonIgnore] public string KeyInput
@@ -282,6 +282,7 @@ public sealed class Store
         if (!Perch.Services.Sounds.SoundBank.Exists(s.SoundReminder) && s.SoundReminder != Perch.Services.Sounds.SoundBank.Off) s.SoundReminder = "gentle";
         if (!Perch.Services.Sounds.SoundBank.Exists(s.SoundPomodoro) && s.SoundPomodoro != Perch.Services.Sounds.SoundBank.Off) s.SoundPomodoro = "bell";
         if (!Perch.Services.Sounds.SoundBank.Exists(s.SoundAlarm) && s.SoundAlarm != Perch.Services.Sounds.SoundBank.Off) s.SoundAlarm = "alarm";
+#if WINDOWS
         foreach (var (process, name) in PlayerWatcher.Players)
         {
             if (s.PlayerKeys.Any(k => string.Equals(k.Process, process, StringComparison.OrdinalIgnoreCase))) continue;
@@ -289,6 +290,7 @@ public sealed class Store
             var netease = process == "cloudmusic";
             s.PlayerKeys.Add(new PlayerKeySet { Process = process, Name = name, Play = netease ? "Ctrl+Alt+P" : "", Previous = netease ? "Ctrl+Alt+Left" : "", Next = netease ? "Ctrl+Alt+Right" : "" });
         }
+#endif
         if (s.HotkeyIsland == "Ctrl+Alt+P") s.HotkeyIsland = "Ctrl+Alt+I";
         string[] pages = ["music", "focus", "todo", "notes", "info", "calendar", "apps", "tray", "photos", "clipboard", "system", "ports", "ai", "alarm", "dino"];
         s.NavOrder = s.NavOrder.Where(pages.Contains).Distinct().ToList();

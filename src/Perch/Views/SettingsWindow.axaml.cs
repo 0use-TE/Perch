@@ -11,7 +11,6 @@ using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using Perch.Platform.Windows;
 using Perch.Services;
 using Perch.Services.Sounds;
 
@@ -56,8 +55,9 @@ public partial class SettingsWindow : Window
         Closed += (_, _) => Log.Added -= OnLogLine;
         PositionChanged += (_, _) => RefreshBackdrop();
         Closed += (_, _) => backdropTimer.Stop();
+#if WINDOWS
         WindowBackdrop.KeepActive(this); // the frosted backdrop stays frosted while another program has the focus
-
+#endif
         // Bubbled from the switches and segmented choices; sliders and the language list are watched directly.
         AddHandler(Button.ClickEvent, (_, _) => Changed());
         AddHandler(TextBox.TextChangedEvent, (_, _) => { if (IsLoaded) Changed(); }); // the AI servers' fields
@@ -149,7 +149,9 @@ public partial class SettingsWindow : Window
         var light = ThemeManager.IsLight(settings.Theme);
         var frosted = IslandLook.IsGlass(settings);
         SetFrosted(frosted);
+#if WINDOWS
         WindowBackdrop.SetBorder(this, light);
+#endif
         // Where the environment cannot do translucency the choice is switched off and says why.
         GlassRadio.IsEnabled = Translucency.Supported;
         GlassUnsupported.IsVisible = !Translucency.Supported;
@@ -163,9 +165,12 @@ public partial class SettingsWindow : Window
 
     private void SetFrosted(bool on)
     {
-        if (!OperatingSystem.IsWindows()) on = false;
+#if WINDOWS
         if (on && TryGetPlatformHandle() is { } handle && !WindowBackdrop.ExcludeFromCapture(handle.Handle, true)) on = false;
         if (!on && frostedOn && TryGetPlatformHandle() is { } h) WindowBackdrop.ExcludeFromCapture(h.Handle, false);
+#else
+        on = false;
+#endif
         frostedOn = on;
         TintLayer.IsVisible = on;
         BackdropLayer.IsVisible = on;
@@ -174,9 +179,11 @@ public partial class SettingsWindow : Window
 
     private void RefreshBackdrop()
     {
+#if WINDOWS
         if (!frostedOn || !IsVisible || WindowState == WindowState.Minimized || TryGetPlatformHandle() is not { } handle) return;
         var picture = BackdropCapture.Grab(WindowBackdrop.ScreenRect(handle.Handle), 12);
         if (picture != null) BackdropLayer.Background = new ImageBrush(picture) { Stretch = Stretch.Fill };
+#endif
     }
 
     // The preview shows the selected material: closed is always black, open is translucent in glass mode.
@@ -407,7 +414,7 @@ public partial class SettingsWindow : Window
     [
         new("music", "", "Nav.Music"), new("focus", "", "Nav.Focus"), new("todo", "", "Nav.Todo"), new("notes", "", "Nav.Notes"),
         new("info", "", "Nav.Info"), new("calendar", "", "Nav.Calendar"), new("apps", "", "Nav.Apps"), new("tray", "", "Nav.Tray"),
-        new("photos", "", "Nav.Photos"), new("clipboard", "", "Nav.Clipboard"), new("system", "", "Nav.System"), new("ports", "", "Nav.Ports"), new("ai", "", "Nav.Ai"), new("alarm", "", "Nav.Alarm"), new("dino", "󰀀", "Nav.Dino"),
+        new("photos", "", "Nav.Photos"), new("clipboard", "", "Nav.Clipboard"), new("system", "", "Nav.System"), new("ports", "", "Nav.Ports"), new("ai", "", "Nav.Ai"), new("alarm", "", "Nav.Alarm"), new("dino", "󰀀", "Nav.Dino"),
     ];
 
     private const int MaxPinned = 7;

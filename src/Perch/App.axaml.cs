@@ -14,13 +14,18 @@ public partial class App : Application
 
     public override void Initialize()
     {
-        // Each platform says whether it can show the translucent material; where it cannot, the solid look is used.
-        if (OperatingSystem.IsWindows()) Perch.Services.Translucency.Probe = Perch.Platform.Windows.WindowBackdrop.TranslucencyAvailable;
-        Perch.Services.Translucency.Refresh();
-        if (OperatingSystem.IsWindows()) Perch.Services.Sounds.Audio.Player = new Perch.Platform.Windows.WinSoundPlayer();
-        if (OperatingSystem.IsWindows()) Perch.Services.Hardware.Source = new Perch.Platform.Windows.WindowsHardwareSource();
-        // Where the list of listening ports comes from (a Linux build would add its own source).
-        if (OperatingSystem.IsWindows()) Perch.Services.Ports.PortSource.Current = new Perch.Platform.Windows.WindowsPortSource();
+#if WINDOWS
+        Services.Translucency.Probe = WindowBackdrop.TranslucencyAvailable;
+        Services.Sounds.Audio.Player = new WinSoundPlayer();
+        Services.Hardware.Source = new WindowsHardwareSource();
+        Services.Ports.PortSource.Current = new WindowsPortSource();
+#else
+        Services.Translucency.Probe = () => false;
+        Services.Sounds.Audio.Player = new LinuxSoundPlayer();
+        Services.Hardware.Source = new LinuxHardwareSource();
+        Services.Ports.PortSource.Current = new LinuxPortSource();
+#endif
+        Services.Translucency.Refresh();
         AvaloniaXamlLoader.Load(this);
         ImeGuard.Install(); // hints over empty text boxes hide while the input method is composing
         // An error in a click or other handler on the UI thread is logged and the program carries on, instead of closing.

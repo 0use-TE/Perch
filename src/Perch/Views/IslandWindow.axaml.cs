@@ -236,12 +236,27 @@ public partial class IslandWindow : Window
     // The stage only changes size at two moments; during animation only the mask moves, so no layout runs per frame.
     // ---- dragging the island sideways (an optional setting). While dragged it follows the pointer with a little lag; on release
     // it keeps some of the speed and settles with a spring, and snaps to the centre when let go near it.
-    private double slide, slideTarget, slideVelocity, slideStart;
+    private double slide, slideTarget, slideVelocity, slideStart, slideRaw, slideGlow;
     private bool slidePressed, slideDragging, slideRunning;
     private int slideCursorStart;
     private TimeSpan slideLast;
     private DateTime slideEnded;
     private IPointer? slidePointer;
+
+    private const double SnapZone = 44;
+
+    // The island is pulled toward the centre while it is near it (so it clings there), and lets go gradually: the pull is
+    // strongest at the middle and fades out by about 2.3 times the zone, where the island is back under the pointer.
+    private static double Magnet(double raw)
+    {
+        var a = Math.Abs(raw);
+        const double hold = 0.22, catchUp = 1.6;
+        double pulled;
+        if (a < SnapZone) pulled = a * hold;
+        else if (a < SnapZone * (1 + (1 - hold) / (catchUp - 1))) pulled = SnapZone * hold + (a - SnapZone) * catchUp;
+        else pulled = a;
+        return Math.Sign(raw) * pulled;
+    }
 
     private double SlideLimit() { if (host == null) return 0; var (width, _) = host.WorkArea(); return Math.Max(0, (width - IslandOutline.HostWidth) / 2); }
 
@@ -265,7 +280,8 @@ public partial class IslandWindow : Window
         {
             var (cursor, _) = IslandHost.CursorPosition();
             var (_, scale) = host.WorkArea();
-            slideTarget = Math.Clamp(slideStart + (cursor - slideCursorStart) / scale, -SlideLimit(), SlideLimit());
+            slideRaw = Math.Clamp(slideStart + (cursor - slideCursorStart) / scale, -SlideLimit(), SlideLimit());
+            slideTarget = store.State.Settings.IslandDrag ? Magnet(slideRaw) : slideRaw;
             slide += (slideTarget - slide) * (1 - Math.Exp(-dt * 24)); // the island trails the pointer a little
             slideVelocity = (slide - before) / dt;
         }
@@ -280,7 +296,12 @@ public partial class IslandWindow : Window
         }
         host!.Offset = slide;
         PlaceHost();
-        var resting = !slideDragging && Math.Abs(slide - slideTarget) < 0.3 && Math.Abs(slideVelocity) < 3;
+        // the rim lights up while the island is inside the snapping zone and fades when it leaves or lands
+        var glowWanted = slideDragging && Math.Abs(slideRaw) < SnapZone ? 1.0 : 0.0;
+        slideGlow = animator.ReducedMotion ? glowWanted : slideGlow + (glowWanted - slideGlow) * (1 - Math.Exp(-dt * 16));
+        if (Math.Abs(slideGlow - glowWanted) < 0.02) slideGlow = glowWanted;
+        SnapRing.Opacity = slideGlow;
+        var resting = !slideDragging && Math.Abs(slide - slideTarget) < 0.3 && Math.Abs(slideVelocity) < 3 && slideGlow == 0;
         if (resting) { slide = slideTarget; slideVelocity = 0; host.Offset = slide; PlaceHost(); slideRunning = false; return; }
         RequestAnimationFrame(SlideFrame);
     }
@@ -313,6 +334,7 @@ public partial class IslandWindow : Window
         slidePointer = e.Pointer;
         slideCursorStart = IslandHost.CursorPosition().X;
         slideStart = slide;
+        slideRaw = slide;
     }
 
     private void OnSlideMoved(object? sender, PointerEventArgs e)
@@ -341,7 +363,7 @@ public partial class IslandWindow : Window
         slideEnded = DateTime.Now;
         slidePointer?.Capture(null);
         // let go near the middle and it snaps there; otherwise it rests a little beyond where it was let go, as if it had been flicked
-        var rest = Math.Clamp(slide + Math.Clamp(slideVelocity * 0.06, -90, 90), -SlideLimit(), SlideLimit());
+        var rest = Math.Clamp(slideRaw + Math.Clamp(slideVelocity * 0.06, -90, 90), -SlideLimit(), SlideLimit());
         slideTarget = Math.Abs(rest) < 44 ? 0 : rest;
         controller.Edit(IsActive && IsKeyboardFocusWithin);
         store.State.Settings.IslandOffset = slideTarget;
@@ -410,6 +432,7 @@ public partial class IslandWindow : Window
         // otherwise a pointer pushed against the top edge of the screen would never reach it.
         hoverStrip = capsuleT > 0.01 ? new Rect((stageWidth - width) / 2, 0, width, IslandOutline.CapsuleGap * capsuleT + 2) : default;
         ShellOutline.Data = outline;
+        SnapRing.Data = outline;
         ShellContent.Clip = outline;
         // Solid black when small, increasingly translucent as it opens.
         if (Glass) IslandLook.SetGlassFill(ShellOutline, store.State.Settings, Math.Clamp(shapeH, 0, 1));

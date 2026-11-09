@@ -37,7 +37,7 @@ The build selects `net10.0` for Linux and the original Windows target framework 
 
 | Feature | X11 implementation |
 | --- | --- |
-| Island, hover, editing, rounded click-through shape | Avalonia window + XShape input/bounding regions; primary-screen work area |
+| Island, hover, editing, rounded click-through shape | Avalonia window + XShape input/bounding regions; primary-screen work area; optional sideways dragging with a saved offset |
 | Global shortcuts | XGrabKey; default Ctrl+Alt+I and Ctrl+Alt+N; Caps Lock/Num Lock are ignored |
 | Clipboard history | XFixes selection-owner notifications; password-manager exclusion formats are skipped |
 | Installed applications | XDG `.desktop` files; user entries override system entries; `gio launch` handles Exec field codes |
@@ -73,8 +73,10 @@ For isolated desktop checks, install the test tools and build first:
 sudo pacman -S --needed python xorg-server-xvfb openbox xcompmgr xdotool xclip imagemagick dbus
 dotnet build src/Perch/Perch.csproj -c Release
 python tools/Verify-X11.py
+# Also verify fractional scaling independently of your current desktop settings.
+python tools/Verify-X11.py --scale 1.25
 ```
 
-The script starts its own Xvfb server, Openbox, compositor and private D-Bus, and uses temporary settings. It checks native startup, input regions, focus preservation, hover, shortcut repeat handling, fullscreen hiding/restoration, second-instance activation, text entry/persistence, clipboard history and Settings. Screenshots and results go to `artifacts/x11-smoke`. `--dotnet /path/to/dotnet` supports a user-local SDK; `--app /path/to/Perch` (or `Perch.dll`) can test a published directory.
+The script starts its own Xvfb server, Openbox, compositor and private D-Bus, and uses temporary settings. It checks native startup, input regions, focus preservation, hover, shortcut repeat handling, fullscreen hiding/restoration, second-instance activation, text entry/persistence, clipboard history, Settings, sideways dragging, saved-offset restoration and recentering. Screenshots, results and application logs go to `artifacts/x11-smoke`, including partial results on failure. Its reference window uses Xlib directly and needs no legacy bitmap fonts. `--dotnet /path/to/dotnet` supports a user-local SDK; `--app /path/to/Perch` (or `Perch.dll`) can test a published directory. The default scale is 100%; `--scale 1.25` tests 125% independently of your desktop's scaling settings. CI runs both scales.
 
 This automated session cannot establish hardware/desktop parity. Real multi-monitor changes, fractional DPI, Chinese IME composition, tray hosts, audio devices, Secret Service providers and media players still require manual verification. Windows cross-compilation verifies source compatibility, not Windows desktop behavior.

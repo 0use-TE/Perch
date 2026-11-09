@@ -39,9 +39,17 @@ jobs:
       - name: Linux regression checks
         run: dotnet run --project tests/Perch.Linux.Tests -c Release
       - name: Isolated X11 desktop checks
-        run: python tools/Verify-X11.py --app artifacts/Perch-linux-x64/Perch
+        run: |
+          for scale in 1 1.25; do
+            result=0
+            python tools/Verify-X11.py --app artifacts/Perch-linux-x64/Perch --scale "$scale" || result=$?
+            if [ -d artifacts/x11-smoke ]; then
+              mv artifacts/x11-smoke "artifacts/x11-smoke-$scale"
+            fi
+            if [ "$result" -ne 0 ]; then exit "$result"; fi
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: x11-smoke
-          path: artifacts/x11-smoke
+          path: artifacts/x11-smoke-*

@@ -125,6 +125,10 @@
         <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=CollapseDelaySlider, Converter={StaticResource Ms}}" Width="64" Classes="Value"/></Grid>
        <Border Classes="Divider"/>
        <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <TextBlock Text="{DynamicResource Set.IslandDrag}" Classes="RowTitle"/>
+        <CheckBox Grid.Column="1" IsChecked="{Binding IslandDrag}" AutomationProperties.Name="{DynamicResource Set.IslandDrag}" Classes="Switch"/></Grid>
+       <Border Classes="Divider"/>
+       <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <StackPanel><TextBlock Text="{DynamicResource Set.ReduceMotion}" Classes="RowTitle"/><TextBlock Text="{DynamicResource Set.ReduceMotionDesc}" Classes="RowDesc"/></StackPanel>
         <CheckBox Grid.Column="1" IsChecked="{Binding ReducedMotion}" AutomationProperties.Name="{DynamicResource Set.ReduceMotion}" Classes="Switch"/></Grid>
        <Border Classes="Divider"/>

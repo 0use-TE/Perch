@@ -261,6 +261,7 @@
  <sys:String x:Key="Dino.Paused">已暂停，点击继续</sys:String>
  <sys:String x:Key="Dino.Over">游戏结束</sys:String>
  <sys:String x:Key="Dino.Again">点击或按空格重来</sys:String>
+ <sys:String x:Key="Set.IslandDrag">拖动灵动岛的位置</sys:String>
  <sys:String x:Key="Nav.Ai">AI 助手</sys:String>
  <sys:String x:Key="Nav.Alarm">闹钟</sys:String>
  <sys:String x:Key="Feat.Alarm">闹钟：可重复、可稍后提醒，铃声可选。</sys:String>

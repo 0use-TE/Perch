@@ -261,6 +261,7 @@
  <sys:String x:Key="Dino.Paused">Paused - click to continue</sys:String>
  <sys:String x:Key="Dino.Over">Game over</sys:String>
  <sys:String x:Key="Dino.Again">Click or press Space to play again</sys:String>
+ <sys:String x:Key="Set.IslandDrag">Drag the island sideways</sys:String>
  <sys:String x:Key="Nav.Ai">AI</sys:String>
  <sys:String x:Key="Nav.Alarm">Alarm</sys:String>
  <sys:String x:Key="Feat.Alarm">Alarm clocks with repeats, snooze and a choice of sounds.</sys:String>

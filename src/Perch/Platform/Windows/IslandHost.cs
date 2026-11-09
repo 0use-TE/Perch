@@ -13,6 +13,8 @@ public sealed class IslandHost : IDisposable
     private readonly nint handle;
     private readonly Func<bool> overTextBox;
     private bool placing;
+    // How far (DIP) the island sits from the centre of the screen; 0 = centred.
+    public double Offset { get; set; }
     public event Action? DisplayChanged;
     public event Action<int>? HotKeyPressed;
     public event Action? ClipboardUpdated;
@@ -36,6 +38,8 @@ public sealed class IslandHost : IDisposable
     // screenshots, recordings and screen sharing do not show the island while this is on).
     public bool ExcludeFromCapture(bool on) => SetWindowDisplayAffinity(handle, on ? 0x11u : 0u);
     public System.Drawing.Rectangle ScreenRect() { GetWindowRect(handle, out var r); return System.Drawing.Rectangle.FromLTRB(r.Left, r.Top, r.Right, r.Bottom); }
+    // Width of the usable screen area in DIP, and the scale of the island's window.
+    public (double Width, double Scale) WorkArea() { SystemParametersInfo(0x30, 0, out var work, 0); var dpi = GetDpiForWindow(handle) / 96d; return ((work.Right - work.Left) / dpi, dpi); }
     public static (int X, int Y) CursorPosition() { GetCursorPos(out var p); return (p.X, p.Y); }
     public void Passive() => SetActivation(false);
 
@@ -62,7 +66,9 @@ public sealed class IslandHost : IDisposable
             var w = (int)Math.Ceiling(width * dpi);
             var h = (int)Math.Ceiling(height * dpi);
             window.Width = width; window.Height = height;
-            SetWindowPos(handle, new nint(-1), work.Left + (work.Right - work.Left - w) / 2, work.Top, w, h, 0x10 | 0x40);
+            var room = (work.Right - work.Left - w) / 2;
+            var shift = (int)Math.Clamp(Math.Round(Offset * dpi), -room, room);
+            SetWindowPos(handle, new nint(-1), work.Left + room + shift, work.Top, w, h, 0x10 | 0x40);
         }
         finally { placing = false; }
     }

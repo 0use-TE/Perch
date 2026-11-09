@@ -37,6 +37,9 @@ public sealed class Settings
     public bool FocusAutoContinue { get; set; } = true;
     public bool ShowNetworkSpeed { get; set; }
     public bool HideInFullscreen { get; set; } = true;
+    // Optional: the island can be dragged sideways along the top edge, and remembers where it was left (DIP from the centre).
+    public bool IslandDrag { get; set; }
+    public double IslandOffset { get; set; }
     public bool LaunchAtStartup { get; set; }
     public bool HoverExpand { get; set; } = true;
     public bool? ReducedMotion { get; set; } // null follows the system animation setting

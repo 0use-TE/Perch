@@ -117,9 +117,12 @@ public partial class IslandWindow : Window
         Stage.PointerExited += (_, _) => UpdatePointer();
         pointerWatch.Tick += (_, _) => UpdatePointer();
         pointerWatch.Start();
-        CompactHeader.PointerReleased += (_, e) => { if (e.InitialPressMouseButton == MouseButton.Left) controller.Open(); };
+        CompactHeader.PointerReleased += (_, e) => { if (e.InitialPressMouseButton == MouseButton.Left && (DateTime.Now - slideEnded).TotalMilliseconds > 350) controller.Open(); };
         Stage.PointerReleased += (_, e) => { if (e.InitialPressMouseButton == MouseButton.Left && hoverStrip.Contains(e.GetPosition(Stage))) controller.Open(); };
         NavRow.AddHandler(PointerWheelChangedEvent, OnNavWheel, RoutingStrategies.Tunnel);
+        Stage.AddHandler(PointerPressedEvent, OnSlidePressed, RoutingStrategies.Tunnel);
+        Stage.AddHandler(PointerMovedEvent, OnSlideMoved, RoutingStrategies.Tunnel);
+        Stage.AddHandler(PointerReleasedEvent, OnSlideReleased, RoutingStrategies.Tunnel);
         NavStack.AddHandler(PointerPressedEvent, OnNavPressed, RoutingStrategies.Tunnel);
         NavStack.AddHandler(PointerMovedEvent, OnNavMoved, RoutingStrategies.Tunnel);
         NavStack.AddHandler(PointerReleasedEvent, OnNavReleased, RoutingStrategies.Tunnel);
@@ -153,6 +156,7 @@ public partial class IslandWindow : Window
         RegisterHotkeys();
         fullscreen = new FullscreenWatcher(host.Handle);
         fullscreen.Changed += ApplyVisibility;
+        ApplySlide(animate: false);
         ApplyLook();
         PlaceHost();
         Draw(0, 0, true);
@@ -230,6 +234,130 @@ public partial class IslandWindow : Window
     }
 
     // The stage only changes size at two moments; during animation only the mask moves, so no layout runs per frame.
+    // ---- dragging the island sideways (an optional setting). While dragged it follows the pointer with a little lag; on release
+    // it keeps some of the speed and settles with a spring, and snaps to the centre when let go near it.
+    private double slide, slideTarget, slideVelocity, slideStart;
+    private bool slidePressed, slideDragging, slideRunning;
+    private int slideCursorStart;
+    private TimeSpan slideLast;
+    private DateTime slideEnded;
+    private IPointer? slidePointer;
+
+    private double SlideLimit() { if (host == null) return 0; var (width, _) = host.WorkArea(); return Math.Max(0, (width - IslandOutline.HostWidth) / 2); }
+
+    // Where the island is wanted when the setting is on (the remembered place) and when it is off (the centre).
+    private double SlideHome() => store.State.Settings.IslandDrag ? Math.Clamp(store.State.Settings.IslandOffset, -SlideLimit(), SlideLimit()) : 0;
+
+    private void StartSlide()
+    {
+        if (slideRunning) return;
+        slideRunning = true;
+        slideLast = TimeSpan.Zero;
+        RequestAnimationFrame(SlideFrame);
+    }
+
+    private void SlideFrame(TimeSpan now)
+    {
+        var dt = slideLast == TimeSpan.Zero ? 0.016 : Math.Clamp((now - slideLast).TotalSeconds, 0.001, 0.05);
+        slideLast = now;
+        var before = slide;
+        if (slideDragging && host != null)
+        {
+            var (cursor, _) = IslandHost.CursorPosition();
+            var (_, scale) = host.WorkArea();
+            slideTarget = Math.Clamp(slideStart + (cursor - slideCursorStart) / scale, -SlideLimit(), SlideLimit());
+            slide += (slideTarget - slide) * (1 - Math.Exp(-dt * 24)); // the island trails the pointer a little
+            slideVelocity = (slide - before) / dt;
+        }
+        else if (animator.ReducedMotion) { slide = slideTarget; slideVelocity = 0; }
+        else
+        {
+            // a spring: quick, with a small overshoot before it rests
+            const double omega = 26, damping = 0.58;
+            var acceleration = -2 * damping * omega * slideVelocity - omega * omega * (slide - slideTarget);
+            slideVelocity += acceleration * dt;
+            slide += slideVelocity * dt;
+        }
+        host!.Offset = slide;
+        PlaceHost();
+        var resting = !slideDragging && Math.Abs(slide - slideTarget) < 0.3 && Math.Abs(slideVelocity) < 3;
+        if (resting) { slide = slideTarget; slideVelocity = 0; host.Offset = slide; PlaceHost(); slideRunning = false; return; }
+        RequestAnimationFrame(SlideFrame);
+    }
+
+    // The settings changed (or the screen did): glide to where the island belongs now.
+    private void ApplySlide(bool animate = true)
+    {
+        if (host == null) return;
+        slideTarget = SlideHome();
+        if (!animate) { slide = slideTarget; slideVelocity = 0; host.Offset = slide; return; }
+        if (Math.Abs(slide - slideTarget) > 0.3) StartSlide();
+    }
+
+    // Where a press may start a drag: the closed island, or the empty part of the top strip of the open one.
+    private bool OnSlideHandle(PointerPressedEventArgs e)
+    {
+        if (!store.State.Settings.IslandDrag || !e.GetCurrentPoint(Stage).Properties.IsLeftButtonPressed) return false;
+        if (controller.State == InteractionState.Compact) return true;
+        if (e.GetPosition(Stage).Y > 58) return false;
+        for (var hit = e.Source as Visual; hit != null; hit = hit.GetVisualParent())
+            if (hit is Button or TextBox or ToggleButton or Slider) return false;
+        return true;
+    }
+
+    private void OnSlidePressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (slideDragging || !OnSlideHandle(e)) return;
+        if (e.ClickCount == 2) { GoToCentre(); return; } // double-click on the handle: back to the middle
+        slidePressed = true;
+        slidePointer = e.Pointer;
+        slideCursorStart = IslandHost.CursorPosition().X;
+        slideStart = slide;
+    }
+
+    private void OnSlideMoved(object? sender, PointerEventArgs e)
+    {
+        if (!slidePressed || host == null) return;
+        if (!e.GetCurrentPoint(Stage).Properties.IsLeftButtonPressed) { slidePressed = false; return; }
+        var (cursor, _) = IslandHost.CursorPosition();
+        if (!slideDragging)
+        {
+            var (_, scale) = host.WorkArea();
+            if (Math.Abs(cursor - slideCursorStart) / scale < 5) return;
+            slideDragging = true;
+            controller.Edit(true); // stays as it is (open or closed) for the whole drag
+            slidePointer?.Capture(Stage);
+            StartSlide();
+        }
+        e.Handled = true;
+    }
+
+    private void OnSlideReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        var was = slideDragging;
+        slidePressed = false;
+        if (!was) return;
+        slideDragging = false;
+        slideEnded = DateTime.Now;
+        slidePointer?.Capture(null);
+        // let go near the middle and it snaps there; otherwise it rests a little beyond where it was let go, as if it had been flicked
+        var rest = Math.Clamp(slide + Math.Clamp(slideVelocity * 0.06, -90, 90), -SlideLimit(), SlideLimit());
+        slideTarget = Math.Abs(rest) < 44 ? 0 : rest;
+        controller.Edit(IsActive && IsKeyboardFocusWithin);
+        store.State.Settings.IslandOffset = slideTarget;
+        store.Touch();
+        e.Handled = true;
+        StartSlide();
+    }
+
+    private void GoToCentre()
+    {
+        slideTarget = 0;
+        store.State.Settings.IslandOffset = 0;
+        store.Touch();
+        StartSlide();
+    }
+
     private void PlaceHost()
     {
         var width = largeHost ? IslandOutline.HostWidth : IslandOutline.CompactWidth;
@@ -545,6 +673,7 @@ public partial class IslandWindow : Window
         var weatherKey = (s.Latitude, s.Longitude, s.Fahrenheit);
         if (weatherKey != appliedWeather) { appliedWeather = weatherKey; model.Weather.SettingsChanged(); }
         UpdateOutsideWatch();
+        if (!slideDragging) ApplySlide();
         store.Touch();
     }
 
@@ -562,7 +691,7 @@ public partial class IslandWindow : Window
         store.Touch();
     }
 
-    private void Reposition() { PlaceHost(); Draw(shapeW, shapeH, !animator.IsRunning); }
+    private void Reposition() { if (!slideDragging) ApplySlide(animate: false); PlaceHost(); Draw(shapeW, shapeH, !animator.IsRunning); }
 
     private void OnInputClick(object? sender, PointerPressedEventArgs e)
     {

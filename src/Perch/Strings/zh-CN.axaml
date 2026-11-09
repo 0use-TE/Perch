@@ -310,6 +310,7 @@
  <sys:String x:Key="Sound.default">默认闹钟铃声</sys:String>
  <sys:String x:Key="Set.Sounds">提示音</sys:String>
  <sys:String x:Key="Set.SoundVolume">音量</sys:String>
+ <sys:String x:Key="Set.SnapSound">吸附中间时“嗒”一声</sys:String>
  <sys:String x:Key="Set.SoundReminder">普通提醒</sys:String>
  <sys:String x:Key="Set.SoundPomodoro">番茄钟</sys:String>
  <sys:String x:Key="Set.SoundAlarm">闹钟</sys:String>

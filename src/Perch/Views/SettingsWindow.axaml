@@ -4,7 +4,7 @@
         Background="{DynamicResource Ui.Fallback}" Foreground="{DynamicResource Ui.Text}" FontFamily="Segoe UI Variable Text, Microsoft YaHei UI" UseLayoutRounding="True">
  <Window.Styles>
   <Style Selector="Border.FeatureIcon"><Setter Property="Width" Value="34"/><Setter Property="Height" Value="34"/><Setter Property="CornerRadius" Value="9"/><Setter Property="Background" Value="{DynamicResource Ui.Tile}"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
-  <Style Selector="TextBlock.FeatureGlyph"><Setter Property="FontFamily" Value="Segoe Fluent Icons"/><Setter Property="FontSize" Value="16"/><Setter Property="Foreground" Value="{DynamicResource Ui.TileIcon}"/><Setter Property="HorizontalAlignment" Value="Center"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+  <Style Selector="TextBlock.FeatureGlyph"><Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets"/><Setter Property="FontSize" Value="16"/><Setter Property="Foreground" Value="{DynamicResource Ui.TileIcon}"/><Setter Property="HorizontalAlignment" Value="Center"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
   <Style Selector="ListBox.Place"><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="0"/><Setter Property="Focusable" Value="False"/><Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/></Style>
   <Style Selector="ListBox.Place > ListBoxItem">
    <Setter Property="Focusable" Value="False"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="0"/><Setter Property="MinHeight" Value="0"/>
@@ -25,7 +25,7 @@
   <Style Selector="TextBlock.Heading"><Setter Property="FontSize" Value="26"/><Setter Property="FontWeight" Value="Bold"/><Setter Property="Margin" Value="0,0,0,18"/></Style>
   <!-- Our own caption buttons: 46 x 52, glyph centred, red on close. -->
   <Style Selector="Button.Caption"><Setter Property="Width" Value="46"/><Setter Property="Height" Value="52"/><Setter Property="MinHeight" Value="0"/><Setter Property="Padding" Value="0"/>
-   <Setter Property="Template"><ControlTemplate><Border x:Name="Bg" Background="Transparent"><TextBlock x:Name="Glyph" Text="{TemplateBinding Content}" FontFamily="Segoe Fluent Icons" FontSize="10" Foreground="{DynamicResource Ui.Text}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter>
+   <Setter Property="Template"><ControlTemplate><Border x:Name="Bg" Background="Transparent"><TextBlock x:Name="Glyph" Text="{TemplateBinding Content}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10" Foreground="{DynamicResource Ui.Text}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter>
   </Style>
   <Style Selector="Button.Caption:pointerover /template/ Border#Bg"><Setter Property="Background" Value="{DynamicResource Ui.CaptionHover}"/></Style>
   <Style Selector="Button.Caption.Close:pointerover /template/ Border#Bg"><Setter Property="Background" Value="#C42B1C"/></Style>
@@ -391,6 +391,10 @@
         <TextBlock Text="{DynamicResource Set.SoundVolume}" Classes="RowTitle"/>
         <Slider x:Name="SoundVolumeSlider" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding SoundVolume}" AutomationProperties.Name="{DynamicResource Set.SoundVolume}" Classes="Dotted"/>
         <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=SoundVolumeSlider, Converter={StaticResource Percent}}" Classes="Value"/></Grid>
+       <Border Classes="Divider"/>
+       <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <TextBlock Text="{DynamicResource Set.SnapSound}" Classes="RowTitle"/>
+        <CheckBox Grid.Column="1" IsChecked="{Binding SnapSound}" AutomationProperties.Name="{DynamicResource Set.SnapSound}" Classes="Switch"/></Grid>
        <Border Classes="Divider"/>
        <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="200"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <TextBlock Text="{DynamicResource Set.SoundReminder}" Classes="RowTitle"/>

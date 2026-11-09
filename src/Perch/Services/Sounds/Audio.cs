@@ -38,6 +38,12 @@ public static class Audio
     // An alarm that keeps ringing until it is stopped.
     public static void Ring(string? own = null) => Start(IdFor(SoundKind.Alarm, own), loop: true);
 
+    // The tick of the island clinging to the centre, if the user turned it on.
+    public static void Snap()
+    {
+        if (Settings is { SnapSound: true }) Start(SoundBank.Snap, loop: false);
+    }
+
     // Plays a sound from a list so the user can hear it, whatever the master switch says.
     public static void Preview(string id) => Start(id, loop: false);
 

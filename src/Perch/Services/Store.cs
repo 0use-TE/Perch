@@ -40,6 +40,8 @@ public sealed class Settings
     // Optional: the island can be dragged sideways along the top edge, and remembers where it was left (DIP from the centre).
     public bool IslandDrag { get; set; }
     public double IslandOffset { get; set; }
+    // A soft tick when the dragged island clings to the centre (off by default).
+    public bool SnapSound { get; set; }
     public bool LaunchAtStartup { get; set; }
     public bool HoverExpand { get; set; } = true;
     public bool? ReducedMotion { get; set; } // null follows the system animation setting

@@ -237,7 +237,7 @@ public partial class IslandWindow : Window
     // ---- dragging the island sideways (an optional setting). While dragged it follows the pointer with a little lag; on release
     // it keeps some of the speed and settles with a spring, and snaps to the centre when let go near it.
     private double slide, slideTarget, slideVelocity, slideStart, slideRaw, slideGlow;
-    private bool slidePressed, slideDragging, slideRunning;
+    private bool slidePressed, slideDragging, slideRunning, slideInZone;
     private int slideCursorStart;
     private TimeSpan slideLast;
     private DateTime slideEnded;
@@ -301,6 +301,8 @@ public partial class IslandWindow : Window
         slideGlow = animator.ReducedMotion ? glowWanted : slideGlow + (glowWanted - slideGlow) * (1 - Math.Exp(-dt * 16));
         if (Math.Abs(slideGlow - glowWanted) < 0.02) slideGlow = glowWanted;
         SnapRing.Opacity = slideGlow;
+        if (glowWanted == 1.0 && !slideInZone) Perch.Services.Sounds.Audio.Snap(); // a tick the moment it clings
+        slideInZone = glowWanted == 1.0;
         var resting = !slideDragging && Math.Abs(slide - slideTarget) < 0.3 && Math.Abs(slideVelocity) < 3 && slideGlow == 0;
         if (resting) { slide = slideTarget; slideVelocity = 0; host.Offset = slide; PlaceHost(); slideRunning = false; return; }
         RequestAnimationFrame(SlideFrame);
@@ -827,7 +829,7 @@ public partial class IslandWindow : Window
                 Margin = new Thickness(12, 0, 18, 0),
                 Children =
                 {
-                    new TextBlock { Text = ((TextBlock)face.Children[0]).Text, FontFamily = new FontFamily("Segoe Fluent Icons"), FontSize = 16, Width = 22, Foreground = new SolidColorBrush(Color.FromRgb(0xC9, 0xC9, 0xCE)), VerticalAlignment = VerticalAlignment.Center },
+                    new TextBlock { Text = ((TextBlock)face.Children[0]).Text, FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"), FontSize = 16, Width = 22, Foreground = new SolidColorBrush(Color.FromRgb(0xC9, 0xC9, 0xCE)), VerticalAlignment = VerticalAlignment.Center },
                     new TextBlock { Text = name, FontSize = 13, Foreground = Brushes.White, Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center },
                 },
             };

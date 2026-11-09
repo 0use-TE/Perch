@@ -23,7 +23,10 @@ public static class SoundBank
 
     private static readonly Dictionary<string, float[]> Cache = [];
 
-    public static bool Exists(string id) => Options.Any(o => o.Id == id);
+    // The tick when the island clings to the centre; not one of the choices in the lists.
+    public const string Snap = "snap";
+
+    public static bool Exists(string id) => id == Snap || Options.Any(o => o.Id == id);
 
     // The clip as samples in -1..1, followed by `tail` seconds of silence (so a looping clip breathes between repeats).
     public static float[] Samples(string id, double tail = 0)
@@ -74,6 +77,12 @@ public static class SoundBank
                 return Mix(0.75, (0.00, Beep(1000, 0.09)), (0.16, Beep(1000, 0.09)), (0.32, Beep(1000, 0.09)));
             case "pulse": // three soft low pulses
                 return Mix(1.0, (0.00, Note(330, 0.3, 0.14, 0.015, 0.0, 0.25, 0.0)), (0.30, Note(330, 0.3, 0.14, 0.015, 0.0, 0.25, 0.0)), (0.60, Note(392, 0.3, 0.14, 0.015, 0.0, 0.25, 0.0)));
+            case Snap: // a small soft "tick": a very short falling tone over a faint high click, kept quiet
+            {
+                var tick = Mix(0.08, (0.0, Drop(1500, 700, 0.06, 0.012, 1.0)), (0.0, Note(3200, 0.02, 0.004, 0.0005, 0.0, 0.0, 0.0)));
+                for (var i = 0; i < tick.Length; i++) tick[i] *= 0.55f;
+                return tick;
+            }
             case "alarm": // the classic alarm: two alternating urgent tones, repeated
                 return Alarm();
             default: // "gentle": a soft rising arpeggio

@@ -55,7 +55,7 @@
   <Setter Property="Template"><ControlTemplate>
    <Border x:Name="Pill" Height="40" CornerRadius="10" Background="Transparent" Margin="0,2" Padding="10,0">
     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-     <Border x:Name="Tile" Width="26" Height="26" CornerRadius="7" Background="{DynamicResource Ui.Tile}"><TextBlock x:Name="Icon" Text="{TemplateBinding Tag}" FontFamily="Segoe Fluent Icons" FontSize="14" Foreground="{DynamicResource Ui.TileIcon}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+     <Border x:Name="Tile" Width="26" Height="26" CornerRadius="7" Background="{DynamicResource Ui.Tile}"><TextBlock x:Name="Icon" Text="{TemplateBinding Tag}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource Ui.TileIcon}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
      <ContentPresenter x:Name="Label" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" FontSize="13.5" Margin="11,0,0,0" VerticalAlignment="Center"/>
     </StackPanel>
    </Border>
@@ -90,8 +90,8 @@
         <Grid ColumnDefinitions="*,Auto">
          <ContentPresenter Content="{TemplateBinding Content}" VerticalAlignment="Center" HorizontalAlignment="Stretch"/>
          <Panel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
-          <TextBlock Text="&#xE70D;" FontFamily="Segoe Fluent Icons" FontSize="12" Foreground="{DynamicResource Ui.Muted}" IsVisible="{Binding !IsChecked, RelativeSource={RelativeSource TemplatedParent}}"/>
-          <TextBlock Text="&#xE70E;" FontFamily="Segoe Fluent Icons" FontSize="12" Foreground="{DynamicResource Ui.Muted}" IsVisible="{Binding IsChecked, RelativeSource={RelativeSource TemplatedParent}}"/>
+          <TextBlock Text="&#xE70D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource Ui.Muted}" IsVisible="{Binding !IsChecked, RelativeSource={RelativeSource TemplatedParent}}"/>
+          <TextBlock Text="&#xE70E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource Ui.Muted}" IsVisible="{Binding IsChecked, RelativeSource={RelativeSource TemplatedParent}}"/>
          </Panel>
         </Grid>
        </Border>

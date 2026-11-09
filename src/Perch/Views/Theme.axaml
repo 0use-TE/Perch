@@ -1,7 +1,7 @@
 <Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
  <!-- Island styles. Keyed WPF styles became classes: Style="{StaticResource Caption}" is Classes="Caption". -->
  <Style Selector="TextBlock.Caption"><Setter Property="FontSize" Value="11"/><Setter Property="Foreground" Value="#8A8A90"/></Style>
- <Style Selector="TextBlock.Glyph"><Setter Property="FontFamily" Value="Segoe Fluent Icons"/><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="HorizontalAlignment" Value="Center"/></Style>
+ <Style Selector="TextBlock.Glyph"><Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets"/><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="HorizontalAlignment" Value="Center"/></Style>
  <Style Selector="TextBlock.Placeholder"><Setter Property="Foreground" Value="#6E6E74"/><Setter Property="IsHitTestVisible" Value="False"/><Setter Property="FontSize" Value="13"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
  <Style Selector="Border.Card"><Setter Property="Background" Value="{DynamicResource IslandCard}"/><Setter Property="CornerRadius" Value="14"/></Style>
 

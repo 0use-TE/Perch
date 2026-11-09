@@ -1,0 +1,55 @@
+name: Desktop builds
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        runtime: [win-x64, win-arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet publish src/Perch/Perch.csproj -c Release -r ${{ matrix.runtime }} --self-contained false
+
+  arch-x11:
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      - name: Install build and X11 test dependencies
+        run: >-
+          pacman -Syu --needed --noconfirm git icu openssl zlib
+          libx11 libxext libxfixes libxss libxi libxcursor libxrandr libice libsm
+          fontconfig freetype2 mesa glib2 xdg-utils ttf-dejavu
+          python xorg-server-xvfb openbox xcompmgr xdotool xclip imagemagick dbus
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Publish Linux x86_64
+        run: dotnet publish src/Perch/Perch.csproj -c Release -r linux-x64 --self-contained true -o artifacts/Perch-linux-x64
+      - name: Linux regression checks
+        run: dotnet run --project tests/Perch.Linux.Tests -c Release
+      - name: Isolated X11 desktop checks
+        run: |
+          for scale in 1 1.25; do
+            result=0
+            python tools/Verify-X11.py --app artifacts/Perch-linux-x64/Perch --scale "$scale" || result=$?
+            if [ -d artifacts/x11-smoke ]; then
+              mv artifacts/x11-smoke "artifacts/x11-smoke-$scale"
+            fi
+            if [ "$result" -ne 0 ]; then exit "$result"; fi
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: x11-smoke
+          path: artifacts/x11-smoke-*

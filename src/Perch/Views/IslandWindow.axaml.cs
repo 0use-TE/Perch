@@ -13,7 +13,6 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Perch.Animation;
 using Perch.Interaction;
-using Perch.Platform.Windows;
 using Perch.Services;
 using Perch.ViewModels;
 using Perch.Views.Pages;
@@ -104,7 +103,7 @@ public partial class IslandWindow : Window
         model.Alarm.RingingChanged += OnAlarmRinging;
         model.Ai.ConfirmChanged += OnAiConfirm;
         model.Dino.Engaged += () => { host?.BeginEditing(); controller.Edit(true); }; // the game takes the keyboard and keeps the island open
-        Program.SecondInstance += () => Dispatcher.UIThread.Post(() => { if (IsVisible) controller.Open(); }); // started again: show the island
+        Program.SecondInstance += () => Dispatcher.UIThread.Post(() => { userHidden = false; ApplyVisibility(); controller.Open(); }); // started again: show the island
         animator.Frame += Draw;
         dragWatch.Tick += (_, _) => { if (!CursorOverIsland()) { dragWatch.Stop(); pointerOver = false; controller.Pointer(false); } };
 
@@ -204,7 +203,7 @@ public partial class IslandWindow : Window
 
     private void OnOutsideWatch(object? sender, EventArgs e)
     {
-        if (menuOpen || (GetAsyncKeyState(0x01) & 0x8000) == 0 || CursorOverIsland()) return;
+        if (menuOpen || !IsDown(0x01) || CursorOverIsland()) return;
         FocusManager?.Focus(null);
         controller.Collapse();
     }
@@ -213,12 +212,18 @@ public partial class IslandWindow : Window
     private void OnMenuWatch(object? sender, EventArgs e)
     {
         if (openMenu is not { IsOpen: true } menu) { menuWatch.Stop(); return; }
+        if (!OperatingSystem.IsWindows()) return; // Avalonia handles Linux popup dismissal.
         var pressed = IsDown(0x01) || IsDown(0x02) || IsDown(0x04);
         if (!pressed || CursorOverOwnPopup()) return;
         menu.Close();
     }
 
-    private static bool IsDown(int key) => ((ushort)GetAsyncKeyState(key) & 0x8000) != 0;
+    private static bool IsDown(int key) =>
+#if WINDOWS
+        ((ushort)GetAsyncKeyState(key) & 0x8000) != 0;
+#else
+        X11.IsButtonDown(key);
+#endif
 
     // True when the window under the cursor is one of this process's popups (the menu or its submenus), not a normal window.
     private bool CursorOverOwnPopup()
@@ -497,9 +502,11 @@ public partial class IslandWindow : Window
     private void RefreshBackdrop()
     {
         if (host == null || !backdropReady || !IsVisible) return;
+#if WINDOWS
         var picture = BackdropCapture.Grab(host.ScreenRect());
         if (picture == null) return;
         ShellBackdrop.Background = new ImageBrush(picture) { Stretch = Stretch.Fill, TileMode = TileMode.None };
+#endif
     }
 
     private void OnContextMenu(object? sender, PointerReleasedEventArgs e)

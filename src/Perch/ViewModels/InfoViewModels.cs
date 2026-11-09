@@ -233,7 +233,7 @@ public sealed class SystemStatusViewModel : Observable
     public int Percent { get; private set; }
     public string BatteryText => HasBattery ? $"{Percent}%" : Loc.T("Info.NoBattery");
     public string BatteryState => Loc.T(!HasBattery ? "Info.Mains" : Charging ? (Percent >= 100 ? "Info.Full" : "Info.Charging") : "Info.OnBattery");
-    public string BatteryGlyph => !HasBattery ? "" : Charging ? "" : Percent switch
+    public string BatteryGlyph => !HasBattery ? "" : Charging ? "" : Percent switch
     {
         >= 90 => "",
         >= 60 => "",
@@ -295,7 +295,7 @@ public sealed class SystemStatusViewModel : Observable
 
     private void SampleBattery()
     {
-        var power = Platform.Windows.PowerInfo.Read();
+        var power = PowerInfo.Read();
         HasBattery = power.HasBattery;
         Charging = power.Charging;
         Percent = power.Percent;

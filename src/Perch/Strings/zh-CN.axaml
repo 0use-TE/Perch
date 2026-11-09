@@ -499,4 +499,11 @@
  <sys:String x:Key="Format.DayTitle">M月d日 dddd</sys:String>
  <sys:String x:Key="Format.MonthYear">yyyy年M月</sys:String>
  <sys:String x:Key="Format.Range">%0 – %1</sys:String>
+ <sys:String x:Key="Apps.Loading.Linux">正在读取已安装的应用…</sys:String>
+ <sys:String x:Key="Apps.CommandsEmpty.Linux">添加常用命令，一键运行（通过 /bin/sh -c 执行）</sys:String>
+ <sys:String x:Key="Settings.LanguageSystem.Linux">跟随系统语言</sys:String>
+ <sys:String x:Key="Set.GlassUnsupported.Linux">X11 暂不支持毛玻璃，使用纯色外观。</sys:String>
+ <sys:String x:Key="Cal.NoFeeds.Linux">请在 设置 › 功能 › 日历 中添加日历链接或本地 .ics 文件。</sys:String>
+ <sys:String x:Key="Feat.Music.Linux">MPRIS 媒体控制（需要 playerctl）</sys:String>
+ <sys:String x:Key="Set.AiDesc.Linux">支持兼容协议的聊天服务。保存密钥需要 libsecret 和已解锁的 Secret Service 密钥环；state.json 只保存引用。</sys:String>
 </ResourceDictionary>

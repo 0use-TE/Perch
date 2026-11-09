@@ -63,7 +63,9 @@ public sealed class IslandAnimator : IDisposable
         if (running) return;
         running = true; last = 0; clock.Restart();
         // Windows ticks every ~15.6 ms by default, which halves the frame rate to ~32 fps; ask for 1 ms while animating.
+#if WINDOWS
         timeBeginPeriod(1);
+#endif
         Host.RequestAnimationFrame(OnFrame);
     }
 
@@ -88,7 +90,9 @@ public sealed class IslandAnimator : IDisposable
 
     private void Stop()
     {
+#if WINDOWS
         if (running) timeEndPeriod(1);
+#endif
         clock.Stop(); running = false;
     }
 

@@ -1,7 +1,7 @@
 using Avalonia.Input;
 using Avalonia.Win32.Input;
 
-namespace Perch.Platform.Windows;
+namespace Perch.Platform;
 
 // "Ctrl+Alt+P" <-> modifier flags and a virtual-key code for RegisterHotKey.
 internal static class HotkeyParser

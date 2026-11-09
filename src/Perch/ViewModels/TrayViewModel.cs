@@ -3,7 +3,6 @@ using System.IO;
 using System.IO.Compression;
 using System.Windows.Input;
 using Avalonia.Media.Imaging;
-using Perch.Platform.Windows;
 using Perch.Services;
 using Perch.Services.Sounds;
 
@@ -188,7 +187,7 @@ public sealed class TrayViewModel : Observable
         var target = Unique(Path.Combine(Path.GetDirectoryName(source.FullPath) ?? "", Path.GetFileNameWithoutExtension(source.FullPath) + extension));
         try
         {
-            await Task.Run(() => Platform.Windows.ImageConversion.Save(source.FullPath, target, format == "jpg"));
+            await Task.Run(() => ImageConversion.Save(source.FullPath, target, format == "jpg"));
             Add([target]);
             alerts.Show(AlertQueue.Done, Loc.F("Tray.Saved", Path.GetFileName(target)), SoundKind.None);
         }

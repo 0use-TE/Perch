@@ -1,5 +1,13 @@
 # Third-party notices
 
+## FluentAvalonia icon font (`src/Perch/Assets/Fonts/FluentAvalonia.ttf`)
+
+Bundled from [FluentAvalonia](https://github.com/amwx/FluentAvalonia/blob/master/src/FluentAvalonia/Fonts/FluentAvalonia.ttf)
+(Git blob `d1e01c24f4050c8e0ac376835c3880041826b600`, unmodified), Copyright (c) 2025 amwx,
+under the MIT license reproduced in `src/Perch/Assets/Fonts/FluentAvalonia.LICENSE.txt`.
+The font provides Fluent-style icons when Microsoft's Windows fonts are unavailable.
+It is based on Microsoft's [Fluent UI System Icons](https://github.com/microsoft/fluentui-system-icons), also MIT licensed.
+
 ## Dinosaur game pictures (`src/Perch/Assets/Dino`)
 
 The sprites (dinosaur, cacti, bird, cloud, track, "game over" and restart icon) are the pictures of Chrome's offline

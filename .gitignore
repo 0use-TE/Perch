@@ -4,7 +4,6 @@
 artifacts/
 *.user
 _backup/
-nookX/native/
 dist/
 
 # secrets: API keys live here, never commit them

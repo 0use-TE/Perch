@@ -70,7 +70,7 @@ dotnet run --project tests/Perch.Linux.Tests -c Release
 For isolated desktop checks, install the test tools and build first:
 
 ```sh
-sudo pacman -S --needed python xorg-server-xvfb openbox xcompmgr xdotool xorg-xmessage xorg-fonts-misc xclip imagemagick dbus
+sudo pacman -S --needed python xorg-server-xvfb openbox xcompmgr xdotool xclip imagemagick dbus
 dotnet build src/Perch/Perch.csproj -c Release
 python tools/Verify-X11.py
 ```

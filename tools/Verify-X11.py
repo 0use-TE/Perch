@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, subprocess, time, tempfile, pathlib, json, sys, select, ctypes as C
+import os, subprocess, time, tempfile, pathlib, json, sys, select, shutil, ctypes as C
 import argparse
 parser = argparse.ArgumentParser(description="Run Perch in an isolated Xvfb/Openbox session; no access to the current desktop.")
 parser.add_argument("--dotnet", default="dotnet")
@@ -15,7 +15,7 @@ runroot=pathlib.Path(tempfile.mkdtemp(prefix='perch-x11-'));env['XDG_RUNTIME_DIR
 env['XDG_CONFIG_HOME']=str(runroot/'config')
 (out/'results.json').unlink(missing_ok=True)
 (out/'interaction.log').unlink(missing_ok=True)
-procs=[];passed=[]
+procs=[];passed=[];displayp=None;data=None
 def launch(args,name,extra=None,stdout=None,**kw):
  f=open(out/(name+'.log'),'w');p=subprocess.Popen(args,env=extra or env,stdout=stdout or f,stderr=f,**kw);procs.append(p);return p
 def run(*args,check=True):
@@ -42,8 +42,22 @@ try:
  rc=runroot/'openbox.xml';rc.write_text('<openbox_config xmlns="http://openbox.org/3.4/rc"><theme><name>Clearlooks</name></theme></openbox_config>')
  wm=launch(['openbox','--config-file',str(rc)],'openbox');time.sleep(1);check(wm.poll() is None,'Openbox starts')
  launch(['xcompmgr','-a'],'compositor')
- ref=launch(['xmessage','-title','PerchReference','-geometry','1200x700+50+70','-bg','#334455','X11 reference window'],'reference');time.sleep(.5)
- reference=run('xdotool','search','--name','^PerchReference$').stdout.strip().splitlines()[-1]
+ # A plain Xlib window is enough to test focus and fullscreen. Unlike xmessage,
+ # it does not require legacy bitmap fonts to be installed in a headless runner.
+ x11=C.CDLL('libX11.so.6');ext=C.CDLL('libXext.so.6')
+ x11.XOpenDisplay.argtypes=[C.c_char_p];x11.XOpenDisplay.restype=C.c_void_p
+ x11.XDefaultRootWindow.argtypes=[C.c_void_p];x11.XDefaultRootWindow.restype=C.c_ulong
+ x11.XCreateSimpleWindow.argtypes=[C.c_void_p,C.c_ulong,C.c_int,C.c_int,C.c_uint,C.c_uint,C.c_uint,C.c_ulong,C.c_ulong];x11.XCreateSimpleWindow.restype=C.c_ulong
+ x11.XStoreName.argtypes=[C.c_void_p,C.c_ulong,C.c_char_p]
+ x11.XMapWindow.argtypes=[C.c_void_p,C.c_ulong]
+ x11.XSync.argtypes=[C.c_void_p,C.c_int]
+ x11.XCloseDisplay.argtypes=[C.c_void_p]
+ displayp=x11.XOpenDisplay(env['DISPLAY'].encode())
+ if not displayp:raise RuntimeError('Cannot connect to the isolated X11 display')
+ reference_id=x11.XCreateSimpleWindow(displayp,x11.XDefaultRootWindow(displayp),50,70,1200,700,0,0,0x334455)
+ x11.XStoreName(displayp,reference_id,b'PerchReference');x11.XMapWindow(displayp,reference_id);x11.XSync(displayp,False)
+ reference=str(reference_id)
+ check(wait_for(lambda:reference in run('xdotool','search','--onlyvisible','--name','^PerchReference$',check=False).stdout.splitlines()),'Reference window opens without legacy fonts')
  run('xdotool','windowactivate','--sync',reference);run('xdotool','mousemove','1300','800')
  data=runroot/'data';env['PERCH_DATA']=str(data);env['PERCH_LANG']='en';env['PERCH_DBG']=str(out/'interaction.log')
  # Pin the clipboard page for an observable end-to-end history check.
@@ -59,8 +73,6 @@ try:
  check(wait_for(window_ready) and app.poll() is None,'Perch opens on native X11')
  wid=found[-1];time.sleep(1)
  check(run('xdotool','getwindowfocus').stdout.strip()!=wid,'Startup leaves focus in the other app')
- x11=C.CDLL('libX11.so.6');ext=C.CDLL('libXext.so.6')
- x11.XOpenDisplay.argtypes=[C.c_char_p];x11.XOpenDisplay.restype=C.c_void_p;displayp=x11.XOpenDisplay(env['DISPLAY'].encode())
  class Rect(C.Structure):_fields_=[('x',C.c_short),('y',C.c_short),('width',C.c_ushort),('height',C.c_ushort)]
  ext.XShapeGetRectangles.argtypes=[C.c_void_p,C.c_ulong,C.c_int,C.POINTER(C.c_int),C.POINTER(C.c_int)];ext.XShapeGetRectangles.restype=C.POINTER(Rect)
  x11.XFree.argtypes=[C.c_void_p]
@@ -102,11 +114,14 @@ try:
  settings=run('xdotool','search','--name','Settings',check=False).stdout.strip();check(bool(settings),'Settings opens on X11')
  run('import','-window','root',str(out/'settings.png'))
  logs='\n'.join(p.read_text() for p in data.rglob('*.log'));check('ERROR' not in logs,'No application errors during desktop interactions')
- (out/'results.json').write_text(json.dumps({'display':env['DISPLAY'],'checks':passed,'data':str(data)},indent=2))
  print('DATA',data,flush=True)
 finally:
+ failure=sys.exc_info()[1]
+ (out/'results.json').write_text(json.dumps({'display':env.get('DISPLAY'),'checks':passed,'data':str(data) if data else None,'error':str(failure) if failure else None},indent=2))
+ if displayp:x11.XCloseDisplay(displayp)
  for p in reversed(procs):
   if p.poll() is None:p.terminate()
  for p in procs:
   try:p.wait(timeout=3)
   except subprocess.TimeoutExpired:p.kill()
+ if data and (data/'logs').exists():shutil.copytree(data/'logs',out/'app-logs',dirs_exist_ok=True)

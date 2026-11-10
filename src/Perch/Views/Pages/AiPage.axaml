@@ -1,4 +1,4 @@
-<UserControl x:Class="Perch.Views.Pages.AiPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:Perch.ViewModels" x:DataType="vm:AiViewModel">
+<UserControl x:Class="Perch.Views.Pages.AiPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:Perch.ViewModels" xmlns:views="using:Perch.Views" x:DataType="vm:AiViewModel">
  <!-- DataContext is the AI chat view model. This is the one page that is taller than the others (see IslandWindow). -->
  <UserControl.Styles>
   <!-- The message box lives inside a rounded card, so the box itself has no frame, background or focus line. -->
@@ -82,7 +82,7 @@
            <Button Command="{Binding ToggleThinking}" HorizontalAlignment="Left" Padding="0" Background="Transparent" BorderThickness="0" Cursor="Hand">
             <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="{Binding ThinkingGlyph}" FontSize="10" Foreground="#8A8A92" VerticalAlignment="Center" Classes="Glyph"/><TextBlock Text="{DynamicResource Ai.Thinking}" FontSize="12" Foreground="#8A8A92"/></StackPanel>
            </Button>
-           <SelectableTextBlock Text="{Binding Thinking}" IsVisible="{Binding ThinkingOpen}" TextWrapping="Wrap" FontSize="12" LineHeight="18" Foreground="#80808A" Margin="0,5,0,2"/>
+           <SelectableTextBlock Text="{Binding ThinkingShown}" IsVisible="{Binding ThinkingOpen}" TextWrapping="Wrap" FontSize="12" LineHeight="18" Foreground="#80808A" Margin="0,5,0,2"/>
           </StackPanel>
          </Border>
          <!-- What the agent did: one quiet line per search or page read -->
@@ -115,10 +115,26 @@
          <ItemsControl ItemsSource="{Binding Segments}">
           <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:ChatSegment">
            <Grid>
-            <SelectableTextBlock Text="{Binding Text}" IsVisible="{Binding IsText}" TextWrapping="Wrap" FontSize="13.5" LineHeight="21" Margin="0,2" Foreground="{Binding IsError, Converter={StaticResource Pick}, ConverterParameter=#FF9A8A|#E8E8EC}"/>
-            <Border IsVisible="{Binding IsCode}" CornerRadius="10" Padding="12,9" Margin="0,5" Background="#0C0C0E" BorderBrush="#1F1F23" BorderThickness="1">
-             <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" FontFamily="Cascadia Mono, Consolas" FontSize="12.5" LineHeight="18" Foreground="#E6E6EA"/>
+            <views:MdText Runs="{Binding Runs}" IsVisible="{Binding IsText}" TextWrapping="Wrap" FontSize="13.5" LineHeight="21" Margin="0,3" Foreground="{Binding IsError, Converter={StaticResource Pick}, ConverterParameter=#FF9A8A|#E8E8EC}"/>
+            <views:MdText Runs="{Binding Runs}" IsVisible="{Binding IsHeading}" TextWrapping="Wrap" FontSize="{Binding HeadingSize}" FontWeight="SemiBold" LineHeight="24" Margin="0,8,0,2" Foreground="#F2F2F4"/>
+            <Border IsVisible="{Binding IsQuote}" BorderBrush="#3A3A42" BorderThickness="3,0,0,0" Padding="11,1,0,1" Margin="2,4">
+             <views:MdText Runs="{Binding Runs}" TextWrapping="Wrap" FontSize="13.5" LineHeight="21" Foreground="#AEAEB6"/>
             </Border>
+            <Grid IsVisible="{Binding IsList}" ColumnDefinitions="Auto,*" Margin="{Binding ListMargin}">
+             <TextBlock Text="{Binding Info}" MinWidth="20" FontSize="13.5" LineHeight="21" Foreground="#9A9AA2" VerticalAlignment="Top"/>
+             <views:MdText Grid.Column="1" Runs="{Binding Runs}" TextWrapping="Wrap" FontSize="13.5" LineHeight="21" Foreground="#E8E8EC"/>
+            </Grid>
+            <Border IsVisible="{Binding IsRule}" Height="1" Background="#2A2A30" Margin="0,10"/>
+            <Border IsVisible="{Binding IsCode}" CornerRadius="10" Margin="0,5" Background="#0C0C0E" BorderBrush="#1F1F23" BorderThickness="1">
+             <StackPanel>
+              <Grid ColumnDefinitions="*,Auto" Margin="12,3,4,0" MinHeight="26">
+               <TextBlock Text="{Binding Info}" FontSize="11" Foreground="#7A7A82" VerticalAlignment="Center"/>
+               <Button Grid.Column="1" Content="{Binding CopyLabel}" Command="{Binding CopyCode}" Classes="Text" FontSize="11"/>
+              </Grid>
+              <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" FontFamily="Cascadia Mono, Consolas" FontSize="12.5" LineHeight="18" Foreground="#E6E6EA" Margin="12,2,12,10"/>
+             </StackPanel>
+            </Border>
+            <views:TableView Table="{Binding Table}" IsVisible="{Binding IsTable}"/>
            </Grid>
           </DataTemplate></ItemsControl.ItemTemplate>
          </ItemsControl>

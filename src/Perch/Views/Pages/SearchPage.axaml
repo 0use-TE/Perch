@@ -1,0 +1,26 @@
+<UserControl x:Class="Perch.Views.Pages.SearchPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:Perch.ViewModels" x:DataType="vm:SearchViewModel">
+ <!-- DataContext is the search view model: one box over apps, to-dos, notes and the clipboard. -->
+ <Grid RowDefinitions="Auto,*">
+  <Grid>
+   <TextBox x:Name="Box" MinHeight="34" Text="{Binding Query}" AutomationProperties.Name="{DynamicResource Search.Placeholder}" Classes="Quiet Compact"/>
+   <TextBlock Text="{DynamicResource Search.Placeholder}" Margin="13,0,0,0" Classes="Placeholder" IsVisible="{Binding Idle}" IsHitTestVisible="False"/>
+  </Grid>
+  
+  <TextBlock Grid.Row="1" Text="{DynamicResource Search.None}" HorizontalAlignment="Center" Margin="0,34,0,0" IsVisible="{Binding NoResults}" Classes="Placeholder"/>
+  <ListBox x:Name="Results" Grid.Row="1" ItemsSource="{Binding Hits}" SelectedItem="{Binding Selected, Mode=TwoWay}" Margin="0,6,0,0" ScrollViewer.VerticalScrollBarVisibility="Auto" Classes="Bare">
+   <ListBox.ItemTemplate><DataTemplate x:DataType="vm:SearchHit">
+    <StackPanel>
+     <TextBlock Text="{Binding Header}" IsVisible="{Binding HasHeader}" Margin="6,8,0,3" FontSize="11" FontWeight="SemiBold" Foreground="#7A7A82"/>
+     <Button Command="{Binding $parent[UserControl].((vm:SearchViewModel)DataContext).Open}" CommandParameter="{Binding}" HorizontalContentAlignment="Stretch" Classes="Tile">
+      <Grid Margin="10,6" ColumnDefinitions="26,*,Auto">
+       <Image Source="{Binding Icon}" IsVisible="{Binding HasIcon}" Width="20" Height="20" HorizontalAlignment="Left" RenderOptions.BitmapInterpolationMode="HighQuality"/>
+       <TextBlock Text="{Binding Glyph}" IsVisible="{Binding NoIcon}" FontSize="15" Foreground="#FFAE54" HorizontalAlignment="Left" VerticalAlignment="Center" Classes="Glyph"/>
+       <TextBlock Grid.Column="1" Text="{Binding Title}" FontSize="13" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+       <TextBlock Grid.Column="2" Text="{Binding Detail}" Margin="14,0,0,0" MaxWidth="260" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Classes="Caption"/>
+      </Grid>
+     </Button>
+    </StackPanel>
+   </DataTemplate></ListBox.ItemTemplate>
+  </ListBox>
+ </Grid>
+</UserControl>

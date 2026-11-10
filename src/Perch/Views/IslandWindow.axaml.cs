@@ -63,7 +63,7 @@ public partial class IslandWindow : Window
     private bool menuOpen, backdropReady;
     private (double?, double?, bool) appliedWeather;
     private (string, int) appliedCalendar = ("", 10);
-    private const int HotkeyIslandId = 1, HotkeyNoteId = 2;
+    private const int HotkeyIslandId = 1, HotkeyNoteId = 2, HotkeySearchId = 3;
     [DllImport("user32.dll")] private static extern nint WindowFromPoint(System.Drawing.Point point);
     [DllImport("user32.dll")] private static extern nint GetAncestor(nint hwnd, uint flags);
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint hwnd, out uint processId);
@@ -81,8 +81,8 @@ public partial class IslandWindow : Window
         reminders = new Reminders(store, model.Alerts);
         InitializeComponent();
         DataContext = model;
-        pages = [HomePage, MusicPanel, FocusPanel, TodoPanel, NotesPanel, InfoPanel, AppsPanel, TrayPanel, PhotosPanel, CalendarPanel, ClipboardPanel, SystemPanel, PortsPanel, AiPanel, AlarmPanel, DinoPanel];
-        tabs = [HomeTab, MusicTab, FocusTab, TodoTab, NoteTab, InfoTab, AppsTab, TrayTab, PhotosTab, CalendarTab, ClipboardTab, SystemTab, PortsTab, AiTab, AlarmTab, DinoTab];
+        pages = [HomePage, MusicPanel, FocusPanel, TodoPanel, NotesPanel, InfoPanel, AppsPanel, TrayPanel, PhotosPanel, CalendarPanel, ClipboardPanel, SystemPanel, PortsPanel, AiPanel, AlarmPanel, DinoPanel, SearchPanel];
+        tabs = [HomeTab, MusicTab, FocusTab, TodoTab, NoteTab, InfoTab, AppsTab, TrayTab, PhotosTab, CalendarTab, ClipboardTab, SystemTab, PortsTab, AiTab, AlarmTab, DinoTab, SearchTab];
         ExpandedContent.Margin = new Thickness(IslandOutline.PadX, 0, 0, 0);
         ExpandedContent.RenderTransform = contentOffset;
         PageHost.RenderTransform = pageOffset;
@@ -102,6 +102,7 @@ public partial class IslandWindow : Window
         model.Ai.SettingsRequested += OpenAiSettings;
         model.Alarm.RingingChanged += OnAlarmRinging;
         model.Ai.ConfirmChanged += OnAiConfirm;
+        model.Search.Navigate += id => SelectPage(Array.IndexOf(NavIds, id));
         model.Dino.Engaged += () => { host?.BeginEditing(); controller.Edit(true); }; // the game takes the keyboard and keeps the island open
         Program.SecondInstance += () => Dispatcher.UIThread.Post(() => { userHidden = false; ApplyVisibility(); controller.Open(); }); // started again: show the island
         animator.Frame += Draw;
@@ -748,6 +749,7 @@ public partial class IslandWindow : Window
         if (host == null) return;
         host.UnregisterHotKey(HotkeyIslandId);
         host.UnregisterHotKey(HotkeyNoteId);
+        host.UnregisterHotKey(HotkeySearchId);
         var s = store.State.Settings;
         var taken = new List<string>();
         var clashes = new List<string>();
@@ -762,6 +764,7 @@ public partial class IslandWindow : Window
             }
             Register(HotkeyIslandId, s.HotkeyIsland);
             Register(HotkeyNoteId, s.HotkeyNote);
+            Register(HotkeySearchId, s.HotkeySearch);
         }
         var problem = clashes.Count > 0 ? Loc.F("Set.HotkeyClash", string.Join(", ", clashes)) : taken.Count > 0 ? Loc.F("Set.HotkeyTaken", string.Join(", ", taken)) : "";
         settingsWindow?.ShowHotkeyStatus(problem);
@@ -773,6 +776,12 @@ public partial class IslandWindow : Window
         if (id == HotkeyIslandId)
         {
             if (controller.State == InteractionState.Compact) controller.Open(); else controller.Collapse();
+        }
+        else if (id == HotkeySearchId)
+        {
+            controller.Open();
+            SelectPage(Array.IndexOf(NavIds, "search"));
+            host?.BeginEditing();
         }
         else if (id == HotkeyNoteId)
         {
@@ -786,8 +795,8 @@ public partial class IslandWindow : Window
     }
 
     // ---- navigation bar: pinned pages on the bar (the current one always shown), the rest under "More"
-    private static readonly string[] NavNameKeys = ["Nav.Overview", "Nav.Music", "Nav.Focus", "Nav.Todo", "Nav.Notes", "Nav.Info", "Nav.Apps", "Nav.Tray", "Nav.Photos", "Nav.Calendar", "Nav.Clipboard", "Nav.System", "Nav.Ports", "Nav.Ai", "Nav.Alarm", "Nav.Dino"];
-    private static readonly string[] NavIds = ["home", "music", "focus", "todo", "notes", "info", "apps", "tray", "photos", "calendar", "clipboard", "system", "ports", "ai", "alarm", "dino"];
+    private static readonly string[] NavNameKeys = ["Nav.Overview", "Nav.Music", "Nav.Focus", "Nav.Todo", "Nav.Notes", "Nav.Info", "Nav.Apps", "Nav.Tray", "Nav.Photos", "Nav.Calendar", "Nav.Clipboard", "Nav.System", "Nav.Ports", "Nav.Ai", "Nav.Alarm", "Nav.Dino", "Nav.Search"];
+    private static readonly string[] NavIds = ["home", "music", "focus", "todo", "notes", "info", "apps", "tray", "photos", "calendar", "clipboard", "system", "ports", "ai", "alarm", "dino", "search"];
     private readonly List<int> morePages = [];
     private DateTime lastWheel;
 
@@ -1124,7 +1133,7 @@ public partial class IslandWindow : Window
     private bool[] PageShown()
     {
         var s = store.State.Settings;
-        return [true, s.ShowMusic, s.ShowFocus, s.ShowTodo, s.ShowNotes, s.ShowInfo, s.ShowApps, s.ShowTray, s.ShowPhotos, s.ShowCalendar, s.ShowClipboard, s.ShowSystem, s.ShowPorts, s.ShowAi, s.ShowAlarm, s.ShowDino];
+        return [true, s.ShowMusic, s.ShowFocus, s.ShowTodo, s.ShowNotes, s.ShowInfo, s.ShowApps, s.ShowTray, s.ShowPhotos, s.ShowCalendar, s.ShowClipboard, s.ShowSystem, s.ShowPorts, s.ShowAi, s.ShowAlarm, s.ShowDino, true];
     }
 
     private void ApplyPages()
@@ -1161,6 +1170,7 @@ public partial class IslandWindow : Window
             tabs[i].Background = i == index ? new SolidColorBrush(Color.FromRgb(38, 38, 38)) : Brushes.Transparent;
             if (i > 0) ((TextBlock)Face(i).Children[0]).Foreground = i == index ? Brushes.White : Muted;
         }
+        if (pages[index] == SearchPanel) { model.Search.Reset(); SearchPanel.FocusBox(); }
         if (pages[index] == AppsPanel) model.Launcher.EnsureLoaded();
         if (pages[index] == PhotosPanel) model.Photos.EnsureLoaded();
         UpdatePortsActive();

@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using System.Net;
 using System.Threading;
 using System.Windows.Input;
+using Avalonia;
+using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.Threading;
 using Perch.Services;
@@ -10,10 +12,76 @@ using Perch.Services.Ai.Agent;
 
 namespace Perch.ViewModels;
 
-// A stretch of a message: ordinary text, or code that was fenced with three backticks.
-public sealed record ChatSegment(string Text, bool IsCode, bool IsError)
+// A stretch of a message: a paragraph, heading, quote, list item, code that was fenced with three backticks, a table or a
+// rule. It lives as long as the message does and is updated in place while the answer grows, so the page only redraws what
+// actually changed.
+public sealed class ChatSegment : Observable
 {
-    public bool IsText => !IsCode;
+    private string text = "", info = "";
+    private bool isError, copied;
+    private int level;
+    private MarkdownTable? table;
+    private IReadOnlyList<MdRun> runs = [];
+    private bool opened;
+    private readonly DispatcherTimer copiedTimer = new() { Interval = TimeSpan.FromMilliseconds(1600) };
+
+    public ChatSegment(MarkdownBlock block, bool isError, bool open)
+    {
+        Kind = block.Kind;
+        copiedTimer.Tick += (_, _) => { copiedTimer.Stop(); Copied = false; };
+        CopyCode = new RelayCommand(_ => _ = CopyAsync());
+        Update(block, isError, open);
+    }
+
+    public BlockKind Kind { get; }
+    public string Text { get => text; private set => Set(ref text, value); }
+    // The language of a code block, or the marker of a list item.
+    public string Info { get => info; private set => Set(ref info, value); }
+    public bool IsError { get => isError; private set => Set(ref isError, value); }
+    public MarkdownTable? Table { get => table; private set => Set(ref table, value); }
+    // The text with its bold, italic, code and link marks worked out.
+    public IReadOnlyList<MdRun> Runs { get => runs; private set => Set(ref runs, value); }
+    public bool IsText => Kind == BlockKind.Text;
+    public bool IsHeading => Kind == BlockKind.Heading;
+    public bool IsQuote => Kind == BlockKind.Quote;
+    public bool IsList => Kind == BlockKind.ListItem;
+    public bool IsCode => Kind == BlockKind.Code;
+    public bool IsTable => Kind == BlockKind.Table;
+    public bool IsRule => Kind == BlockKind.Rule;
+    public bool HasInfo => info.Length > 0;
+    public double HeadingSize => level switch { 1 => 18, 2 => 16.5, 3 => 15.5, _ => 14.5 };
+    public Thickness ListMargin => new(level * 16, 1, 0, 1);
+
+    public ICommand CopyCode { get; }
+    public bool Copied { get => copied; private set { if (Set(ref copied, value)) Changed(nameof(CopyLabel)); } }
+    public string CopyLabel => Loc.T(copied ? "Ai.CodeCopied" : "Ai.CodeCopy");
+
+    private async Task CopyAsync()
+    {
+        try
+        {
+            if (Ui.Clipboard is not { } clipboard) return;
+            await clipboard.SetTextAsync(text);
+            Copied = true;
+            copiedTimer.Stop(); copiedTimer.Start();
+        }
+        catch (Exception) { /* the clipboard is busy; the button simply does nothing this time */ }
+    }
+
+    // open: this is the last block of an answer still being written, so a mark waiting for its end styles what follows.
+    public void Update(MarkdownBlock block, bool error, bool open)
+    {
+        var changed = text != block.Text || opened != open || isError != error;
+        Text = block.Text;
+        Info = block.Info;
+        IsError = error;
+        if (level != block.Level) { level = block.Level; Changed(nameof(HeadingSize)); Changed(nameof(ListMargin)); }
+        if (block.Table != null && !block.Table.SameAs(table)) Table = block.Table;
+        if (!changed) return;
+        opened = open;
+        if (Kind is BlockKind.Text or BlockKind.Heading or BlockKind.Quote or BlockKind.ListItem)
+            Runs = error ? [new MdRun(block.Text)] : Markdown.Inline(block.Text, open);
+    }
 }
 
 // A question put to the user while the agent works: allow this action or not. The answer completes the task the agent waits on.
@@ -67,6 +135,7 @@ public sealed class ChatLine : Observable
         Role = role; this.text = text; this.thinking = thinking; isError = error;
         ToggleThinking = new RelayCommand(_ => ThinkingOpen = !ThinkingOpen);
         Steps.CollectionChanged += (_, _) => { Changed(nameof(HasSteps)); Changed(nameof(IsPending)); };
+        Refresh();
     }
 
     public bool HasSteps => Steps.Count > 0;
@@ -75,65 +144,60 @@ public sealed class ChatLine : Observable
     public bool IsUser => Role == "user";
     public bool IsAssistant => !IsUser;
     public HorizontalAlignment Align => IsUser ? HorizontalAlignment.Right : HorizontalAlignment.Left;
-    public bool IsError { get => isError; set { if (Set(ref isError, value)) { Changed(nameof(IsFine)); Changed(nameof(Segments)); } } }
+    public bool IsError { get => isError; set { if (Set(ref isError, value)) { Changed(nameof(IsFine)); Refresh(); } } }
     public bool IsFine => !isError;
     // A blinking cursor after the last character while the answer is being written (like the ChatGPT page).
-    public bool Caret { get => caret; set { if (Set(ref caret, value)) Changed(nameof(Segments)); } }
+    public bool Caret { get => caret; set { if (Set(ref caret, value)) Refresh(); } }
     public ICommand ToggleThinking { get; }
     public ObservableCollection<AgentStepLine> Steps { get; } = [];
     private ConfirmRequest? confirm;
     public ConfirmRequest? Confirm { get => confirm; set { if (Set(ref confirm, value)) Changed(nameof(HasConfirm)); } }
     public bool HasConfirm => confirm != null;
 
-    public string Text { get => text; set { if (Set(ref text, value)) { Changed(nameof(Segments)); Changed(nameof(HasText)); Changed(nameof(IsPending)); } } }
-    public string Thinking { get => thinking; set { if (Set(ref thinking, value)) { Changed(nameof(HasThinking)); Changed(nameof(IsPending)); } } }
+    public string Text { get => text; set { if (Set(ref text, value)) { Refresh(); Changed(nameof(HasText)); Changed(nameof(IsPending)); } } }
+    public string Thinking { get => thinking; set { if (Set(ref thinking, value)) { Changed(nameof(HasThinking)); Changed(nameof(IsPending)); Changed(nameof(ThinkingShown)); } } }
+    // What the thinking box displays. A thinking model can think for tens of thousands of characters, and laying all of that out again
+    // for every few characters freezes the window; so while it is being written only the latest stretch is drawn, and even a finished
+    // thought is capped (the full text is still saved with the conversation).
+    public string ThinkingShown
+    {
+        get
+        {
+            var limit = working ? 1500 : 30000;
+            if (thinking.Length <= limit) return thinking;
+            var start = thinking.Length - limit;
+            if (char.IsLowSurrogate(thinking[start])) start++;
+            return "…" + thinking[start..];
+        }
+    }
     public bool HasText => text.Length > 0;
     public bool HasThinking => thinking.Length > 0;
     public bool ThinkingOpen { get => thinkingOpen; set { if (Set(ref thinkingOpen, value)) Changed(nameof(ThinkingGlyph)); } }
     public string ThinkingGlyph => thinkingOpen ? "" : ""; // chevron down / right
     // The answer is still being written and nothing has arrived yet.
-    public bool Working { get => working; set { if (Set(ref working, value)) Changed(nameof(IsPending)); } }
+    public bool Working { get => working; set { if (Set(ref working, value)) { Changed(nameof(IsPending)); Changed(nameof(ThinkingShown)); } } }
     public bool IsPending => working && text.Length == 0 && thinking.Length == 0 && Steps.Count == 0;
 
-    // The text split into ordinary and code parts, with the markdown marks that would show as stray symbols removed.
-    public IReadOnlyList<ChatSegment> Segments => Split(text, isError, caret);
+    // The text split into paragraphs, code and tables. The collection is kept and updated in place (see Refresh).
+    public ObservableCollection<ChatSegment> Segments { get; } = [];
 
-    private static List<ChatSegment> Split(string text, bool error, bool caret)
+    private void Refresh()
     {
-        var parts = new List<ChatSegment>();
-        var pieces = text.Split("```");
-        for (var i = 0; i < pieces.Length; i++)
-        {
-            var piece = pieces[i];
-            var code = i % 2 == 1; // between two fences; an unfinished fence counts as code while the answer is still coming
-            if (code)
-            {
-                var lineEnd = piece.IndexOf('\n');
-                if (lineEnd >= 0 && piece[..lineEnd].Trim().All(c => char.IsLetterOrDigit(c) || c is '+' or '#' or '-' or '_')) piece = piece[(lineEnd + 1)..]; // the language name after the fence
-                piece = piece.TrimEnd('\n', '\r');
-            }
-            else piece = Plain(piece).Trim('\n', '\r');
-            if (piece.Length > 0) parts.Add(new ChatSegment(piece, code, error));
-        }
+        var blocks = Markdown.Parse(text);
         if (caret)
         {
-            if (parts.Count == 0) parts.Add(new ChatSegment("\u258D", false, error));
-            else parts[^1] = parts[^1] with { Text = parts[^1].Text + "\u258D" };
+            if (blocks.Count > 0 && blocks[^1].Kind is BlockKind.Text or BlockKind.Heading or BlockKind.Quote or BlockKind.ListItem) blocks[^1] = blocks[^1] with { Text = blocks[^1].Text + "▍" };
+            else blocks.Add(new MarkdownBlock(BlockKind.Text, "▍"));
         }
-        return parts;
-    }
-
-    private static string Plain(string text)
-    {
-        var lines = text.Replace("**", "").Replace("__", "").Replace("`", "").Split('\n');
-        for (var i = 0; i < lines.Length; i++)
+        for (var i = 0; i < blocks.Count; i++)
         {
-            var line = lines[i];
-            var trimmed = line.TrimStart();
-            if (trimmed.StartsWith('#')) lines[i] = trimmed.TrimStart('#').TrimStart();
-            else if (trimmed.StartsWith("- ") || trimmed.StartsWith("* ")) lines[i] = line[..(line.Length - trimmed.Length)] + "• " + trimmed[2..];
+            var block = blocks[i];
+            var open = working && i == blocks.Count - 1;
+            if (i < Segments.Count && Segments[i].Kind == block.Kind) Segments[i].Update(block, isError, open);
+            else if (i < Segments.Count) Segments[i] = new ChatSegment(block, isError, open);
+            else Segments.Add(new ChatSegment(block, isError, open));
         }
-        return string.Join('\n', lines);
+        while (Segments.Count > blocks.Count) Segments.RemoveAt(Segments.Count - 1);
     }
 }
 
@@ -186,6 +250,9 @@ public sealed class AiViewModel : Observable
     private readonly DispatcherTimer caretTimer = new() { Interval = TimeSpan.FromMilliseconds(520) };
     private readonly DispatcherTimer greetTimer = new() { Interval = TimeSpan.FromMilliseconds(65) };
     private readonly System.Text.StringBuilder waiting = new();
+    // Thinking arrives in tiny pieces; it is collected and added to the page a few times a second, not once per piece.
+    private readonly DispatcherTimer thinkTimer = new() { Interval = TimeSpan.FromMilliseconds(150) };
+    private readonly System.Text.StringBuilder thinkWaiting = new();
     private readonly System.Diagnostics.Stopwatch typeClock = System.Diagnostics.Stopwatch.StartNew();
     private TimeSpan lastReveal;
     private double owed; // characters earned by the clock but not yet shown (a fraction carries over)
@@ -330,8 +397,9 @@ public sealed class AiViewModel : Observable
     {
         this.store = store;
         records = ChatHistory.Load();
-        saveTimer.Tick += (_, _) => { saveTimer.Stop(); ChatHistory.Save(records); };
+        saveTimer.Tick += (_, _) => { saveTimer.Stop(); var snapshot = records.ToList(); Task.Run(() => ChatHistory.Save(snapshot)); };
         typeTimer.Tick += (_, _) => Reveal();
+        thinkTimer.Tick += (_, _) => FlushThinking();
         caretTimer.Tick += (_, _) => { if (writing != null) writing.Caret = !writing.Caret; };
         greetTimer.Tick += (_, _) => GreetStep();
         Send = new RelayCommand(_ => _ = AskAsync());
@@ -423,9 +491,22 @@ public sealed class AiViewModel : Observable
         Scroll?.Invoke();
     }
 
+    private void FlushThinking()
+    {
+        thinkTimer.Stop();
+        if (writing is { } line && thinkWaiting.Length > 0)
+        {
+            if (!line.HasThinking) line.ThinkingOpen = true;
+            line.Thinking += thinkWaiting.ToString();
+            Scroll?.Invoke();
+        }
+        thinkWaiting.Clear();
+    }
+
     // Everything still waiting appears at once (the answer was stopped, or failed).
     private void FlushWaiting()
     {
+        FlushThinking();
         typeTimer.Stop();
         if (writing != null && waiting.Length > 0) { writing.Text += waiting.ToString(); waiting.Clear(); }
     }
@@ -539,25 +620,25 @@ public sealed class AiViewModel : Observable
         {
             FlushWaiting();
             Log.Warn($"AI request failed: HTTP {(int?)e.Status} {e.Message}");
-            answer.IsError = true;
-            answer.Text = e.Status switch
+            Fail(answer, e.Status switch
             {
+                null => Loc.F("Ai.ErrNet", e.Message),
                 HttpStatusCode.Unauthorized => Loc.T("Ai.Err401"),
                 HttpStatusCode.PaymentRequired => Loc.T("Ai.Err402"),
                 HttpStatusCode.NotFound => Loc.F("Ai.Err404", e.Message),
                 HttpStatusCode.TooManyRequests => Loc.T("Ai.Err429"),
                 _ => Loc.F("Ai.ErrOther", (int?)e.Status ?? 0, e.Message),
-            };
+            });
         }
         catch (Exception e)
         {
             FlushWaiting();
             Log.Warn("AI request failed", e);
-            answer.IsError = true;
-            answer.Text = Loc.F("Ai.ErrNet", e.Message);
+            Fail(answer, Loc.F("Ai.ErrNet", e.Message));
         }
         finally
         {
+            FlushThinking();
             typeTimer.Stop(); caretTimer.Stop(); answer.Caret = false; writing = null; waiting.Clear();
             running = null;
             answer.Working = false;
@@ -566,6 +647,14 @@ public sealed class AiViewModel : Observable
             if (current != null) { Persist(current); RebuildHistory(); }
             Scroll?.Invoke();
         }
+    }
+
+    // Shows a failure. What was already written stays on screen with the problem noted beneath it; only an answer that
+    // never began becomes the error itself.
+    private static void Fail(ChatLine answer, string message)
+    {
+        if (answer.Text.Length > 0) answer.Text += "\n\n⚠ " + message;
+        else { answer.IsError = true; answer.Text = message; }
     }
 
     private void Persist(ChatRecord record)
@@ -604,9 +693,8 @@ public sealed class AiViewModel : Observable
         });
         public void Thinking(string piece) => Dispatcher.UIThread.Post(() =>
         {
-            if (!answer.HasThinking) answer.ThinkingOpen = true;
-            answer.Thinking += piece;
-            owner.Scroll?.Invoke();
+            owner.thinkWaiting.Append(piece);
+            if (!owner.thinkTimer.IsEnabled) owner.thinkTimer.Start();
         });
         public object StepStarted(string label)
         {
@@ -632,6 +720,12 @@ public sealed class AiViewModel : Observable
             });
             return allowed && !cancel.IsCancellationRequested;
         }
+
+        public void Truncated() => Dispatcher.UIThread.Post(() =>
+        {
+            owner.waiting.Append("\n\n" + Loc.T("Ai.Truncated"));
+            owner.typeTimer.Start();
+        });
 
         public void StepDone(object step, string summary, bool failed) => Dispatcher.UIThread.Post(() =>
         {

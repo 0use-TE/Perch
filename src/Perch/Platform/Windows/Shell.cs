@@ -60,7 +60,9 @@ public static class ShellActions
     {
         try
         {
-            Process.Start(new ProcessStartInfo("cmd.exe", "/c " + command)
+            // /s with the whole line wrapped in quotes: cmd then removes only that outer pair, so a command that itself starts
+            // with a quoted path ("C:\Program Files\x.exe" "arg") keeps its own quotes.
+            using var process = Process.Start(new ProcessStartInfo("cmd.exe", "/s /c \"" + command + "\"")
             {
                 UseShellExecute = false,
                 CreateNoWindow = true,
@@ -131,6 +133,9 @@ public sealed class FullscreenWatcher : IDisposable
         var name = new StringBuilder(64);
         GetClassName(window, name, name.Capacity);
         if (name.ToString() is "WorkerW" or "Progman" or "Shell_TrayWnd") return false;
+        // A normal maximized window (caption bar present) is not full screen. Its rectangle overhangs the work area by the
+        // invisible resize border, so with an auto-hiding taskbar it would otherwise look like it covers the whole monitor.
+        if (IsZoomed(window) && (GetWindowLongPtr(window, -16 /* GWL_STYLE */).ToInt64() & 0x00C00000 /* WS_CAPTION */) == 0x00C00000) return false;
         if (!GetWindowRect(window, out var rect)) return false;
         var monitor = MonitorFromWindow(window, 2);
         if (monitor != MonitorFromPoint(new POINT(), 1)) return false; // the island only lives on the primary monitor
@@ -145,6 +150,8 @@ public sealed class FullscreenWatcher : IDisposable
     [StructLayout(LayoutKind.Sequential)] private struct RECT { public int Left, Top, Right, Bottom; }
     [StructLayout(LayoutKind.Sequential)] private struct POINT { public int X, Y; }
     [StructLayout(LayoutKind.Sequential)] private struct MONITORINFO { public int cbSize; public RECT rcMonitor, rcWork; public uint dwFlags; }
+    [DllImport("user32.dll")] private static extern bool IsZoomed(nint hwnd);
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] private static extern nint GetWindowLongPtr(nint hwnd, int index);
     [DllImport("user32.dll")] private static extern nint GetForegroundWindow();
     [DllImport("user32.dll")] private static extern nint GetShellWindow();
     [DllImport("user32.dll")] private static extern nint GetDesktopWindow();

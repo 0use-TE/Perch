@@ -450,6 +450,10 @@
        <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="190"/></Grid.ColumnDefinitions>
         <TextBlock Text="{DynamicResource Set.HotkeyNote}" Classes="RowTitle"/>
         <TextBox Grid.Column="1" IsReadOnly="True" Cursor="Arrow" TextAlignment="Center" Text="{Binding HotkeyNote}" Tag="hotkey" AutomationProperties.Name="{DynamicResource Set.HotkeyNote}" Classes="Quiet Compact Field"/></Grid>
+       <Border Classes="Divider"/>
+       <Grid Classes="Row"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="190"/></Grid.ColumnDefinitions>
+        <TextBlock Text="{DynamicResource Set.HotkeySearch}" Classes="RowTitle"/>
+        <TextBox Grid.Column="1" IsReadOnly="True" Cursor="Arrow" TextAlignment="Center" Text="{Binding HotkeySearch}" Tag="hotkey" AutomationProperties.Name="{DynamicResource Set.HotkeySearch}" Classes="Quiet Compact Field"/></Grid>
       </StackPanel></Border>
       <TextBlock Text="{DynamicResource Set.HotkeyHint}" Margin="6,-10,0,0" Classes="RowDesc"/>
       <TextBlock x:Name="HotkeyStatus" Foreground="#FF7A6B" Margin="6,6,0,0" IsVisible="False" Classes="RowDesc"/>

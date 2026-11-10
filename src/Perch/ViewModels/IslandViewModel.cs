@@ -27,6 +27,7 @@ public sealed class IslandViewModel : Observable
     public MusicViewModel Music { get; }
     public SystemMonitorViewModel Monitor { get; }
     public ClipboardViewModel Clipboard { get; }
+    public SearchViewModel Search { get; }
     public CalendarViewModel Calendar { get; }
     public PortsViewModel Ports { get; }
     public DinoViewModel Dino { get; }
@@ -65,11 +66,12 @@ public sealed class IslandViewModel : Observable
         Photos = new PhotosViewModel(store);
         Music = new MusicViewModel(store);
         Monitor = new SystemMonitorViewModel(store);
-        Clipboard = new ClipboardViewModel(Alerts);
+        Clipboard = new ClipboardViewModel(store, Alerts);
         Calendar = new CalendarViewModel(store, Alerts);
         Ports = new PortsViewModel();
         Dino = new DinoViewModel(store);
         Ai = new AiViewModel(store);
+        Search = new SearchViewModel(store, Todo, Notes, Clipboard, Launcher);
         Alarm = new AlarmViewModel(store, Alerts);
         Alarm.PropertyChanged += (_, e) => { if (e.PropertyName is nameof(AlarmViewModel.IsRinging) or nameof(AlarmViewModel.CompactText)) UpdateCompact(); };
         Music.PropertyChanged += (_, e) => { if (string.IsNullOrEmpty(e.PropertyName) || e.PropertyName is nameof(MusicViewModel.IsPlaying) or nameof(MusicViewModel.Title) or nameof(MusicViewModel.Artist)) UpdateCompact(); };
@@ -90,6 +92,7 @@ public sealed class IslandViewModel : Observable
         Focus.Relocalize();
         Weather.Relocalize();
         Launcher.Relocalize();
+        Search.Relocalize();
         Tray.Relocalize();
         Photos.Relocalize();
         Music.Relocalize();

@@ -36,6 +36,8 @@ public sealed class LauncherViewModel : Observable
     private bool pinMode, loading, loaded;
 
     public ObservableCollection<AppEntry> Visible { get; } = [];
+    // Every installed app found in the Start menu (empty until the list has been read), for the global search.
+    public IReadOnlyList<AppEntry> AllApps => all;
     public ObservableCollection<CommandItem> Commands { get; } = [];
     public string Search { get => search; set { if (Set(ref search, value)) Filter(); } }
     public bool PinMode => pinMode;

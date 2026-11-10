@@ -105,6 +105,7 @@ public sealed class Settings
     public bool HotkeysEnabled { get; set; } = true;
     public string HotkeyIsland { get; set; } = "Ctrl+Alt+I";   // not Ctrl+Alt+P: NetEase Cloud Music already uses that for play/pause
     public string HotkeyNote { get; set; } = "Ctrl+Alt+N";
+    public string HotkeySearch { get; set; } = "Ctrl+Alt+F"; // the global search
     public bool CollapseOnLeave { get; set; } = true; // false: once open, it closes only on a click outside (or the pin)
     public int ExpandDelay { get; set; } = 100;       // ms the pointer must rest on the island before it opens (0 to 1000)
     public int CollapseDelay { get; set; } = 400;     // ms after the pointer leaves before it closes (0 to 1000)
@@ -238,8 +239,17 @@ public sealed class FocusDay
     public int Minutes { get; set; }
 }
 
+// A pinned clipboard item: some text, or the paths of files (pictures are not kept between runs).
+public sealed class PinnedClip
+{
+    public DateTime Time { get; set; }
+    public string Text { get; set; } = "";
+    public List<string> Paths { get; set; } = [];
+}
+
 public sealed class AppState
 {
+    public List<PinnedClip> PinnedClips { get; set; } = [];
     public Settings Settings { get; set; } = new();
     public List<TodoData> Todos { get; set; } = [];
     public List<NoteData> Notes { get; set; } = [];
@@ -292,7 +302,7 @@ public sealed class Store
         }
 #endif
         if (s.HotkeyIsland == "Ctrl+Alt+P") s.HotkeyIsland = "Ctrl+Alt+I";
-        string[] pages = ["music", "focus", "todo", "notes", "info", "calendar", "apps", "tray", "photos", "clipboard", "system", "ports", "ai", "alarm", "dino"];
+        string[] pages = ["music", "focus", "todo", "notes", "info", "calendar", "apps", "tray", "photos", "clipboard", "system", "ports", "ai", "alarm", "dino", "search"];
         s.NavOrder = s.NavOrder.Where(pages.Contains).Distinct().ToList();
         s.NavOrder.AddRange(pages.Where(id => !s.NavOrder.Contains(id)));
         s.NavPinned = s.NavPinned.Where(pages.Contains).Distinct().ToList();

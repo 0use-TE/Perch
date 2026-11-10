@@ -13,16 +13,22 @@
   <ListBox Grid.Row="1" ItemsSource="{Binding Items}" Margin="0,6,0,0" ScrollViewer.VerticalScrollBarVisibility="Auto" Classes="Bare">
    <ListBox.ItemTemplate><DataTemplate x:DataType="vm:ClipItem">
     <Grid>
-     <Button Command="{Binding $parent[UserControl].((vm:ClipboardViewModel)DataContext).Copy}" CommandParameter="{Binding}" HorizontalContentAlignment="Stretch" ToolTip.Tip="{Binding Text}" Classes="Tile">
-      <Grid Margin="12,8,40,8">
-       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-       <TextBlock Text="{Binding Preview}" FontSize="13" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-       <TextBlock Grid.Column="1" Text="{Binding TimeLabel}" Margin="14,0,0,0" VerticalAlignment="Center" Classes="Caption"/>
+     <Button Command="{Binding $parent[UserControl].((vm:ClipboardViewModel)DataContext).Copy}" CommandParameter="{Binding}" HorizontalContentAlignment="Stretch" ToolTip.Tip="{Binding Detail}" Classes="Tile">
+      <Grid Margin="12,8,66,8" ColumnDefinitions="Auto,*,Auto">
+       <Image Source="{Binding Thumb}" IsVisible="{Binding IsImage}" MaxHeight="44" MaxWidth="96" Margin="0,0,10,0" VerticalAlignment="Center" RenderOptions.BitmapInterpolationMode="HighQuality"/>
+       <TextBlock Text="&#xE8B7;" IsVisible="{Binding IsFiles}" FontSize="14" Foreground="#FFAE54" Margin="0,0,10,0" VerticalAlignment="Center" Classes="Glyph"/>
+       <TextBlock Grid.Column="1" Text="{Binding Preview}" FontSize="13" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+       <TextBlock Grid.Column="2" Text="{Binding TimeLabel}" Margin="14,0,0,0" VerticalAlignment="Center" Classes="Caption"/>
       </Grid>
      </Button>
-     <Button HorizontalAlignment="Right" Margin="0,0,6,0" Command="{Binding $parent[UserControl].((vm:ClipboardViewModel)DataContext).Remove}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Clip.Remove}" AutomationProperties.Name="{DynamicResource Clip.Remove}" Classes="Nav Small">
-      <TextBlock Text="&#xE711;" FontSize="11" Foreground="#8A8A90" Classes="Glyph"/>
-     </Button>
+     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,6,0">
+      <Button Command="{Binding $parent[UserControl].((vm:ClipboardViewModel)DataContext).TogglePin}" CommandParameter="{Binding}" ToolTip.Tip="{Binding PinTip}" AutomationProperties.Name="{Binding PinTip}" Classes="Nav Small">
+       <TextBlock Text="{Binding PinGlyph}" FontSize="12" Foreground="#FFAE54" Classes="Glyph"/>
+      </Button>
+      <Button Command="{Binding $parent[UserControl].((vm:ClipboardViewModel)DataContext).Remove}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Clip.Remove}" AutomationProperties.Name="{DynamicResource Clip.Remove}" Classes="Nav Small">
+       <TextBlock Text="&#xE711;" FontSize="11" Foreground="#8A8A90" Classes="Glyph"/>
+      </Button>
+     </StackPanel>
     </Grid>
    </DataTemplate></ListBox.ItemTemplate>
   </ListBox>

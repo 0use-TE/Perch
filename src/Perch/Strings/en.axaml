@@ -253,6 +253,19 @@
 
  <sys:String x:Key="Nav.Calendar">Calendar</sys:String>
  <sys:String x:Key="Nav.Clipboard">Clipboard</sys:String>
+ <sys:String x:Key="Nav.Search">Search</sys:String>
+ <sys:String x:Key="Search.Placeholder">Search apps, to-dos, notes and clipboard</sys:String>
+ <sys:String x:Key="Search.Hint">Type to search everything. Enter opens the highlighted result.</sys:String>
+ <sys:String x:Key="Search.None">Nothing found.</sys:String>
+ <sys:String x:Key="Search.Apps">Apps</sys:String>
+ <sys:String x:Key="Search.PinnedApps">Pinned apps</sys:String>
+ <sys:String x:Key="Search.OpenTodos">To-dos</sys:String>
+ <sys:String x:Key="Search.RecentNotes">Recent notes</sys:String>
+ <sys:String x:Key="Search.RecentClips">Recently copied</sys:String>
+ <sys:String x:Key="Search.Todos">To-dos</sys:String>
+ <sys:String x:Key="Search.Notes">Notes</sys:String>
+ <sys:String x:Key="Search.Clipboard">Clipboard</sys:String>
+ <sys:String x:Key="Search.Done">Done</sys:String>
  <sys:String x:Key="Nav.System">System</sys:String>
  <sys:String x:Key="Nav.Ports">Ports</sys:String>
  <sys:String x:Key="Nav.Dino">Dino</sys:String>
@@ -368,6 +381,11 @@
  <sys:String x:Key="Ai.Err429">Too many requests; try again in a moment (429).</sys:String>
  <sys:String x:Key="Ai.ErrOther">The server returned an error (%0): %1</sys:String>
  <sys:String x:Key="Ai.ErrNet">Could not reach the server: %0</sys:String>
+ <sys:String x:Key="Ai.Truncated">(The reply was cut off by the server's length limit. Send "continue" to get the rest.)</sys:String>
+ <sys:String x:Key="Ai.ErrTimeout">The server stopped responding, so the request was given up. Try again, or choose another model.</sys:String>
+ <sys:String x:Key="Ai.ErrCut">The connection was lost before the reply was finished.</sys:String>
+ <sys:String x:Key="Ai.CodeCopy">Copy</sys:String>
+ <sys:String x:Key="Ai.CodeCopied">Copied</sys:String>
  <sys:String x:Key="Set.Ai">AI</sys:String>
  <sys:String x:Key="Set.AiDesc">Any server that speaks the OpenAI chat-completions protocol works: DeepSeek, OpenAI, OpenRouter, or a local Ollama / LM Studio. Keys are stored encrypted on this computer only.</sys:String>
  <sys:String x:Key="Set.AiName">Name</sys:String>
@@ -404,7 +422,7 @@
  <sys:String x:Key="Ports.CopyAddress">Copy localhost:port</sys:String>
  <sys:String x:Key="Ports.OpenBrowser">Open in browser</sys:String>
  <sys:String x:Key="Feat.Calendar">Upcoming events and meeting reminders</sys:String>
- <sys:String x:Key="Feat.Clipboard">Recently copied text</sys:String>
+ <sys:String x:Key="Feat.Clipboard">Recently copied text, pictures and files</sys:String>
  <sys:String x:Key="Music.Hint">Play something in a media app or a browser and it shows up here.</sys:String>
  <sys:String x:Key="Music.Unknown">Unknown title</sys:String>
  <sys:String x:Key="Music.Previous">Previous</sys:String>
@@ -431,13 +449,18 @@
  <sys:String x:Key="Sys.DaysHours">%0 d %1 h</sys:String>
  <sys:String x:Key="Sys.HoursMinutes">%0 h %1 min</sys:String>
  <sys:String x:Key="Clip.Title">Clipboard history</sys:String>
- <sys:String x:Key="Clip.Empty">Copied text will appear here.</sys:String>
+ <sys:String x:Key="Clip.Empty">Copied text, pictures and files will appear here.</sys:String>
  <sys:String x:Key="Clip.Pause">Pause</sys:String>
  <sys:String x:Key="Clip.Resume">Resume</sys:String>
  <sys:String x:Key="Clip.Clear">Clear</sys:String>
  <sys:String x:Key="Clip.Copied">Copied</sys:String>
  <sys:String x:Key="Clip.Remove">Remove</sys:String>
  <sys:String x:Key="Clip.Paused">Paused: new copies are not recorded</sys:String>
+ <sys:String x:Key="Clip.Pin">Pin (kept at the top and between runs)</sys:String>
+ <sys:String x:Key="Clip.Unpin">Unpin</sys:String>
+ <sys:String x:Key="Clip.Image">Picture %0</sys:String>
+ <sys:String x:Key="Clip.FilesMore">%0 and %1 more</sys:String>
+ <sys:String x:Key="Clip.FilesGone">Those files are no longer there.</sys:String>
  <sys:String x:Key="Cal.NoFeeds">Turn on the Windows calendar or add a calendar link in Settings › Features › Calendar.</sys:String>
  <sys:String x:Key="Cal.NothingDay">No events on this day.</sys:String>
  <sys:String x:Key="Cal.Prev">Previous month</sys:String>
@@ -455,6 +478,7 @@
  <sys:String x:Key="Set.HotkeysOn">Global shortcuts</sys:String>
  <sys:String x:Key="Set.HotkeyIsland">Open or close the island</sys:String>
  <sys:String x:Key="Set.HotkeyNote">New note</sys:String>
+ <sys:String x:Key="Set.HotkeySearch">Search</sys:String>
  <sys:String x:Key="Set.HotkeyHint">Click a box and press the keys. Backspace clears it.</sys:String>
  <sys:String x:Key="Set.HotkeyTaken">Already used by another app: %0</sys:String>
 

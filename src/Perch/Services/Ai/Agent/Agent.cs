@@ -32,13 +32,18 @@ public interface IAgentObserver
     void StepDone(object step, string summary, bool failed);
     // Asks the user to allow an action that changes something; false when they decline (or the answer is stopped).
     Task<bool> ConfirmAsync(string title, string detail, ToolRisk risk, CancellationToken cancel);
+    // The server cut the answer off at a length limit and it could not be continued.
+    void Truncated();
 }
 
 // The client-side agent loop: ask the model; if it wants tools, run them, hand it the results, and ask again, until it
 // answers in words (or the round limit is reached, when it is asked to answer with what it has).
 public static class Agent
 {
-    public const int MaxRounds = 6;
+    public const int MaxRounds = 12;
+    // A reply that stops because the server's output limit was reached is continued by asking the model to carry on (a long
+    // table or document is often longer than one reply may be).
+    private const int MaxContinuations = 4;
 
     public static async Task RunAsync(string baseUrl, string key, string model, IReadOnlyList<ChatMessage> messages,
         IReadOnlyList<ITool> tools, IAgentObserver observer, CancellationToken cancel, Func<ToolRisk, bool>? needsConfirm = null)
@@ -46,16 +51,31 @@ public static class Agent
         needsConfirm ??= risk => risk != ToolRisk.Safe;
         var conversation = new List<ChatMessage>(messages);
         var specs = tools.Select(t => t.Spec).ToList();
+        var continuations = 0;
         for (var round = 0; round < MaxRounds; round++)
         {
             var text = new StringBuilder();
             var thinking = new StringBuilder();
             var last = round == MaxRounds - 1; // the final round offers no tools, so the model has to answer
+            var finish = "";
+            var dsml = new DsmlFilter(); // tool calls a DeepSeek model wrote into its text instead of the tool_calls field
             var calls = await OpenAiClient.StreamAsync(baseUrl, key, model, conversation,
-                piece => { text.Append(piece); observer.Text(piece); },
+                piece => { if (dsml.Push(piece) is { Length: > 0 } shown) { text.Append(shown); observer.Text(shown); } },
                 piece => { thinking.Append(piece); observer.Thinking(piece); },
-                cancel, last || specs.Count == 0 ? null : specs);
-            if (calls.Count == 0) return;
+                cancel, last || specs.Count == 0 ? null : specs, reason => finish = reason);
+            if (dsml.Finish() is { Length: > 0 } rest) { text.Append(rest); observer.Text(rest); }
+            if (calls.Count == 0 && dsml.Found && !last)
+                calls = dsml.Calls().Select((c, k) => new ToolCall("call_text_" + round + "_" + k, c.Name, c.Arguments)).ToList();
+            if (calls.Count == 0)
+            {
+                if (finish != "length") return;
+                if (text.Length == 0 || continuations >= MaxContinuations) { observer.Truncated(); return; }
+                continuations++;
+                round--; // continuing is not a tool round
+                conversation.Add(new ChatMessage("assistant", text.ToString()));
+                conversation.Add(new ChatMessage("user", "Your reply was cut off by a length limit. Continue exactly where you stopped, without repeating anything and without any introduction."));
+                continue;
+            }
             if (text.Length > 0) observer.Text("\n\n"); // what the model said before using a tool stays apart from the answer that follows
 
             conversation.Add(new ChatMessage("assistant", text.ToString(), calls, null, thinking.ToString()));

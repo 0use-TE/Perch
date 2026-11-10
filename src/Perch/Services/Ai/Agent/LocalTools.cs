@@ -129,8 +129,29 @@ public sealed class PowerShellTool : ITool
             RedirectStandardOutput = true, RedirectStandardError = true, RedirectStandardInput = true,
             StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8,
         };
-        foreach (var arg in new[] { "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", Convert.ToBase64String(Encoding.Unicode.GetBytes(wrapped)) })
-            info.ArgumentList.Add(arg);
+        // A command line may be at most about 32,000 characters, and the encoded script is almost three times as long as the
+        // script. A long one (a whole web page written out, say) is saved to a temporary file and run from there instead.
+        var encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(wrapped));
+        string? file = null;
+        foreach (var arg in new[] { "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass" }) info.ArgumentList.Add(arg);
+        if (encoded.Length <= 20000)
+        {
+            info.ArgumentList.Add("-EncodedCommand");
+            info.ArgumentList.Add(encoded);
+        }
+        else
+        {
+            file = Path.Combine(Path.GetTempPath(), "perch-" + Guid.NewGuid().ToString("N") + ".ps1");
+            await File.WriteAllTextAsync(file, wrapped, new UTF8Encoding(true), cancel); // with a BOM, which Windows PowerShell 5 needs to read UTF-8
+            info.ArgumentList.Add("-File");
+            info.ArgumentList.Add(file);
+        }
+        try { return await RunProcessAsync(info, seconds, cancel); }
+        finally { if (file != null) try { File.Delete(file); } catch (IOException) { } }
+    }
+
+    private static async Task<ToolResult> RunProcessAsync(ProcessStartInfo info, int seconds, CancellationToken cancel)
+    {
 
         using var process = Process.Start(info) ?? throw new InvalidOperationException("PowerShell could not be started.");
         process.StandardInput.Close(); // nothing to read from the keyboard

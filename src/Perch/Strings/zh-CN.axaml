@@ -253,6 +253,19 @@
 
  <sys:String x:Key="Nav.Calendar">日历</sys:String>
  <sys:String x:Key="Nav.Clipboard">剪贴板</sys:String>
+ <sys:String x:Key="Nav.Search">搜索</sys:String>
+ <sys:String x:Key="Search.Placeholder">搜索应用、待办、笔记和剪贴板</sys:String>
+ <sys:String x:Key="Search.Hint">输入关键字搜索全部内容，按回车打开高亮的结果。</sys:String>
+ <sys:String x:Key="Search.None">没有找到。</sys:String>
+ <sys:String x:Key="Search.Apps">应用</sys:String>
+ <sys:String x:Key="Search.PinnedApps">固定的应用</sys:String>
+ <sys:String x:Key="Search.OpenTodos">待办</sys:String>
+ <sys:String x:Key="Search.RecentNotes">最近的笔记</sys:String>
+ <sys:String x:Key="Search.RecentClips">最近复制</sys:String>
+ <sys:String x:Key="Search.Todos">待办</sys:String>
+ <sys:String x:Key="Search.Notes">笔记</sys:String>
+ <sys:String x:Key="Search.Clipboard">剪贴板</sys:String>
+ <sys:String x:Key="Search.Done">已完成</sys:String>
  <sys:String x:Key="Nav.System">系统</sys:String>
  <sys:String x:Key="Nav.Ports">端口</sys:String>
  <sys:String x:Key="Nav.Dino">小恐龙</sys:String>
@@ -368,6 +381,11 @@
  <sys:String x:Key="Ai.Err429">请求太频繁，请稍后再试（429）。</sys:String>
  <sys:String x:Key="Ai.ErrOther">服务端返回错误（%0）：%1</sys:String>
  <sys:String x:Key="Ai.ErrNet">无法连接服务端：%0</sys:String>
+ <sys:String x:Key="Ai.Truncated">（回答被服务端的长度限制截断了，发送“继续”可以获得剩余部分。）</sys:String>
+ <sys:String x:Key="Ai.ErrTimeout">服务端长时间没有响应，已放弃本次请求。请重试，或换一个模型。</sys:String>
+ <sys:String x:Key="Ai.ErrCut">连接中断，回答没有完整结束。</sys:String>
+ <sys:String x:Key="Ai.CodeCopy">复制</sys:String>
+ <sys:String x:Key="Ai.CodeCopied">已复制</sys:String>
  <sys:String x:Key="Set.Ai">AI</sys:String>
  <sys:String x:Key="Set.AiDesc">任何兼容 OpenAI 聊天补全协议的服务端都可以：DeepSeek、OpenAI、OpenRouter，或本地的 Ollama / LM Studio。密钥加密保存在本机，不会上传。</sys:String>
  <sys:String x:Key="Set.AiName">名称</sys:String>
@@ -404,7 +422,7 @@
  <sys:String x:Key="Ports.CopyAddress">复制 localhost:端口</sys:String>
  <sys:String x:Key="Ports.OpenBrowser">在浏览器中打开</sys:String>
  <sys:String x:Key="Feat.Calendar">即将到来的日程与会议提醒</sys:String>
- <sys:String x:Key="Feat.Clipboard">最近复制的文字</sys:String>
+ <sys:String x:Key="Feat.Clipboard">最近复制的文字、图片和文件</sys:String>
  <sys:String x:Key="Music.Hint">在媒体应用或浏览器里播放内容后，会显示在这里。</sys:String>
  <sys:String x:Key="Music.Unknown">未知标题</sys:String>
  <sys:String x:Key="Music.Previous">上一首</sys:String>
@@ -431,13 +449,18 @@
  <sys:String x:Key="Sys.DaysHours">%0 天 %1 小时</sys:String>
  <sys:String x:Key="Sys.HoursMinutes">%0 小时 %1 分钟</sys:String>
  <sys:String x:Key="Clip.Title">剪贴板历史</sys:String>
- <sys:String x:Key="Clip.Empty">复制的文字会显示在这里。</sys:String>
+ <sys:String x:Key="Clip.Empty">复制的文字、图片和文件会显示在这里。</sys:String>
  <sys:String x:Key="Clip.Pause">暂停</sys:String>
  <sys:String x:Key="Clip.Resume">继续</sys:String>
  <sys:String x:Key="Clip.Clear">清空</sys:String>
  <sys:String x:Key="Clip.Copied">已复制</sys:String>
  <sys:String x:Key="Clip.Remove">移除</sys:String>
  <sys:String x:Key="Clip.Paused">已暂停：不再记录新的复制内容</sys:String>
+ <sys:String x:Key="Clip.Pin">固定（置顶，重启后仍保留）</sys:String>
+ <sys:String x:Key="Clip.Unpin">取消固定</sys:String>
+ <sys:String x:Key="Clip.Image">图片 %0</sys:String>
+ <sys:String x:Key="Clip.FilesMore">%0 等 %1 项</sys:String>
+ <sys:String x:Key="Clip.FilesGone">这些文件已经不存在了。</sys:String>
  <sys:String x:Key="Cal.NoFeeds">请在 设置 › 功能 › 日历 中开启 Windows 日历或添加日历链接。</sys:String>
  <sys:String x:Key="Cal.NothingDay">这一天没有日程。</sys:String>
  <sys:String x:Key="Cal.Prev">上个月</sys:String>
@@ -455,6 +478,7 @@
  <sys:String x:Key="Set.HotkeysOn">全局快捷键</sys:String>
  <sys:String x:Key="Set.HotkeyIsland">展开或收起灵动岛</sys:String>
  <sys:String x:Key="Set.HotkeyNote">新建笔记</sys:String>
+ <sys:String x:Key="Set.HotkeySearch">全局搜索</sys:String>
  <sys:String x:Key="Set.HotkeyHint">点击输入框后按下组合键，退格键清除。</sys:String>
  <sys:String x:Key="Set.HotkeyTaken">已被其他程序占用：%0</sys:String>
 

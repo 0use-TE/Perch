@@ -31,7 +31,22 @@ public sealed class AiException(string message, HttpStatusCode? status = null) :
 // hand, which keeps this free of reflection (Native AOT).
 public static class OpenAiClient
 {
-    private static readonly HttpClient Http = new() { Timeout = Timeout.InfiniteTimeSpan }; // streaming answers take as long as they take
+    // Streaming answers take as long as they take, so the client itself has no overall timeout; instead a stalled connection is
+    // noticed by the watchdog in StreamAsync. Pooled connections are retired quickly: a connection that a router or proxy silently
+    // dropped while idle would otherwise swallow the next question and leave it waiting forever.
+    private static readonly HttpClient Http = new(new SocketsHttpHandler
+    {
+        ConnectTimeout = TimeSpan.FromSeconds(15),
+        PooledConnectionLifetime = TimeSpan.FromMinutes(2),
+        PooledConnectionIdleTimeout = TimeSpan.FromSeconds(30),
+        KeepAlivePingDelay = TimeSpan.FromSeconds(30),
+        KeepAlivePingTimeout = TimeSpan.FromSeconds(15),
+        KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests,
+    }) { Timeout = Timeout.InfiniteTimeSpan };
+
+    // How long the server may stay silent: before the first byte (a local model may be loading, a thinking model may be
+    // thinking quietly), and between two lines of a stream that has begun (servers send keep-alive comments, so a long silence is a stall).
+    internal static TimeSpan FirstByteLimit = TimeSpan.FromSeconds(180), StreamIdleLimit = TimeSpan.FromSeconds(90); // not readonly: the tests shorten them
 
     // "api.openai.com/v1/" -> https://api.openai.com/v1 ; the protocol path is added by the callers.
     public static string Normalize(string baseUrl)
@@ -46,51 +61,103 @@ public static class OpenAiClient
         Uri.TryCreate(Normalize(baseUrl), UriKind.Absolute, out var uri) && (uri.IsLoopback || uri.Host.EndsWith(".local", StringComparison.OrdinalIgnoreCase));
 
     // Streams one reply. Text and thinking are passed on as they arrive; the tools the model wants run (if any were
-    // offered and it chose to) are returned once the reply is complete.
+    // offered and it chose to) are returned once the reply is complete. onFinish gets the server's reason for stopping
+    // ("stop", "length" when the reply was cut off by a length limit, "tool_calls", ...).
     public static async Task<List<ToolCall>> StreamAsync(string baseUrl, string key, string model, IReadOnlyList<ChatMessage> messages,
-        Action<string> onText, Action<string> onThinking, CancellationToken cancel, IReadOnlyList<ToolSpec>? tools = null)
+        Action<string> onText, Action<string> onThinking, CancellationToken cancel, IReadOnlyList<ToolSpec>? tools = null, Action<string>? onFinish = null)
     {
-        using var request = Create(HttpMethod.Post, baseUrl + "/chat/completions", key);
-        request.Content = new StringContent(Body(model, messages, tools), Encoding.UTF8, "application/json");
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
-
-        using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancel);
-        if (!response.IsSuccessStatusCode) throw new AiException(await ErrorText(response, cancel), response.StatusCode);
-
-        // Tool calls arrive in pieces, keyed by their index: the id and name first, the arguments a few characters at a time.
-        var calls = new SortedDictionary<int, (string Id, string Name, StringBuilder Arguments)>();
-        using var stream = await response.Content.ReadAsStreamAsync(cancel);
-        using var reader = new StreamReader(stream, Encoding.UTF8);
-        while (await reader.ReadLineAsync(cancel) is { } line)
+        var body = Body(model, messages, tools);
+        // The watchdog: cancelled when the server has been silent for too long (the user's own Stop is told apart below).
+        using var watchdog = CancellationTokenSource.CreateLinkedTokenSource(cancel);
+        try
         {
-            if (!line.StartsWith("data:", StringComparison.Ordinal)) continue; // comments and blank separators
-            var payload = line.AsSpan(5).Trim();
-            if (payload.SequenceEqual("[DONE]")) break;
+            using var response = await Connect(baseUrl, key, body, watchdog, cancel);
+            var calls = new SortedDictionary<int, (string Id, string Name, StringBuilder Arguments)>();
+            using var stream = await response.Content.ReadAsStreamAsync(watchdog.Token);
+            using var reader = new StreamReader(stream, Encoding.UTF8);
+            string? finish = null;
+            var done = false;
+            while (!done)
+            {
+                watchdog.CancelAfter(StreamIdleLimit);
+                if (await reader.ReadLineAsync(watchdog.Token) is not { } line) break;
+                if (!line.StartsWith("data:", StringComparison.Ordinal)) continue; // comments and blank separators
+                var payload = line.AsSpan(5).Trim();
+                if (payload.SequenceEqual("[DONE]")) { done = true; break; }
+                try
+                {
+                    using var chunk = JsonDocument.Parse(payload.ToString());
+                    var root = chunk.RootElement;
+                    // Some servers (OpenRouter and others) report a failure in the middle of the stream as an event of its own.
+                    if (root.TryGetProperty("error", out var failure) && failure.ValueKind is JsonValueKind.Object or JsonValueKind.String)
+                        throw new AiException(failure.ValueKind == JsonValueKind.Object ? Text(failure, "message") ?? failure.ToString() : failure.GetString() ?? "");
+                    if (!root.TryGetProperty("choices", out var choices) || choices.ValueKind != JsonValueKind.Array || choices.GetArrayLength() == 0) continue;
+                    if (Text(choices[0], "finish_reason") is { Length: > 0 } reason) finish = reason;
+                    if (!choices[0].TryGetProperty("delta", out var delta)) continue;
+                    if (Text(delta, "content") is { Length: > 0 } text) onText(text);
+                    if ((Text(delta, "reasoning_content") ?? Text(delta, "reasoning")) is { Length: > 0 } thinking) onThinking(thinking);
+                    // Tool calls arrive in pieces, keyed by their index: the id and name first, the arguments a few characters at a time.
+                    if (delta.TryGetProperty("tool_calls", out var toolCalls) && toolCalls.ValueKind == JsonValueKind.Array)
+                        foreach (var part in toolCalls.EnumerateArray())
+                        {
+                            var index = part.TryGetProperty("index", out var i) && i.TryGetInt32(out var n) ? n : calls.Count;
+                            var entry = calls.TryGetValue(index, out var e) ? e : (Id: "", Name: "", Arguments: new StringBuilder());
+                            if (Text(part, "id") is { Length: > 0 } id) entry.Id = id;
+                            if (part.TryGetProperty("function", out var function))
+                            {
+                                if (Text(function, "name") is { Length: > 0 } name) entry.Name += name;
+                                if (Text(function, "arguments") is { } arguments) entry.Arguments.Append(arguments);
+                            }
+                            calls[index] = entry;
+                        }
+                }
+                catch (JsonException) { /* a damaged event: skip it, the next one continues the answer */ }
+            }
+            // A stream that just stops, with no "[DONE]" and no stop reason, was cut off (connection lost, server restarted).
+            if (!done && finish == null) throw new AiException(Loc.T("Ai.ErrCut"));
+            onFinish?.Invoke(finish ?? "");
+            return calls.Values.Where(c => c.Name.Length > 0)
+                .Select((c, k) => new ToolCall(c.Id.Length > 0 ? c.Id : "call_" + k, c.Name, c.Arguments.Length > 0 ? c.Arguments.ToString() : "{}")).ToList();
+        }
+        catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
+        {
+            throw new AiException(Loc.T("Ai.ErrTimeout")); // the watchdog fired, not the user
+        }
+    }
+
+    // Sends the request and waits for the answer to begin. A connection problem or a server that is briefly overloaded
+    // (502, 503, 504) is tried once more before giving up; nothing has been shown to the user yet at that point.
+    private static async Task<HttpResponseMessage> Connect(string baseUrl, string key, string body, CancellationTokenSource watchdog, CancellationToken cancel)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            watchdog.CancelAfter(FirstByteLimit);
+            using var request = Create(HttpMethod.Post, baseUrl + "/chat/completions", key);
+            request.Content = new StringContent(body, Encoding.UTF8, "application/json");
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+            HttpResponseMessage? response = null;
             try
             {
-                using var chunk = JsonDocument.Parse(payload.ToString());
-                if (!chunk.RootElement.TryGetProperty("choices", out var choices) || choices.GetArrayLength() == 0
-                    || !choices[0].TryGetProperty("delta", out var delta)) continue;
-                if (Text(delta, "content") is { Length: > 0 } text) onText(text);
-                if ((Text(delta, "reasoning_content") ?? Text(delta, "reasoning")) is { Length: > 0 } thinking) onThinking(thinking);
-                if (delta.TryGetProperty("tool_calls", out var toolCalls) && toolCalls.ValueKind == JsonValueKind.Array)
-                    foreach (var part in toolCalls.EnumerateArray())
-                    {
-                        var index = part.TryGetProperty("index", out var i) && i.TryGetInt32(out var n) ? n : calls.Count;
-                        var entry = calls.TryGetValue(index, out var e) ? e : (Id: "", Name: "", Arguments: new StringBuilder());
-                        if (Text(part, "id") is { Length: > 0 } id) entry.Id = id;
-                        if (part.TryGetProperty("function", out var function))
-                        {
-                            if (Text(function, "name") is { Length: > 0 } name) entry.Name += name;
-                            if (Text(function, "arguments") is { } arguments) entry.Arguments.Append(arguments);
-                        }
-                        calls[index] = entry;
-                    }
+                response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, watchdog.Token);
+                if (response.IsSuccessStatusCode) return response;
+                if (attempt == 0 && response.StatusCode is HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable or HttpStatusCode.GatewayTimeout)
+                {
+                    response.Dispose();
+                    response = null;
+                    await Task.Delay(1500, cancel);
+                    continue;
+                }
+                throw new AiException(await ErrorText(response, watchdog.Token), response.StatusCode);
             }
-            catch (JsonException) { /* a damaged event: skip it, the next one continues the answer */ }
+            catch (HttpRequestException) when (attempt == 0 && !cancel.IsCancellationRequested)
+            {
+                await Task.Delay(1500, cancel);
+            }
+            finally
+            {
+                if (response is { IsSuccessStatusCode: false }) response.Dispose();
+            }
         }
-        return calls.Values.Where(c => c.Name.Length > 0)
-            .Select((c, k) => new ToolCall(c.Id.Length > 0 ? c.Id : "call_" + k, c.Name, c.Arguments.Length > 0 ? c.Arguments.ToString() : "{}")).ToList();
     }
 
     // The model names the server offers (GET /models), for filling in the provider's list.

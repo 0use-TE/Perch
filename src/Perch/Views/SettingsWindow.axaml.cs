@@ -414,7 +414,7 @@ public partial class SettingsWindow : Window
     [
         new("music", "", "Nav.Music"), new("focus", "", "Nav.Focus"), new("todo", "", "Nav.Todo"), new("notes", "", "Nav.Notes"),
         new("info", "", "Nav.Info"), new("calendar", "", "Nav.Calendar"), new("apps", "", "Nav.Apps"), new("tray", "", "Nav.Tray"),
-        new("photos", "", "Nav.Photos"), new("clipboard", "", "Nav.Clipboard"), new("system", "", "Nav.System"), new("ports", "", "Nav.Ports"), new("ai", "", "Nav.Ai"), new("alarm", "", "Nav.Alarm"), new("dino", "󰀀", "Nav.Dino"),
+        new("photos", "", "Nav.Photos"), new("clipboard", "", "Nav.Clipboard"), new("system", "", "Nav.System"), new("ports", "", "Nav.Ports"), new("ai", "", "Nav.Ai"), new("alarm", "", "Nav.Alarm"), new("dino", "󰀀", "Nav.Dino"), new("search", "", "Nav.Search"),
     ];
 
     private const int MaxPinned = 7;

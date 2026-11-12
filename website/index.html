@@ -3,241 +3,61 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Perch · 屏幕顶部的效率岛</title>
-<meta name="description" content="Perch（栖点）是 Windows 屏幕顶部的灵动岛式效率工具：音乐、专注、待办、笔记、日历、剪贴板、系统监视，都收在一个会呼吸的岛里。">
+<title>Perch · a small island at the top of your screen</title>
+<meta name="description" content="Perch brings music, focus, notes and AI to a small island at the top of your Windows desktop. Download for x64 or ARM64.">
 <link rel="icon" href="assets/brand/perch-icon-v2.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
 <header class="nav">
   <a class="brand" href="#top"><img src="assets/brand/perch-icon-v2.png" alt="" width="28" height="28"><span>Perch</span></a>
   <nav>
     <a href="#features"><span class="zh">功能</span><span class="en">Features</span></a>
-    <a href="#look"><span class="zh">外观</span><span class="en">Look</span></a>
-    <a href="#control"><span class="zh">操控</span><span class="en">Control</span></a>
-    <a href="#privacy"><span class="zh">隐私</span><span class="en">Privacy</span></a>
-    <a href="#get"><span class="zh">获取</span><span class="en">Get it</span></a>
+    <a href="tutorial.html"><span class="zh">教程</span><span class="en">Guide</span></a>
+    <a href="#get"><span class="zh">下载</span><span class="en">Download</span></a>
+    <a href="https://github.com/0use-TE/Perch">GitHub</a>
   </nav>
   <button class="lang" id="lang" type="button" aria-label="Switch language">EN / 中</button>
 </header>
-
 <main id="top">
-
-<!-- ───── Hero ───── -->
 <section class="hero">
-  <div class="island-demo" aria-hidden="true">
-    <div class="pill"><b>Perch</b><span>10:21</span></div>
-  </div>
-  <h1><span class="zh">屏幕顶部，<em>一座会呼吸的岛</em></span><span class="en">A small island at the top of your screen</span></h1>
-  <p class="lead">
-    <span class="zh">Perch（栖点）把音乐、专注计时、待办、笔记、日历、剪贴板和系统状态收进一块贴顶的黑色岛屿。平时只有一粒药丸大小，鼠标一靠近，它就弹开。</span>
-    <span class="en">Perch tucks music, focus timer, to-dos, notes, calendar, clipboard history and system status into one black island pinned to the top edge. It rests as a pill; point at it and it opens.</span>
-  </p>
+  <div class="island-demo" aria-hidden="true"><div class="pill"><b>Perch</b><span>10:21</span></div></div>
+  <h1><span class="zh">屏幕顶部，<em>你的效率小岛</em></span><span class="en">A small island.<br><em>A little more focus.</em></span></h1>
+  <p class="lead"><span class="zh">音乐、专注、随手记，还有 AI。需要时展开，忙碌时安静收起。</span><span class="en">Music, focus, quick notes and AI. Open when you need it. Tucked away when you don't.</span></p>
   <div class="cta">
-    <a class="btn primary" href="#get"><span class="zh">获取 Perch</span><span class="en">Get Perch</span></a>
-    <a class="btn" href="#features"><span class="zh">看看有什么</span><span class="en">See what it does</span></a>
+    <a class="btn primary" href="#get"><span class="zh">下载 Perch</span><span class="en">Download Perch</span></a>
+    <a class="btn" href="tutorial.html"><span class="zh">使用教程</span><span class="en">Getting started</span></a>
   </div>
-  <p class="meta"><span class="zh">Windows 10 / 11 · x64 与 ARM64 · 完全本地运行</span><span class="en">Windows 10 / 11 · x64 &amp; ARM64 · runs entirely on your machine</span></p>
-
-  <figure class="shot wide" data-file="home.png">
-    <img src="assets/shots/home.png" alt="Perch 展开后的概览页" loading="eager">
-    <figcaption><span class="zh">展开后的概览：时间、当月日历、待办数量、笔记摘要和天气入口</span><span class="en">The opened overview: clock, month, to-do count, a note preview and weather</span></figcaption>
-  </figure>
+  <p class="meta">Windows 10 / 11 · x64 &amp; ARM64 · <span class="zh">免费开源</span><span class="en">Free &amp; open source</span></p>
+  <figure class="shot wide"><img src="assets/shots/desktop.png" alt="Perch desktop island and appearance settings" width="2558" height="1599" fetchpriority="high"></figure>
 </section>
-
-<!-- ───── Feature highlights ───── -->
 <section id="features" class="section">
-  <h2><span class="zh">一座岛，装下一天要用的东西</span><span class="en">Everything for the day, on one island</span></h2>
-  <p class="sub"><span class="zh">每一页都可以单独开关，也可以决定谁留在导航栏、谁收进“更多”。</span><span class="en">Every page can be switched off, and you choose which stay on the bar and which live under “More”.</span></p>
-
-  <div class="rows">
-    <article class="row">
-      <div class="text">
-        <h3><span class="zh">音乐</span><span class="en">Music</span></h3>
-        <p><span class="zh">通过 Windows 媒体控制读取正在播放的歌曲，Spotify、浏览器、系统播放器开箱即用。网易云音乐、QQ 音乐、酷狗、酷我这类不上报状态的播放器，Perch 会读它们的窗口标题并检测是否真的在发声；上一首 / 播放 / 下一首通过你设置的播放器快捷键完成。收起时，岛上也能显示当前歌曲。</span><span class="en">Reads what is playing from Windows media controls, so Spotify, browsers and system players just work. Players that never report their state (NetEase Cloud Music, QQ Music, KuGou, Kuwo) are read from their window title and checked for real audio; previous / play / next press the shortcuts you set for that player. When closed, the island can show the current song too.</span></p>
-      </div>
-      <figure class="shot" data-file="music.png" data-manual="1"><img src="assets/shots/music.png" alt="音乐页"><figcaption><span class="zh">音乐页</span><span class="en">Music page</span></figcaption></figure>
+  <h2><span class="zh">认真做事，也轻松一下</span><span class="en">A little help. A little play.</span></h2>
+  <p class="sub"><span class="zh">在岛上问问 AI，或让小恐龙跑一会儿。</span><span class="en">Ask your AI a question, or take a break with the dinosaur.</span></p>
+  <div class="feature-stories">
+    <article class="feature-story">
+      <div class="feature-copy"><h3><span class="zh">小恐龙</span><span class="en">Dinosaur runner</span></h3><p><span class="zh">熟悉的像素小恐龙，就住在岛里。跳过仙人掌、躲开翼龙，忙里偷闲刷个新纪录。</span><span class="en">A familiar pixel dinosaur, right on your island. Jump over cacti, dodge birds and beat your best score.</span></p><a class="text-link" href="tutorial.html#dino"><span class="zh">看看怎么玩 →</span><span class="en">Learn to play →</span></a></div>
+      <figure class="shot"><img src="assets/shots/dino.png" alt="Perch dinosaur runner with score and restart button" width="1422" height="479" loading="lazy"></figure>
     </article>
-
-    <article class="row flip">
-      <div class="text">
-        <h3><span class="zh">专注计时</span><span class="en">Focus timer</span></h3>
-        <p><span class="zh">番茄钟：专注 / 短休息 / 长休息的时长都能改，可自动进入下一阶段，岛上会显示进度环和今日完成的轮数与分钟数。计时进行中，收起的岛会加宽显示剩余时间。</span><span class="en">A Pomodoro timer with adjustable focus, short and long breaks, optional auto-continue, a progress ring and today’s rounds and minutes. While it runs, the closed island widens to show the time left.</span></p>
-      </div>
-      <figure class="shot" data-file="focus.png"><img src="assets/shots/focus.png" alt="专注页"><figcaption><span class="zh">专注页</span><span class="en">Focus page</span></figcaption></figure>
-    </article>
-
-    <article class="row">
-      <div class="text">
-        <h3><span class="zh">待办</span><span class="en">To-dos</span></h3>
-        <p><span class="zh">列表、日、周、月四种视图；回车保存，可设今天 / 明天 / 指定日期的截止时间；按全部、未完成、已完成筛选，按创建或截止排序，一键清除已完成。逾期的项目会被标红。</span><span class="en">List, day, week and month views. Press Enter to save, give a due date, filter by all / active / done, sort by created or due, clear finished items in one click. Overdue items turn red.</span></p>
-      </div>
-      <figure class="shot" data-file="todo.png"><img src="assets/shots/todo.png" alt="待办页"><figcaption><span class="zh">待办页</span><span class="en">To-do page</span></figcaption></figure>
-    </article>
-
-    <article class="row flip">
-      <div class="text">
-        <h3><span class="zh">笔记</span><span class="en">Notes</span></h3>
-        <p><span class="zh">每条笔记有独立的标题和正文，可以标星。按下全局快捷键 <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd>，岛立刻展开、新建一条笔记并把光标放进标题。</span><span class="en">Each note has its own title and body and can be starred. The global shortcut <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd> opens the island, starts a new note and puts the caret in the title.</span></p>
-      </div>
-      <figure class="shot" data-file="notes.png"><img src="assets/shots/notes.png" alt="笔记页"><figcaption><span class="zh">笔记页</span><span class="en">Notes page</span></figcaption></figure>
-    </article>
-
-    <article class="row">
-      <div class="text">
-        <h3><span class="zh">天气与状态</span><span class="en">Weather &amp; status</span></h3>
-        <p><span class="zh">五天预报、体感、湿度、风速和降雨概率；城市从搜索列表里选，或跟随设备定位（显示的是城市名，不是一串坐标）。旁边是电池电量与实时网速。极端天气、插拔电源和低电量会弹出提醒。</span><span class="en">Five-day forecast with feels-like, humidity, wind and rain chance. Pick a city from search, or follow the device location (shown as a city name, not coordinates). Battery level and live network speed sit beside it; severe weather, plugging in and low battery raise alerts.</span></p>
-      </div>
-      <figure class="shot" data-file="info.png"><img src="assets/shots/info.png" alt="天气与状态页"><figcaption><span class="zh">天气与状态</span><span class="en">Weather &amp; status</span></figcaption></figure>
-    </article>
-
-    <article class="row flip">
-      <div class="text">
-        <h3><span class="zh">日历</span><span class="en">Calendar</span></h3>
-        <p><span class="zh">默认读取 Windows 自带日历，也可以粘贴 .ics 链接或文件路径（支持重复事件、全天事件和时区）。正在进行的会议会高亮，开始前若干分钟岛会提醒你。</span><span class="en">Reads the Windows calendar by default and also any .ics link or file (recurring events, all-day events and time zones included). The meeting in progress is highlighted and the island reminds you a few minutes ahead.</span></p>
-      </div>
-      <figure class="shot" data-file="calendar.png"><img src="assets/shots/calendar.png" alt="日历页"><figcaption><span class="zh">日历页</span><span class="en">Calendar page</span></figcaption></figure>
-    </article>
-
-    <article class="row">
-      <div class="text">
-        <h3><span class="zh">剪贴板历史</span><span class="en">Clipboard history</span></h3>
-        <p><span class="zh">记住最近复制的 40 段文字，点一下即可重新复制。历史只留在内存里，不写入磁盘；密码管理器标记为“不要记录”的内容会被自动跳过，也可以随时暂停。</span><span class="en">Remembers the last 40 pieces of copied text; click one to copy it again. The history lives in memory only, never on disk. Copies that password managers mark as “exclude from history” are skipped, and you can pause it any time.</span></p>
-      </div>
-      <figure class="shot" data-file="clipboard.png"><img src="assets/shots/clipboard.png" alt="剪贴板页"><figcaption><span class="zh">剪贴板页</span><span class="en">Clipboard page</span></figcaption></figure>
-    </article>
-
-    <article class="row flip">
-      <div class="text">
-        <h3><span class="zh">系统监视</span><span class="en">System monitor</span></h3>
-        <p><span class="zh">处理器、内存的实时曲线，磁盘占用和开机时长，一眼看清电脑在忙什么。</span><span class="en">Live CPU and memory curves, disk usage and uptime — see at a glance what the machine is busy with.</span></p>
-      </div>
-      <figure class="shot" data-file="system.png"><img src="assets/shots/system.png" alt="系统页"><figcaption><span class="zh">系统页</span><span class="en">System page</span></figcaption></figure>
+    <article class="feature-story">
+      <div class="feature-copy"><h3><span class="zh">AI 对话</span><span class="en">AI chat</span></h3><p><span class="zh">接入自己的模型服务，随时提问、深度思考和联网搜索。也能让 AI 帮你打开应用、创建文件夹、执行电脑任务。</span><span class="en">Connect your model provider to chat, reason and search the web. Let AI open apps, create folders and help with tasks on your PC.</span></p><a class="text-link" href="tutorial.html#ai"><span class="zh">配置你的 AI →</span><span class="en">Set up your AI →</span></a></div>
+      <figure class="shot"><img src="assets/shots/ai-chat.png" alt="Perch AI conversation with model, reasoning, web and computer controls" width="1373" height="777" loading="lazy"></figure>
     </article>
   </div>
-
-  <h3 class="mini-title"><span class="zh">还有这些</span><span class="en">And more</span></h3>
-  <div class="cards">
-    <article class="card">
-      <figure class="shot compact" data-file="apps.png"><img src="assets/shots/apps.png" alt="应用与指令"></figure>
-      <h4><span class="zh">应用与指令</span><span class="en">Apps &amp; commands</span></h4>
-      <p><span class="zh">开始菜单里的应用按网格排好，常用的可以固定在前面；自己写的命令行（比如打开项目目录）一键运行。</span><span class="en">Start-menu apps in a grid with pinning for favourites, plus your own command lines (say, open a project folder) one click away.</span></p>
-    </article>
-    <article class="card">
-      <figure class="shot compact" data-file="shelf.png"><img src="assets/shots/shelf.png" alt="文件中转"></figure>
-      <h4><span class="zh">文件中转</span><span class="en">File shelf</span></h4>
-      <p><span class="zh">把文件拖到岛上暂存，需要时再拖出去；也能打包成 ZIP，或把图片转成 PNG / JPG。文件不会被移动，只记路径。</span><span class="en">Drop files on the island to park them, drag them out later, zip them, or convert images to PNG / JPG. Files stay where they are; only paths are kept.</span></p>
-    </article>
-    <article class="card">
-      <figure class="shot compact" data-file="photos.png"><img src="assets/shots/photos.png" alt="照片"></figure>
-      <h4><span class="zh">照片</span><span class="en">Photos</span></h4>
-      <p><span class="zh">选一个文件夹，最近的照片排成一条可以横向滚动的缩略图带。</span><span class="en">Pick a folder and its newest pictures become a horizontally scrolling strip.</span></p>
-    </article>
-    <article class="card">
-      <div class="icon-tile" aria-hidden="true">◔</div>
-      <h4><span class="zh">温和的提醒</span><span class="en">Gentle reminders</span></h4>
-      <p><span class="zh">喝水、久坐、睡觉前的提醒，以及电量与天气提醒，全都显示在岛上，可单独开关，可选提示音。</span><span class="en">Water, sitting too long and bedtime — plus battery and weather alerts — appear right on the island. Each can be turned off; the sound is optional.</span></p>
-    </article>
-  </div>
+  <p class="meta feature-note"><span class="zh">刘海或胶囊，纯黑或毛玻璃。外观、快捷键和导航，都由你决定。</span><span class="en">Notch or capsule. Solid or frosted. Your look, shortcuts and navigation.</span></p>
 </section>
-
-<!-- ───── Look ───── -->
-<section id="look" class="section alt">
-  <h2><span class="zh">长成你喜欢的样子</span><span class="en">Make it yours</span></h2>
-  <p class="sub"><span class="zh">岛永远是黑色的；设置窗口和右键菜单则跟随深色 / 浅色主题。</span><span class="en">The island itself is always black; the settings window and menus follow your dark or light theme.</span></p>
-  <div class="split">
-    <figure class="shot" data-file="compact.png"><img src="assets/shots/compact.png" alt="收起状态的岛"><figcaption><span class="zh">收起：一粒药丸，显示名称和时间</span><span class="en">Closed: a pill with the name and time</span></figcaption></figure>
-    <figure class="shot" data-file="more.png"><img src="assets/shots/more.png" alt="更多面板"><figcaption><span class="zh">“更多”面板，放下没固定的页面</span><span class="en">The “More” panel holds the pages you did not pin</span></figcaption></figure>
+<section id="get" class="section alt download">
+  <h2><span class="zh">给桌面，留一座小岛</span><span class="en">Make room for a little island</span></h2>
+  <p class="sub"><span class="zh">v1.0.0 · AOT 单文件，下载即用，无需安装 .NET。</span><span class="en">v1.0.0 · One native executable. Download and run, no .NET install needed.</span></p>
+  <div class="cta">
+    <a class="btn primary" href="https://github.com/0use-TE/Perch/releases/download/v1.0.0/Perch-win-x64.exe"><span class="zh">下载 Windows x64</span><span class="en">Download Windows x64</span></a>
+    <a class="btn" href="https://github.com/0use-TE/Perch/releases/download/v1.0.0/Perch-win-arm64.exe"><span class="zh">下载 Windows ARM64</span><span class="en">Download Windows ARM64</span></a>
   </div>
-  <ul class="bullets">
-    <li><b><span class="zh">两种形态</span><span class="en">Two shapes</span></b><span class="zh">贴顶的“刘海”，或悬浮在屏幕边缘的“胶囊”。</span><span class="en">A notch fused to the top edge, or a floating capsule.</span></li>
-    <li><b><span class="zh">纯黑或毛玻璃</span><span class="en">Solid or frosted</span></b><span class="zh">毛玻璃下，收起时仍是纯黑，展开后透出模糊的屏幕背景，不透明度可调。（毛玻璃会让岛对截图和录屏不可见。）</span><span class="en">Frosted stays black while closed and lets a blurred copy of the screen through when open, with adjustable opacity. (It hides the island from screenshots and screen recording.)</span></li>
-    <li><b><span class="zh">深色 / 浅色 / 跟随系统</span><span class="en">Dark, light or system</span></b><span class="zh">设置窗口和右键菜单随之切换。</span><span class="en">Settings and menus switch with it.</span></li>
-    <li><b><span class="zh">动画</span><span class="en">Motion</span></b><span class="zh">弹簧动画：先横向弹开再向下展开，收回时先收高度。可一键“减少动画”。</span><span class="en">Spring motion: it springs open sideways, then drops down; closing folds the height first. One switch for reduced motion.</span></li>
-  </ul>
-  <div class="split three">
-    <figure class="shot" data-file="settings-island.png"><img src="assets/shots/settings-island.png" alt="设置：灵动岛"><figcaption><span class="zh">设置 · 灵动岛（带实时预览）</span><span class="en">Settings · Island, with a live preview</span></figcaption></figure>
-    <figure class="shot" data-file="settings-island-light.png"><img src="assets/shots/settings-island-light.png" alt="浅色主题设置"><figcaption><span class="zh">浅色主题</span><span class="en">Light theme</span></figcaption></figure>
-    <figure class="shot" data-file="glass.png" data-manual="1"><img src="assets/shots/glass.png" alt="毛玻璃"><figcaption><span class="zh">毛玻璃展开</span><span class="en">Frosted, opened</span></figcaption></figure>
-  </div>
+  <p class="meta"><span class="zh">Intel / AMD 电脑选 x64；骁龙等 ARM 电脑选 ARM64。</span><span class="en">Choose x64 for Intel / AMD, ARM64 for Snapdragon and other ARM PCs.</span></p>
+  <p class="privacy"><span class="zh">设置、笔记和待办保存在本机。AI、天气等在线功能按需联网。</span><span class="en">Settings, notes and to-dos are stored locally. Online features such as AI and weather connect as needed.</span></p>
 </section>
-
-<!-- ───── Control ───── -->
-<section id="control" class="section">
-  <h2><span class="zh">按你的习惯来操控</span><span class="en">Controls that follow your habits</span></h2>
-  <div class="cards three">
-    <article class="card">
-      <h4><span class="zh">展开与收起</span><span class="en">Open and close</span></h4>
-      <p><span class="zh">悬停展开或点击展开；鼠标移开收起或点击岛外收起。展开 / 收起的延迟各自可调，范围 0–1000 毫秒，默认 100 与 400。图钉可以固定展开。</span><span class="en">Open on hover or on click; close when the pointer leaves or on a click outside. The open and close delays are separate, 0–1000 ms (defaults 100 and 400). The pin keeps it open.</span></p>
-    </article>
-    <article class="card">
-      <h4><span class="zh">导航栏</span><span class="en">Navigation bar</span></h4>
-      <p><span class="zh">最多固定 7 个页面在栏上，其余收进“更多”。在设置里<b>拖动</b>调整顺序，被拖的行跟着鼠标走、其余行实时让位。鼠标滚轮停在导航栏上可逐页切换。</span><span class="en">Pin up to seven pages on the bar; the rest go under “More”. <b>Drag</b> rows in settings to reorder — the dragged row follows the pointer while the others slide aside. The wheel over the bar steps through pages.</span></p>
-      <figure class="shot compact" data-file="settings-features.png"><img src="assets/shots/settings-features.png" alt="导航栏设置"></figure>
-    </article>
-    <article class="card">
-      <h4><span class="zh">全局快捷键</span><span class="en">Global shortcuts</span></h4>
-      <p><span class="zh"><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>I</kbd> 展开 / 收起，<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd> 新建笔记。点输入框、按下组合键即可改，被占用或与播放器快捷键冲突时会提示。</span><span class="en"><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>I</kbd> toggles the island, <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd> starts a note. Click a box and press a combination to change it; taken or clashing keys are flagged.</span></p>
-    </article>
-    <article class="card">
-      <h4><span class="zh">不打扰</span><span class="en">Stays out of the way</span></h4>
-      <p><span class="zh">不出现在任务栏和 Alt+Tab；全屏播放视频、玩游戏时自动隐藏；只在你点输入框时才会获得键盘焦点。托盘图标可显示 / 隐藏、打开设置、退出。</span><span class="en">No taskbar button, not in Alt+Tab, hidden automatically over full-screen video or games, and it takes keyboard focus only when you click a text box. A tray icon shows / hides it, opens settings and quits.</span></p>
-    </article>
-    <article class="card">
-      <h4><span class="zh">多语言</span><span class="en">Languages</span></h4>
-      <p><span class="zh">English 与简体中文，默认跟随 Windows，切换立即生效；日期格式也随语言变化。</span><span class="en">English and Simplified Chinese, following Windows by default and switching instantly, dates included.</span></p>
-    </article>
-    <article class="card">
-      <h4><span class="zh">设置即时生效</span><span class="en">Instant settings</span></h4>
-      <p><span class="zh">在设置里改形态、材质、主题、延迟，岛上立刻就能看到。每个功能还能折叠起来，页面再多也不乱。</span><span class="en">Change shape, material, theme or delays and the island follows at once. Each feature folds away, so the page stays tidy.</span></p>
-    </article>
-  </div>
-</section>
-
-<!-- ───── Privacy ───── -->
-<section id="privacy" class="section alt narrow">
-  <h2><span class="zh">你的数据，留在你的电脑</span><span class="en">Your data stays on your machine</span></h2>
-  <ul class="bullets plain">
-    <li><span class="zh">所有设置、待办、笔记都保存在本机的 <code>%AppData%\Perch\state.json</code>，没有账号，没有统计上报。</span><span class="en">Settings, to-dos and notes live in <code>%AppData%\Perch\state.json</code>. No account, no telemetry.</span></li>
-    <li><span class="zh">剪贴板历史只在内存里，退出即清空。</span><span class="en">Clipboard history is memory-only and gone on exit.</span></li>
-    <li><span class="zh">只有这些功能会联网：天气与城市搜索（Open-Meteo / OpenStreetMap Nominatim），以及你自己添加的 .ics 日历链接。</span><span class="en">Only these use the network: weather and city search (Open-Meteo / OpenStreetMap Nominatim) and any .ics link you add yourself.</span></li>
-  </ul>
-</section>
-
-<!-- ───── Get ───── -->
-<section id="get" class="section">
-  <h2><span class="zh">获取 Perch</span><span class="en">Get Perch</span></h2>
-  <div class="get">
-    <div class="get-box">
-      <h4><span class="zh">下载</span><span class="en">Download</span></h4>
-      <p><span class="zh">Windows 10（1903）或更高版本，x64 与 ARM64。发布包自带运行时，解压后运行 <code>Perch.exe</code> 即可，无需安装 .NET。</span><span class="en">Windows 10 (1903) or newer, x64 and ARM64. The package carries its own runtime: unzip and run <code>Perch.exe</code>, no .NET install needed.</span></p>
-      <!-- TODO: replace # with the real release URLs -->
-      <p class="buttons"><a class="btn primary" href="#" aria-disabled="true"><span class="zh">下载 x64（待发布）</span><span class="en">Download x64 (soon)</span></a><a class="btn" href="#" aria-disabled="true"><span class="zh">下载 ARM64（待发布）</span><span class="en">Download ARM64 (soon)</span></a></p>
-    </div>
-    <div class="get-box">
-      <h4><span class="zh">从源码构建</span><span class="en">Build from source</span></h4>
-<pre><code>git clone &lt;repo-url&gt;
-cd Perch
-dotnet run --project src/Perch
-
-# trimmed, self-contained release
-dotnet publish src/Perch/Perch.csproj -c Release -r win-x64 \
-  --self-contained -p:PublishTrimmed=true -o dist/win-x64</code></pre>
-      <p class="note"><span class="zh">需要 .NET 10 SDK。界面基于 Avalonia 11，音乐与日历使用 Windows 的 WinRT 接口，因此目前仅支持 Windows。</span><span class="en">Needs the .NET 10 SDK. The UI is Avalonia 11; music and calendar use Windows WinRT APIs, so Windows only for now.</span></p>
-    </div>
-  </div>
-</section>
-
 </main>
-
-<footer>
-  <div class="foot">
-    <a class="brand" href="#top"><img src="assets/brand/perch-icon-v2.png" alt="" width="24" height="24"><span>Perch · 栖点</span></a>
-    <p><span class="zh">一座属于你桌面的小岛。</span><span class="en">A small island for your desktop.</span></p>
-  </div>
-</footer>
-
+<footer><div class="foot"><a class="brand" href="#top"><img src="assets/brand/perch-icon-v2.png" alt="" width="24" height="24"><span>Perch · 栖点</span></a><a href="https://github.com/0use-TE/Perch/releases/tag/v1.0.0"><span class="zh">发布说明</span><span class="en">Release notes</span></a></div></footer>
 <script src="main.js"></script>
 </body>
 </html>

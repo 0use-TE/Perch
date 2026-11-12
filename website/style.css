@@ -48,15 +48,15 @@ footer { border-top:1px solid var(--line); padding:26px max(20px,calc((100% - va
 @media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } .btn { transition:none; } }
 
 /* Featured screenshots and the standalone guide. */
-.feature-stories { display:grid; gap:56px; }
-.feature-story { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:28px; min-width:0; }
-.feature-copy { max-width:680px; }
-.feature-copy h3 { font-size:26px; }
-.feature-copy p { color:#b8b8c0; margin:12px 0; }
+.feature-stories { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:28px; max-width:960px; margin:auto; }
+.feature-story { display:flex; flex-direction:column; gap:18px; min-width:0; }
+.feature-copy { padding:0 2px; }
+.feature-copy h3 { font-size:20px; }
+.feature-copy p { color:var(--muted); font-size:14px; line-height:1.65; margin:8px 0 12px; }
 .text-link { color:var(--accent); font-size:14px; }
 .text-link:hover { text-decoration:underline; }
-.feature-story .shot { margin-top:24px; }
-.feature-story .shot img { box-shadow:none; }
+.feature-story .shot { order:-1; display:grid; place-items:center; width:100%; aspect-ratio:16/9; margin:0; padding:12px; overflow:hidden; background:#050506; border:1px solid #202024; border-radius:12px; }
+.feature-story .shot img { width:100%; max-height:100%; object-fit:contain; border:0; border-radius:6px; box-shadow:none; }
 .guide { max-width:960px; margin:auto; padding:56px 24px 64px; }
 .guide-heading h1 { font-size:clamp(32px,5vw,48px); }
 .guide-heading .lead { margin-left:0; }
@@ -81,5 +81,5 @@ summary { cursor:pointer; font-weight:600; }
 details p { color:#b8b8c0; margin-bottom:0; }
 .guide-bottom { margin-top:24px; }
 .nav [aria-current="page"] { color:var(--accent); }
-@media(max-width:700px) { .feature-story { padding:20px; } .feature-stories { gap:24px; } .guide { padding:36px 20px 48px; } }
+@media(max-width:700px) { .feature-stories { grid-template-columns:1fr; gap:32px; max-width:480px; } .guide { padding:36px 20px 48px; } }
 @media(max-width:520px) { .nav { flex-wrap:wrap; gap:10px; } .nav nav { display:flex; order:3; width:100%; justify-content:center; gap:20px; } .lang { margin-left:auto; } html { scroll-padding-top:115px; } .guide-toc { margin-bottom:24px; } }

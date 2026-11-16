@@ -16,6 +16,7 @@ public partial class App : Application
     {
 #if WINDOWS
         Services.Translucency.Probe = WindowBackdrop.TranslucencyAvailable;
+        WindowBackdrop.InstallPopupGuard();
         Services.Sounds.Audio.Player = new WinSoundPlayer();
         Services.Hardware.Source = new WindowsHardwareSource();
         Services.Ports.PortSource.Current = new WindowsPortSource();

@@ -36,7 +36,7 @@ public sealed class IslandHost : IDisposable
 
     // Hides this window from screen capture so the frosted backdrop can sample what is behind it (the side effect:
     // screenshots, recordings and screen sharing do not show the island while this is on).
-    public bool ExcludeFromCapture(bool on) => SetWindowDisplayAffinity(handle, on ? 0x11u : 0u);
+    public bool ExcludeFromCapture(bool on) => WindowBackdrop.ExcludeFromCapture(handle, on);
     public System.Drawing.Rectangle ScreenRect() { GetWindowRect(handle, out var r); return System.Drawing.Rectangle.FromLTRB(r.Left, r.Top, r.Right, r.Bottom); }
     // Width of the usable screen area in DIP, and the scale of the island's window.
     public (double Width, double Scale) WorkArea() { SystemParametersInfo(0x30, 0, out var work, 0); var dpi = GetDpiForWindow(handle) / 96d; return ((work.Right - work.Left) / dpi, dpi); }
@@ -52,7 +52,8 @@ public sealed class IslandHost : IDisposable
     private void SetActivation(bool editable)
     {
         var style = GetWindowLongPtr(handle, -20).ToInt64();
-        SetWindowLongPtr(handle, -20, new nint(editable ? style & ~0x8000000 : style | 0x8000000));
+        var wanted = editable ? style & ~0x8000000L : style | 0x8000000L;
+        if (wanted != style) SetWindowLongPtr(handle, -20, new nint(wanted));
     }
 
     public void Place(double width, double height)

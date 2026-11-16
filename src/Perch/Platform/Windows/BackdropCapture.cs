@@ -1,8 +1,13 @@
+using System.Collections.Concurrent;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
+using System.Threading;
 using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Media;
+using Avalonia.Threading;
 
 using AvaloniaPlatform = Avalonia.Platform;
 
@@ -14,8 +19,59 @@ internal static class BackdropCapture
 {
     private const int Downscale = 10, BlurRadius = 3;
     private const double Saturation = 1.5, Lift = 1.12;
+    private static readonly ConcurrentDictionary<nint, byte> running = new();
 
     public static Avalonia.Media.Imaging.WriteableBitmap? Grab(Rectangle area, int downscale = Downscale)
+    {
+        if (GrabRaw(area, downscale) is not { } raw) return null;
+        var picture = new Avalonia.Media.Imaging.WriteableBitmap(new PixelSize(raw.W, raw.H), new Vector(96, 96), AvaloniaPlatform.PixelFormat.Bgra8888, AvaloniaPlatform.AlphaFormat.Opaque);
+        using (var frame = picture.Lock())
+            for (var y = 0; y < raw.H; y++) Marshal.Copy(raw.Pixels, y * raw.W * 4, frame.Address + y * frame.RowBytes, raw.W * 4);
+        return picture;
+    }
+
+    // Samples and blurs the screen behind `hwnd` on a background thread and updates `target.Background` in place.
+    public static void SampleAsync(nint hwnd, Rectangle area, Border target, int downscale = Downscale, Action? onReady = null)
+    {
+        if (!WindowBackdrop.ReadyToSample(hwnd) || area.Width < 16 || area.Height < 16) return;
+        if (!running.TryAdd(hwnd, 1)) return;
+        var rect = area;
+        _ = Task.Run(() =>
+        {
+            var raw = GrabRaw(rect, downscale);
+            Dispatcher.UIThread.Post(() =>
+            {
+                try
+                {
+                    if (raw is not { } result || !WindowBackdrop.ReadyToSample(hwnd)) return;
+                    ApplyToBorder(target, result.Pixels, result.W, result.H);
+                    onReady?.Invoke();
+                }
+                finally
+                {
+                    running.TryRemove(hwnd, out _);
+                }
+            }, DispatcherPriority.Render);
+        });
+    }
+
+    private static void ApplyToBorder(Border target, byte[] pixels, int w, int h)
+    {
+        if (target.Background is ImageBrush { Source: Avalonia.Media.Imaging.WriteableBitmap existing } &&
+            existing.PixelSize.Width == w && existing.PixelSize.Height == h)
+        {
+            using (var frame = existing.Lock())
+                for (var y = 0; y < h; y++) Marshal.Copy(pixels, y * w * 4, frame.Address + y * frame.RowBytes, w * 4);
+            target.InvalidateVisual();
+            return;
+        }
+        var picture = new Avalonia.Media.Imaging.WriteableBitmap(new PixelSize(w, h), new Vector(96, 96), AvaloniaPlatform.PixelFormat.Bgra8888, AvaloniaPlatform.AlphaFormat.Opaque);
+        using (var frame = picture.Lock())
+            for (var y = 0; y < h; y++) Marshal.Copy(pixels, y * w * 4, frame.Address + y * frame.RowBytes, w * 4);
+        target.Background = new ImageBrush(picture) { Stretch = Stretch.Fill, TileMode = TileMode.None };
+    }
+
+    private static (byte[] Pixels, int W, int H)? GrabRaw(Rectangle area, int downscale)
     {
         if (area.Width < 16 || area.Height < 16) return null;
         try
@@ -27,8 +83,8 @@ internal static class BackdropCapture
             using var small = new System.Drawing.Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             using (var g = Graphics.FromImage(small))
             {
-                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                g.InterpolationMode = InterpolationMode.Bilinear;
+                g.PixelOffsetMode = PixelOffsetMode.Half;
                 g.DrawImage(full, new Rectangle(0, 0, w, h), 0, 0, full.Width, full.Height, GraphicsUnit.Pixel);
             }
             var data = small.LockBits(new Rectangle(0, 0, w, h), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
@@ -36,21 +92,18 @@ internal static class BackdropCapture
             for (var y = 0; y < h; y++) Marshal.Copy(data.Scan0 + y * data.Stride, pixels, y * w * 4, w * 4);
             small.UnlockBits(data);
 
-            Blur(pixels, w, h);
-            Blur(pixels, w, h);
+            var tmp = new byte[pixels.Length];
+            Blur(pixels, tmp, w, h);
+            Blur(pixels, tmp, w, h);
             Saturate(pixels);
-            var picture = new Avalonia.Media.Imaging.WriteableBitmap(new PixelSize(w, h), new Vector(96, 96), AvaloniaPlatform.PixelFormat.Bgra8888, AvaloniaPlatform.AlphaFormat.Opaque);
-            using (var frame = picture.Lock())
-                for (var y = 0; y < h; y++) Marshal.Copy(pixels, y * w * 4, frame.Address + y * frame.RowBytes, w * 4);
-            return picture;
+            return (pixels, w, h);
         }
         catch (Exception) { return null; } // e.g. secure desktop or a screen being reconfigured
     }
 
     // Separable box blur on the small picture, edge pixels clamped.
-    private static void Blur(byte[] p, int w, int h)
+    private static void Blur(byte[] p, byte[] tmp, int w, int h)
     {
-        var tmp = new byte[p.Length];
         for (var y = 0; y < h; y++)
             for (var x = 0; x < w; x++)
                 for (var c = 0; c < 3; c++)

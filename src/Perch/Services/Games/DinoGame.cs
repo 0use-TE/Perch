@@ -42,7 +42,7 @@ public sealed class DinoGame
     private readonly List<Obstacle> obstacles = [];
     private readonly List<Cloud> clouds = [];
     private double lift, rise, untilFirst = 2.0, cloudGap = 150, deadFor;
-    private bool ducking, diving, jumpHeld;
+    private bool ducking, diving;
     private int lastHundred;
 
     public DinoState State { get; private set; } = DinoState.Ready;
@@ -97,7 +97,6 @@ public sealed class DinoGame
     // Letting go of the jump key early makes a lower jump.
     public void ReleaseJump()
     {
-        jumpHeld = false;
         if (rise > 5 * 60) rise = 5 * 60;
     }
 
@@ -115,7 +114,6 @@ public sealed class DinoGame
         if (!OnGround || Ducking) return;
         rise = JumpStart + Speed / 60 * 6; // faster runs jump a little higher
         lift = 0.01;
-        jumpHeld = true;
     }
 
     private void Start()

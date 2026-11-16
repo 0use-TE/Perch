@@ -12,31 +12,38 @@ namespace Perch.Platform.Windows;
 internal sealed class WindowsPortSource : IPortSource
 {
     private const int AfInet = 2, AfInet6 = 23, TcpTableOwnerPidListener = 3, Success = 0;
+    private readonly object sync = new();
     private readonly Dictionary<int, (string Name, string? Path)> processes = [];
     private readonly Dictionary<string, Bitmap?> icons = new(StringComparer.OrdinalIgnoreCase);
 
     public IReadOnlyList<ListeningPort> Read()
     {
-        var found = new List<(int Pid, int Port, IPAddress Address)>();
-        Table(AfInet, 24, 4, 8, 20, 4, found);
-        Table(AfInet6, 56, 0, 20, 52, 16, found);
-
-        // Process names and paths change rarely; look each process up once and forget the ones that are gone.
-        var alive = new HashSet<int>(found.Select(f => f.Pid));
-        foreach (var gone in processes.Keys.Where(pid => !alive.Contains(pid)).ToList()) processes.Remove(gone);
-        var result = new List<ListeningPort>(found.Count);
-        foreach (var (pid, port, address) in found)
+        lock (sync)
         {
-            if (!processes.TryGetValue(pid, out var info)) processes[pid] = info = Describe(pid);
-            result.Add(new ListeningPort(pid, port, address, info.Name, info.Path));
+            var found = new List<(int Pid, int Port, IPAddress Address)>();
+            Table(AfInet, 24, 4, 8, 20, 4, found);
+            Table(AfInet6, 56, 0, 20, 52, 16, found);
+
+            // Process names and paths change rarely; look each process up once and forget the ones that are gone.
+            var alive = new HashSet<int>(found.Select(f => f.Pid));
+            foreach (var gone in processes.Keys.Where(pid => !alive.Contains(pid)).ToList()) processes.Remove(gone);
+            var result = new List<ListeningPort>(found.Count);
+            foreach (var (pid, port, address) in found)
+            {
+                if (!processes.TryGetValue(pid, out var info)) processes[pid] = info = Describe(pid);
+                result.Add(new ListeningPort(pid, port, address, info.Name, info.Path));
+            }
+            return result;
         }
-        return result;
     }
 
     public Bitmap? Icon(string path)
     {
-        if (!icons.TryGetValue(path, out var icon)) icons[path] = icon = ShellIcons.Get(path);
-        return icon;
+        lock (sync)
+        {
+            if (!icons.TryGetValue(path, out var icon)) icons[path] = icon = ShellIcons.Get(path);
+            return icon;
+        }
     }
 
     // Reads one table. Offsets are within a row: where the local address is, the local port, the owning process, and

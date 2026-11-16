@@ -4,7 +4,7 @@
 
 **Windows 版功能齐全，已经稳定可用。Linux 支持还在完善中。**
 
-[下载 v1.0.0](https://github.com/0use-TE/Perch/releases/tag/v1.0.0) · [介绍网站](http://0use.net/Perch/) · [使用教程](http://0use.net/Perch/tutorial.html)
+[下载 v1.0.1](https://github.com/0use-TE/Perch/releases/tag/v1.0.1) · [介绍网站](http://0use.net/Perch/) · [使用教程](http://0use.net/Perch/tutorial.html)
 
 ![Perch 桌面效果](website/assets/shots/desktop.png)
 
@@ -12,8 +12,8 @@
 
 Windows 版提供 x64 和 ARM64 两个版本，都是 AOT 单文件，下载后双击运行，不用安装 .NET。
 
-- [Windows x64](https://github.com/0use-TE/Perch/releases/download/v1.0.0/Perch-win-x64.exe)：Intel / AMD 电脑。
-- [Windows ARM64](https://github.com/0use-TE/Perch/releases/download/v1.0.0/Perch-win-arm64.exe)：骁龙等 ARM 电脑。
+- [Windows x64](https://github.com/0use-TE/Perch/releases/download/v1.0.1/Perch-win-x64.exe)：Intel / AMD 电脑。
+- [Windows ARM64](https://github.com/0use-TE/Perch/releases/download/v1.0.1/Perch-win-arm64.exe)：骁龙等 ARM 电脑。
 
 启动后，小岛会出现在主屏幕顶部。点击齿轮打开设置，可以调整外观、开启需要的功能、排列导航栏。退出程序可以右键托盘图标。
 
@@ -22,7 +22,7 @@ Windows 版提供 x64 和 ARM64 两个版本，都是 AOT 单文件，下载后�
 - **日常工具**：音乐控制、番茄钟、待办、笔记、日历、天气和闹钟。
 - **随手存取**：剪贴板历史与置顶、文件中转、应用启动和全局搜索。
 - **AI 对话**：使用自己的模型服务，支持深度思考、联网搜索，也能帮你操作电脑。
-- **系统状态**：查看 CPU、内存、磁盘、网速和监听端口。
+- **系统与开发工具**：查看 CPU、内存、磁盘、网速，以及监听端口、环境变量与防火墙管理。
 - **小恐龙**：内置跑酷小游戏，休息时来一局，最高分会保留。
 
 外观可以选刘海或胶囊、纯黑或透明；支持中英文、快捷键和导航排序。设置、笔记和待办保存在本机，AI 和天气等在线功能按需联网。

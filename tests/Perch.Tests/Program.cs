@@ -15,6 +15,7 @@ try
     await ClipboardTests.Run();
     await SearchTests.Run();
     await StoreTests.Run();
+    await DesktopToolsTests.Run();
 #if WINDOWS
     await WindowsTests.Run();
 #endif

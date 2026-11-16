@@ -57,10 +57,10 @@ public partial class IslandWindow : Window
     private readonly DispatcherTimer pointerWatch = new() { Interval = TimeSpan.FromMilliseconds(50) };
     private bool pointerOver;
     private readonly DispatcherTimer outsideWatch = new() { Interval = TimeSpan.FromMilliseconds(60) };
-    private readonly DispatcherTimer backdropTimer = new() { Interval = TimeSpan.FromMilliseconds(100) };
+    private readonly DispatcherTimer backdropTimer = new() { Interval = TimeSpan.FromMilliseconds(80) };
     private readonly DispatcherTimer menuWatch = new() { Interval = TimeSpan.FromMilliseconds(40) };
     private ContextMenu? openMenu;
-    private bool menuOpen, backdropReady;
+    private bool menuOpen, flyoutOpen, aiConfirming, dinoEngaged, backdropReady;
     private (double?, double?, bool) appliedWeather;
     private (string, int) appliedCalendar = ("", 10);
     private const int HotkeyIslandId = 1, HotkeyNoteId = 2, HotkeySearchId = 3;
@@ -100,10 +100,16 @@ public partial class IslandWindow : Window
         controller.ExpansionChanged += _ => UpdateShape();
         model.ShapeChanged += UpdateShape;
         model.Ai.SettingsRequested += OpenAiSettings;
+        model.Ai.Sent += ReleaseTextFocus;
         model.Alarm.RingingChanged += OnAlarmRinging;
         model.Ai.ConfirmChanged += OnAiConfirm;
         model.Search.Navigate += id => SelectPage(Array.IndexOf(NavIds, id));
-        model.Dino.Engaged += () => { host?.BeginEditing(); controller.Edit(true); }; // the game takes the keyboard and keeps the island open
+        model.Dino.Engaged += () => { dinoEngaged = true; host?.BeginEditing(); UpdateEditing(); }; // the game takes the keyboard and keeps the island open
+        if (AiPanel.ModelFlyout is { } flyout)
+        {
+            flyout.Opened += (_, _) => { flyoutOpen = true; UpdateEditing(); };
+            flyout.Closed += (_, _) => { flyoutOpen = false; UpdateEditing(); };
+        }
         Program.SecondInstance += () => Dispatcher.UIThread.Post(() => { userHidden = false; ApplyVisibility(); controller.Open(); }); // started again: show the island
         animator.Frame += Draw;
         dragWatch.Tick += (_, _) => { if (!CursorOverIsland()) { dragWatch.Stop(); pointerOver = false; controller.Pointer(false); } };
@@ -133,12 +139,13 @@ public partial class IslandWindow : Window
         AddHandler(PointerReleasedEvent, OnContextMenu, RoutingStrategies.Tunnel);
         AddHandler(PointerPressedEvent, OnInputClick, RoutingStrategies.Tunnel);
         // Any text box on any page puts the island into editing mode so it stays open while typing.
-        AddHandler(GotFocusEvent, (_, e) => { if (e.Source is TextBox) controller.Edit(true); }, RoutingStrategies.Bubble, true);
+        AddHandler(GotFocusEvent, (_, e) => { if (e.Source is TextBox) UpdateEditing(); }, RoutingStrategies.Bubble, true);
+        AddHandler(LostFocusEvent, (_, e) => { if (e.Source is TextBox) Dispatcher.UIThread.Post(UpdateEditing, DispatcherPriority.Input); }, RoutingStrategies.Bubble, true);
         DragDrop.SetAllowDrop(this, true);
         AddHandler(DragDrop.DragEnterEvent, OnDragEnter);
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
         AddHandler(DragDrop.DropEvent, OnDrop);
-        Deactivated += (_, _) => { Perch.Interaction.Dbg.Log("window deactivated"); host?.Passive(); FocusManager?.Focus(null); if (!model.Alarm.IsRinging) controller.Edit(false); };
+        Deactivated += (_, _) => { Perch.Interaction.Dbg.Log("window deactivated"); dinoEngaged = false; host?.Passive(); FocusManager?.Focus(null); UpdateEditing(); };
         clock.Tick += OnClock;
         PropertyChanged += (_, e) => { if (e.Property == IsVisibleProperty) { if (IsVisible) RefreshClock(); else clock.Stop(); } };
         Opened += OnSourceReady;
@@ -302,6 +309,7 @@ public partial class IslandWindow : Window
         }
         host!.Offset = slide;
         PlaceHost();
+        if (ShellBackdrop.IsVisible) RefreshBackdrop();
         // the rim lights up while the island is inside the snapping zone and fades when it leaves or lands
         var glowWanted = slideDragging && Math.Abs(slideRaw) < SnapZone ? 1.0 : 0.0;
         slideGlow = animator.ReducedMotion ? glowWanted : slideGlow + (glowWanted - slideGlow) * (1 - Math.Exp(-dt * 16));
@@ -355,7 +363,7 @@ public partial class IslandWindow : Window
             var (_, scale) = host.WorkArea();
             if (Math.Abs(cursor - slideCursorStart) / scale < 5) return;
             slideDragging = true;
-            controller.Edit(true); // stays as it is (open or closed) for the whole drag
+            UpdateEditing(); // stays as it is (open or closed) for the whole drag
             slidePointer?.Capture(Stage);
             StartSlide();
         }
@@ -373,7 +381,7 @@ public partial class IslandWindow : Window
         // let go near the middle and it snaps there; otherwise it rests a little beyond where it was let go, as if it had been flicked
         var rest = Math.Clamp(slideRaw + Math.Clamp(slideVelocity * 0.06, -90, 90), -SlideLimit(), SlideLimit());
         slideTarget = Math.Abs(rest) < 44 ? 0 : rest;
-        controller.Edit(IsActive && IsKeyboardFocusWithin);
+        UpdateEditing();
         store.State.Settings.IslandOffset = slideTarget;
         store.Touch();
         e.Handled = true;
@@ -404,7 +412,7 @@ public partial class IslandWindow : Window
 
     private void ApplyPageHeight(bool animate)
     {
-        var extra = page == AiPage ? IslandOutline.TallExtra : 0;
+        var extra = page == AiPage || pages[page] == PortsPanel ? IslandOutline.TallExtra : 0;
         PageStage.Height = 176 + extra;
         var target = IslandOutline.ExpandedHeight + extra;
         if (Math.Abs(target - expandedHeight) < 0.5) return;
@@ -442,17 +450,22 @@ public partial class IslandWindow : Window
         ShellOutline.Data = outline;
         SnapRing.Data = outline;
         ShellContent.Clip = outline;
-        // Solid black when small, increasingly translucent as it opens.
-        if (Glass) IslandLook.SetGlassFill(ShellOutline, store.State.Settings, Math.Clamp(shapeH, 0, 1));
         // Frosted backdrop: only while (nearly) open; closed it is plain black and nothing is captured.
-        var frosted = Glass && backdropReady && shapeH > 0.04;
-        ShellBackdrop.IsVisible = frosted;
-        if (frosted)
+        var wantFrost = Glass && backdropReady && shapeH > 0.02;
+        if (wantFrost)
         {
             ShellBackdrop.Clip = outline;
             if (!backdropTimer.IsEnabled) { RefreshBackdrop(); backdropTimer.Start(); }
         }
-        else backdropTimer.Stop();
+        else
+        {
+            backdropTimer.Stop();
+            ShellBackdrop.Background = null;
+        }
+        var frosted = wantFrost && ShellBackdrop.Background != null;
+        ShellBackdrop.IsVisible = frosted;
+        // Solid black when small (or before the first backdrop sample is ready), increasingly translucent as it opens.
+        if (Glass) IslandLook.SetGlassFill(ShellOutline, store.State.Settings, frosted ? Math.Clamp(shapeH, 0, 1) : 0);
 
         // Content follows height: fades in over the second half of expanding, gone within the first 30% of collapsing.
         // The rate limit keeps a mid-flight reversal from making the opacity jump.
@@ -506,9 +519,12 @@ public partial class IslandWindow : Window
     {
         if (host == null || !backdropReady || !IsVisible) return;
 #if WINDOWS
-        var picture = BackdropCapture.Grab(host.ScreenRect());
-        if (picture == null) return;
-        ShellBackdrop.Background = new ImageBrush(picture) { Stretch = Stretch.Fill, TileMode = TileMode.None };
+        BackdropCapture.SampleAsync(host.Handle, host.ScreenRect(), ShellBackdrop, onReady: () =>
+        {
+            var frosted = Glass && backdropReady && shapeH > 0.02 && ShellBackdrop.Background != null;
+            ShellBackdrop.IsVisible = frosted;
+            if (Glass) IslandLook.SetGlassFill(ShellOutline, store.State.Settings, frosted ? Math.Clamp(shapeH, 0, 1) : 0);
+        });
 #endif
     }
 
@@ -581,8 +597,8 @@ public partial class IslandWindow : Window
         menu.Items.Add(new Separator());
         menu.Items.Add(Item("Menu.Exit", App.Quit));
         // While the menu is open the island must not collapse under it.
-        menu.Opened += (_, _) => { menuOpen = true; openMenu = menu; menuWatch.Start(); controller.Edit(true); };
-        menu.Closed += (_, _) => { menuOpen = false; openMenu = null; menuWatch.Stop(); controller.Edit(IsActive && IsKeyboardFocusWithin); };
+        menu.Opened += (_, _) => { menuOpen = true; openMenu = menu; menuWatch.Start(); UpdateEditing(); };
+        menu.Closed += (_, _) => { menuOpen = false; openMenu = null; menuWatch.Stop(); UpdateEditing(); };
         menu.Open(Stage);
         e.Handled = true;
     }
@@ -594,7 +610,7 @@ public partial class IslandWindow : Window
         if (controller.State == InteractionState.Compact) return false;
         object? hit = null;
         for (var visual = this.InputHitTest(point) as Visual; visual != null && hit == null; visual = visual.GetVisualParent())
-            if (visual is StyledElement { DataContext: NoteItem or TodoItem or ClipItem or TrayFile or CommandItem or PortEntry or ChatLine } element) hit = element.DataContext;
+            if (visual is StyledElement { DataContext: NoteItem or TodoItem or ClipItem or TrayFile or CommandItem or PortEntry or EnvironmentEntry or FirewallEntry or ChatLine } element) hit = element.DataContext;
 
         var first = menu.Items.Count;
         void Act(string key, Action action, bool? check = null)
@@ -655,12 +671,29 @@ public partial class IslandWindow : Window
             if (hit is ChatLine { Text.Length: > 0 } line) Act("Menu.Copy", () => Copy(line.Text));
             Act("Ai.New", () => model.Ai.NewChat.Execute(null));
         }
-        else if (current == PortsPanel && hit is PortEntry port)
+        else if (current == PortsPanel && model.Ports.IsPorts && hit is PortEntry port)
         {
             Act("Ports.CopyPort", () => model.Ports.CopyPort.Execute(port));
             Act("Ports.CopyAddress", () => model.Ports.CopyAddress.Execute(port));
             Act("Ports.OpenBrowser", () => model.Ports.OpenBrowser.Execute(port));
             if (port.Path != null) Act("Tray.Reveal", () => model.Ports.Reveal.Execute(port));
+            if (model.Ports.WindowsTools)
+            {
+                Act("Tools.RelatedRules", () => model.Ports.RelatedFirewall(port));
+                Act("Tools.AddRule", () => PortsPanel.AddRule(port));
+            }
+            if (port.CanTerminate) Act("Tools.EndProcess", () => PortsPanel.ConfirmEndProcess(port));
+        }
+        else if (current == PortsPanel && model.Ports.IsEnvironment && hit is EnvironmentEntry env)
+        {
+            Act("Menu.Copy", () => model.Ports.CopyVariable(env));
+            Act("Tools.Edit", () => model.Ports.OpenVariableEditor(env));
+            Act("Tools.Delete", () => model.Ports.AskDeleteVariable.Execute(env));
+        }
+        else if (current == PortsPanel && model.Ports.IsFirewall && hit is FirewallEntry rule && rule.Editable)
+        {
+            Act(rule.Enabled ? "Tools.Disable" : "Tools.Enable", () => model.Ports.AskToggleRule.Execute(rule));
+            if (rule.Deletable) Act("Tools.Delete", () => model.Ports.AskDeleteRule.Execute(rule));
         }
         else if (current == AppsPanel && hit is CommandItem command)
         {
@@ -730,6 +763,20 @@ public partial class IslandWindow : Window
     {
         for (var hit = e.Source as Visual; hit != null; hit = hit.GetVisualParent())
             if (hit is TextBox) { host?.BeginEditing(); return; }
+        if (FocusManager?.GetFocusedElement() is TextBox) ReleaseTextFocus();
+    }
+
+    private void ReleaseTextFocus()
+    {
+        FocusManager?.Focus(null);
+        if (!dinoEngaged) host?.Passive();
+        UpdateEditing();
+    }
+
+    private void UpdateEditing()
+    {
+        var focusedText = IsActive && FocusManager?.GetFocusedElement() is TextBox;
+        controller.Edit(slideDragging || menuOpen || flyoutOpen || model.Alarm.IsRinging || aiConfirming || dinoEngaged || focusedText);
     }
 
     private void OnPin(object? sender, RoutedEventArgs e) => controller.TogglePin();
@@ -738,8 +785,8 @@ public partial class IslandWindow : Window
     private void OnTab(object? sender, RoutedEventArgs e)
     {
         if (tabDragged || (DateTime.Now - tabDropped).TotalMilliseconds < 400) { tabDragged = false; return; } // the release that ends a drag is not a click
-        FocusManager?.Focus(null);
-        controller.Edit(false);
+        dinoEngaged = false;
+        ReleaseTextFocus();
         SelectPage(int.Parse((string)((Button)sender!).Tag!));
     }
 
@@ -1214,6 +1261,12 @@ public partial class IslandWindow : Window
         if (over == pointerOver) return;
         pointerOver = over;
         Perch.Interaction.Dbg.Log($"pointer over island: {over}");
+        // When the pointer leaves the island in leave-to-collapse mode, release text-box focus so the island can fold.
+        if (!over && controller.CollapseOnLeave && !slideDragging && !menuOpen && !flyoutOpen && !model.Alarm.IsRinging && !aiConfirming)
+        {
+            dinoEngaged = false;
+            ReleaseTextFocus();
+        }
         controller.Pointer(over);
     }
 
@@ -1233,22 +1286,21 @@ public partial class IslandWindow : Window
         {
             if (!IsVisible) { userHidden = false; ApplyVisibility(); }
             SelectPage(AlarmPage);
-            controller.Edit(true);
         }
-        else controller.Edit(IsActive && IsKeyboardFocusWithin);
+        UpdateEditing();
     }
 
     // An AI action waits for the user's OK: bring the island up on the chat and keep it open until it is answered.
     private void OnAiConfirm(bool asking)
     {
+        aiConfirming = asking;
         if (asking)
         {
             if (!IsVisible) { userHidden = false; ApplyVisibility(); }
             controller.Open();
             SelectPage(Array.IndexOf(NavIds, "ai"));
-            controller.Edit(true);
         }
-        else controller.Edit(IsActive && IsKeyboardFocusWithin);
+        UpdateEditing();
     }
 
     private void OpenAiSettings() { OpenSettings(); settingsWindow?.ShowAiPage(); }
@@ -1286,8 +1338,15 @@ public partial class IslandWindow : Window
     private void ApplyVisibility()
     {
         var hide = userHidden || (store.State.Settings.HideInFullscreen && fullscreen?.IsFullscreen == true);
-        if (hide && IsVisible) { Hide(); controller.Edit(false); pointerOver = false; controller.Pointer(false); }
-        else if (!hide && !IsVisible) { Show(); Reposition(); }
+        if (hide && IsVisible) { Hide(); dinoEngaged = false; ReleaseTextFocus(); pointerOver = false; controller.Pointer(false); }
+        else if (!hide && !IsVisible)
+        {
+            Show();
+#if WINDOWS
+            if (host != null) WindowBackdrop.NoteShown(host.Handle);
+#endif
+            Reposition();
+        }
     }
 
     private void ToggleVisible()

@@ -6,7 +6,7 @@ using Perch.Services;
 
 namespace Perch.ViewModels;
 
-public enum HitKind { App, Todo, Note, Clip }
+public enum HitKind { App, Todo, Note, Clip, Port, Env }
 
 // One line of the search results: what it is, what to show, and the thing itself.
 public sealed class SearchHit(HitKind kind, string title, string detail, object source, string header, Bitmap? icon = null)
@@ -22,7 +22,7 @@ public sealed class SearchHit(HitKind kind, string title, string detail, object 
     public bool HasIcon => Icon != null;
     public bool NoIcon => Icon == null;
     // Segoe Fluent Icons: the same glyphs as the pages' tabs.
-    public string Glyph => Kind switch { HitKind.Todo => "", HitKind.Note => "", HitKind.Clip => "", _ => "" };
+    public string Glyph => Kind switch { HitKind.Todo => "", HitKind.Note => "", HitKind.Clip => "", HitKind.Port or HitKind.Env => "", _ => "" };
 }
 
 // One search box over everything Perch holds: installed apps, to-dos, notes and the clipboard history. Every word typed must
@@ -36,6 +36,7 @@ public sealed class SearchViewModel : Observable
     private readonly NotesViewModel notes;
     private readonly ClipboardViewModel clipboard;
     private readonly LauncherViewModel launcher;
+    private readonly PortsViewModel? ports;
     private string query = "";
     private SearchHit? selected;
 
@@ -49,9 +50,9 @@ public sealed class SearchViewModel : Observable
     // Asks the window to show a page ("todo", "notes"); the hit's own item is already selected there.
     public event Action<string>? Navigate;
 
-    public SearchViewModel(Store store, TodoViewModel todo, NotesViewModel notes, ClipboardViewModel clipboard, LauncherViewModel launcher)
+    public SearchViewModel(Store store, TodoViewModel todo, NotesViewModel notes, ClipboardViewModel clipboard, LauncherViewModel launcher, PortsViewModel? ports = null)
     {
-        this.store = store; this.todo = todo; this.notes = notes; this.clipboard = clipboard; this.launcher = launcher;
+        this.store = store; this.todo = todo; this.notes = notes; this.clipboard = clipboard; this.launcher = launcher; this.ports = ports;
         Open = new RelayCommand(p => { if (p is SearchHit hit) Activate(hit); });
         // Apps are read from the Start menu in the background; results appear once they have been.
         launcher.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(LauncherViewModel.Status)) Run(); };
@@ -61,6 +62,8 @@ public sealed class SearchViewModel : Observable
     public void Reset()
     {
         launcher.EnsureLoaded();
+        ports?.EnsurePortsLoaded();
+        ports?.EnsureEnvironmentLoaded();
         query = "";
         Changed(nameof(Query));
         Run();
@@ -88,6 +91,8 @@ public sealed class SearchViewModel : Observable
             case ClipItem clip: clipboard.Copy.Execute(clip); break;
             case TodoItem: Navigate?.Invoke("todo"); break;
             case NoteItem note: notes.Selected = note; Navigate?.Invoke("notes"); break;
+            case PortEntry port: ports?.FocusPort(port); Navigate?.Invoke("ports"); break;
+            case EnvironmentEntry env: ports?.FocusVariable(env); Navigate?.Invoke("ports"); break;
         }
     }
 
@@ -130,6 +135,22 @@ public sealed class SearchViewModel : Observable
         if (s.ShowClipboard)
             Add(HitKind.Clip, Loc.T(idle ? "Search.RecentClips" : "Search.Clipboard"),
                 clipboard.Items.Where(c => !c.IsImage && (idle || Matches(c.Text))).Select(c => (c, c.Preview, c.TimeLabel, (Bitmap?)null)), idle ? 3 : PerGroup);
+        if (!idle && s.ShowPorts && ports != null)
+        {
+            ports.EnsurePortsLoaded();
+            Add(HitKind.Port, Loc.T("Tools.Ports"),
+                ports.AllPorts.Where(p => Matches($"{p.Port} {p.Process} {p.Pid}"))
+                .OrderBy(p => Rank(p.Port.ToString())).ThenBy(p => p.Port)
+                .Select(p => (p, $"{p.Process}  :{p.Port}", p.ScopeText, p.Icon)), 4);
+            if (ports.WindowsTools)
+            {
+                ports.EnsureEnvironmentLoaded();
+                Add(HitKind.Env, Loc.T("Tools.Environment"),
+                    ports.AllVariables.Where(v => Matches(v.Name))
+                    .OrderBy(v => Rank(v.Name)).ThenBy(v => v.Name.Length)
+                    .Select(v => (v, v.Name, $"{v.ScopeText} · {v.Preview}", (Bitmap?)null)), 4);
+            }
+        }
         Selected = Hits.FirstOrDefault();
         Changed(nameof(NoResults));
     }

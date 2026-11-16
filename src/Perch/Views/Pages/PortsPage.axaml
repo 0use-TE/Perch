@@ -1,47 +1,276 @@
-<UserControl x:Class="Perch.Views.Pages.PortsPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:Perch.ViewModels" x:DataType="vm:PortsViewModel">
- <!-- DataContext is the ports view model: programs listening on this machine, and who can reach them. -->
+<UserControl x:Class="Perch.Views.Pages.PortsPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:Perch.ViewModels" xmlns:services="using:Perch.Services" x:DataType="vm:PortsViewModel">
+ <!-- DataContext is the ports and developer tools view model: listening ports, environment variables and firewall rules. -->
+ <UserControl.Styles>
+  <Style Selector="Button.SavePill"><Setter Property="Padding" Value="18,6"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Foreground" Value="#1A1208"/><Setter Property="FontSize" Value="12.5"/><Setter Property="FontWeight" Value="SemiBold"/>
+   <Setter Property="Template"><ControlTemplate><Border x:Name="Body" CornerRadius="14" Background="#FFAE54" Padding="{TemplateBinding Padding}"><ContentPresenter Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter></Style>
+  <Style Selector="Button.SavePill:pointerover /template/ Border#Body"><Setter Property="Background" Value="#FFC07A"/></Style>
+  <Style Selector="Button.SavePill:disabled /template/ Border#Body"><Setter Property="Opacity" Value="0.4"/></Style>
+  <Style Selector="Path.Spinner">
+   <Setter Property="RenderTransformOrigin" Value="50%,50%"/>
+   <Setter Property="RenderTransform"><RotateTransform/></Setter>
+   <Style.Animations>
+    <Animation Duration="0:0:0.8" IterationCount="Infinite">
+     <KeyFrame Cue="0%"><Setter Property="RotateTransform.Angle" Value="0"/></KeyFrame>
+     <KeyFrame Cue="100%"><Setter Property="RotateTransform.Angle" Value="360"/></KeyFrame>
+    </Animation>
+   </Style.Animations>
+  </Style>
+ </UserControl.Styles>
+
  <Grid>
-  <Grid.RowDefinitions><RowDefinition Height="34"/><RowDefinition Height="20"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-  <Grid>
-   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-   <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-    <ToggleButton Content="{DynamicResource Ports.All}" IsChecked="{Binding ShowsAll, Mode=OneWay}" Command="{Binding SetFilter}" CommandParameter="all" Classes="Chip"/>
-    <ToggleButton Content="{DynamicResource Ports.Local}" IsChecked="{Binding ShowsLocal, Mode=OneWay}" Command="{Binding SetFilter}" CommandParameter="local" Margin="4,0,0,0" Classes="Chip"/>
-    <ToggleButton Content="{DynamicResource Ports.Exposed}" IsChecked="{Binding ShowsExposed, Mode=OneWay}" Command="{Binding SetFilter}" CommandParameter="exposed" Margin="4,0,0,0" Classes="Chip"/>
+  <!-- ============ Browse mode ============ -->
+  <Grid IsVisible="{Binding IsBrowsing}" RowDefinitions="34,*">
+   <!-- Unified top bar: section chips on the left, context filter chips next to them, search & icon actions on the right -->
+   <Grid ColumnDefinitions="Auto,*,Auto">
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" IsEnabled="{Binding Ready}">
+     <ToggleButton Content="{DynamicResource Tools.Ports}" IsChecked="{Binding IsPorts, Mode=OneWay}" Command="{Binding SelectSection}" CommandParameter="ports" Classes="Chip"/>
+     <ToggleButton Content="{DynamicResource Tools.Environment}" IsChecked="{Binding IsEnvironment, Mode=OneWay}" Command="{Binding SelectSection}" CommandParameter="environment" IsVisible="{Binding WindowsTools}" Margin="2,0,0,0" Classes="Chip"/>
+     <ToggleButton Content="{DynamicResource Tools.Firewall}" IsChecked="{Binding IsFirewall, Mode=OneWay}" Command="{Binding SelectSection}" CommandParameter="firewall" IsVisible="{Binding WindowsTools}" Margin="2,0,0,0" Classes="Chip"/>
+
+     <Border Width="1" Height="14" Background="#26262A" Margin="8,0" VerticalAlignment="Center" IsVisible="{Binding IsPorts}"/>
+     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" IsVisible="{Binding IsPorts}">
+      <ToggleButton Content="{DynamicResource Ports.All}" IsChecked="{Binding ShowsAll, Mode=OneWay}" Command="{Binding SetFilter}" CommandParameter="all" Classes="Chip"/>
+      <ToggleButton Content="{DynamicResource Ports.Local}" IsChecked="{Binding ShowsLocal, Mode=OneWay}" Command="{Binding SetFilter}" CommandParameter="local" Margin="2,0,0,0" Classes="Chip"/>
+      <ToggleButton Content="{DynamicResource Ports.Exposed}" IsChecked="{Binding ShowsExposed, Mode=OneWay}" Command="{Binding SetFilter}" CommandParameter="exposed" Margin="2,0,0,0" Classes="Chip"/>
+     </StackPanel>
+
+     <Border Width="1" Height="14" Background="#26262A" Margin="8,0" VerticalAlignment="Center" IsVisible="{Binding IsEnvironment}"/>
+     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" IsVisible="{Binding IsEnvironment}">
+      <ToggleButton Content="{DynamicResource Tools.User}" IsChecked="{Binding UserScope, Mode=OneWay}" Command="{Binding SelectScope}" CommandParameter="User" Classes="Chip"/>
+      <ToggleButton Content="{DynamicResource Tools.Machine}" IsChecked="{Binding MachineScope, Mode=OneWay}" Command="{Binding SelectScope}" CommandParameter="Machine" Margin="2,0,0,0" Classes="Chip"/>
+     </StackPanel>
+
+     <Border Width="1" Height="14" Background="#26262A" Margin="8,0" VerticalAlignment="Center" IsVisible="{Binding IsFirewall}"/>
+     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" IsVisible="{Binding IsFirewall}">
+      <ToggleButton Content="{DynamicResource Tools.PortOnly}" IsChecked="{Binding FirewallPortOnly, Mode=OneWay}" Command="{Binding SetFirewallFilter}" CommandParameter="port" Classes="Chip"/>
+      <ToggleButton Content="{DynamicResource Tools.PerchOnly}" IsChecked="{Binding FirewallPerchOnly, Mode=OneWay}" Command="{Binding SetFirewallFilter}" CommandParameter="perch" Margin="2,0,0,0" Classes="Chip"/>
+      <ToggleButton Content="{DynamicResource Ports.All}" IsChecked="{Binding FirewallAll, Mode=OneWay}" Command="{Binding SetFirewallFilter}" CommandParameter="all" Margin="2,0,0,0" Classes="Chip"/>
+     </StackPanel>
+    </StackPanel>
+
+    <TextBlock Grid.Column="1" Text="{Binding StatusText}" ToolTip.Tip="{Binding StatusText}" IsVisible="{Binding HasStatusText}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="8,0,10,0" TextTrimming="CharacterEllipsis" Classes="Caption"/>
+
+    <!-- Right controls for Ports -->
+    <Grid Grid.Column="2" Width="176" VerticalAlignment="Center" IsVisible="{Binding IsPorts}">
+     <TextBox MinHeight="30" Text="{Binding Search}" AutomationProperties.Name="{DynamicResource Ports.Search}" Classes="Quiet Compact"/>
+     <TextBlock Text="{DynamicResource Ports.Search}" Margin="12,0,0,0" Classes="Placeholder" IsVisible="{Binding Search, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+    </Grid>
+
+    <!-- Right controls for Environment -->
+    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="2" IsVisible="{Binding IsEnvironment}" IsEnabled="{Binding Ready}">
+     <Grid Width="176" Margin="0,0,4,0">
+      <TextBox MinHeight="30" Text="{Binding ToolsSearch}" AutomationProperties.Name="{DynamicResource Tools.SearchVariable}" Classes="Quiet Compact"/>
+      <TextBlock Text="{DynamicResource Tools.SearchVariable}" Margin="12,0,0,0" Classes="Placeholder" IsVisible="{Binding ToolsSearch, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+     </Grid>
+     <Button Command="{Binding BeginAddVariable}" ToolTip.Tip="{DynamicResource Tools.AddVariable}" AutomationProperties.Name="{DynamicResource Tools.Add}" Classes="Nav Small">
+      <TextBlock Text="&#xE710;" FontSize="13" Foreground="#FFAE54" Classes="Glyph"/>
+     </Button>
+     <Button Command="{Binding ReloadTools}" ToolTip.Tip="{DynamicResource Tools.Refresh}" AutomationProperties.Name="{DynamicResource Tools.Refresh}" Classes="Nav Small">
+      <TextBlock Text="&#xE72C;" FontSize="12" Foreground="#8A8A90" Classes="Glyph"/>
+     </Button>
+    </StackPanel>
+
+    <!-- Right controls for Firewall -->
+    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="2" IsVisible="{Binding IsFirewall}" IsEnabled="{Binding Ready}">
+     <Grid Width="176" Margin="0,0,4,0">
+      <TextBox MinHeight="30" Text="{Binding ToolsSearch}" AutomationProperties.Name="{DynamicResource Tools.SearchRule}" Classes="Quiet Compact"/>
+      <TextBlock Text="{DynamicResource Tools.SearchRule}" Margin="12,0,0,0" Classes="Placeholder" IsVisible="{Binding ToolsSearch, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+     </Grid>
+     <Button Command="{Binding BeginAddRule}" ToolTip.Tip="{DynamicResource Tools.AddRule}" AutomationProperties.Name="{DynamicResource Tools.AddRule}" Classes="Nav Small">
+      <TextBlock Text="&#xE710;" FontSize="13" Foreground="#FFAE54" Classes="Glyph"/>
+     </Button>
+     <Button Command="{Binding OpenAdvancedFirewall}" ToolTip.Tip="{DynamicResource Tools.Advanced}" AutomationProperties.Name="{DynamicResource Tools.Advanced}" Classes="Nav Small">
+      <TextBlock Text="&#xE8A7;" FontSize="12" Foreground="#8A8A90" Classes="Glyph"/>
+     </Button>
+     <Button Command="{Binding ReloadTools}" ToolTip.Tip="{DynamicResource Tools.Refresh}" AutomationProperties.Name="{DynamicResource Tools.Refresh}" Classes="Nav Small">
+      <TextBlock Text="&#xE72C;" FontSize="12" Foreground="#8A8A90" Classes="Glyph"/>
+     </Button>
+    </StackPanel>
+   </Grid>
+
+   <!-- Centered loading spinner for Environment / Firewall -->
+   <StackPanel Grid.Row="1" IsVisible="{Binding ToolsLoading}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
+    <Grid Width="28" Height="28" HorizontalAlignment="Center">
+     <Ellipse Width="28" Height="28" Stroke="#26262C" StrokeThickness="2.4"/>
+     <Path Data="M 14,1.2 A 12.8,12.8 0 0 1 26.8,14" Stroke="#FFAE54" StrokeThickness="2.4" StrokeLineCap="Round" Width="28" Height="28" Classes="Spinner"/>
+    </Grid>
+    <TextBlock Text="{DynamicResource Tools.Loading}" HorizontalAlignment="Center" Classes="Caption"/>
    </StackPanel>
-   <Grid Grid.Column="2" Width="230" HorizontalAlignment="Right" VerticalAlignment="Center">
-    <TextBox MinHeight="30" Text="{Binding Search}" AutomationProperties.Name="{DynamicResource Ports.Search}" Classes="Quiet Compact"/>
-    <TextBlock Text="{DynamicResource Ports.Search}" Margin="13,0,0,0" Classes="Placeholder" IsVisible="{Binding Search, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+
+   <!-- Section 1: Listening ports -->
+   <Grid Grid.Row="1" IsVisible="{Binding IsPorts}" RowDefinitions="20,*">
+    <Grid Margin="14,0,24,0" ColumnDefinitions="34,*,86,142,86">
+     <TextBlock Grid.Column="1" Text="{DynamicResource Ports.Process}" VerticalAlignment="Center" Classes="Caption"/>
+     <TextBlock Grid.Column="2" Text="{DynamicResource Ports.Port}" VerticalAlignment="Center" Classes="Caption"/>
+     <TextBlock Grid.Column="3" Text="{DynamicResource Ports.Reach}" VerticalAlignment="Center" Classes="Caption"/>
+    </Grid>
+    <TextBlock Grid.Row="1" Text="{DynamicResource Ports.Empty}" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsEmpty}" Classes="Placeholder"/>
+    <ListBox Grid.Row="1" SelectedItem="{Binding SelectedPort}" ItemsSource="{Binding Items}" ScrollViewer.VerticalScrollBarVisibility="Auto" Classes="Bare">
+     <ListBox.ItemTemplate><DataTemplate x:DataType="vm:PortEntry">
+      <Grid Margin="6,0,8,0" Height="36" Background="Transparent" ToolTip.Tip="{Binding Tip}" ColumnDefinitions="34,*,86,142,86">
+       <Grid Width="26" Height="26" HorizontalAlignment="Left">
+        <Image Source="{Binding Icon}" Width="24" Height="24" IsVisible="{Binding HasIcon}" RenderOptions.BitmapInterpolationMode="HighQuality"/>
+        <TextBlock Text="&#xE71D;" FontSize="17" Foreground="#77777D" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding NoIcon}" Classes="Glyph"/>
+       </Grid>
+       <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
+        <TextBlock Text="{Binding Process}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+        <TextBlock Text="{Binding Detail}" Classes="Caption"/>
+       </StackPanel>
+       <TextBlock Grid.Column="2" Text="{Binding Port}" FontSize="14" FontWeight="SemiBold" FontFamily="Cascadia Mono, Consolas" Foreground="#FFAE54" VerticalAlignment="Center"/>
+       <Border Grid.Column="3" HorizontalAlignment="Left" VerticalAlignment="Center" CornerRadius="9" Padding="9,2" Background="{Binding Exposed, Converter={StaticResource Pick}, ConverterParameter=#2A1F12|#242428}">
+        <TextBlock Text="{Binding ScopeText}" FontSize="11.5" TextTrimming="CharacterEllipsis" MaxWidth="124" Foreground="{Binding Exposed, Converter={StaticResource Pick}, ConverterParameter=#FFAE54|#B9B9C0}"/>
+       </Border>
+       <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+        <Button Command="{Binding $parent[UserControl].((vm:PortsViewModel)DataContext).Reveal}" CommandParameter="{Binding}" IsVisible="{Binding HasPath}" ToolTip.Tip="{DynamicResource Tray.Reveal}" AutomationProperties.Name="{DynamicResource Tray.Reveal}" Classes="Nav Small">
+         <TextBlock Text="&#xE8DA;" FontSize="12" Foreground="#8A8A90" Classes="Glyph"/>
+        </Button>
+        <Button Command="{Binding $parent[UserControl].((vm:PortsViewModel)DataContext).OpenBrowser}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Ports.OpenBrowser}" AutomationProperties.Name="{DynamicResource Ports.OpenBrowser}" Classes="Nav Small">
+         <TextBlock Text="&#xE774;" FontSize="12" Foreground="#8A8A90" Classes="Glyph"/>
+        </Button>
+        <Button Command="{Binding $parent[UserControl].((vm:PortsViewModel)DataContext).AskEndProcess}" CommandParameter="{Binding}" IsVisible="{Binding CanTerminate}" ToolTip.Tip="{DynamicResource Tools.EndProcess}" AutomationProperties.Name="{DynamicResource Tools.EndProcess}" Classes="Nav Small">
+         <TextBlock Text="&#xE711;" FontSize="11" Foreground="#77777D" Classes="Glyph"/>
+        </Button>
+       </StackPanel>
+      </Grid>
+     </DataTemplate></ListBox.ItemTemplate>
+    </ListBox>
+   </Grid>
+
+   <!-- Section 2: Environment variables -->
+   <Grid Grid.Row="1" IsVisible="{Binding IsEnvironment}" Margin="0,6,0,0">
+    <TextBlock Text="{DynamicResource Tools.Empty}" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding ToolsEmpty}" Classes="Placeholder"/>
+    <ListBox ItemsSource="{Binding Variables}" SelectedItem="{Binding SelectedVariable}" IsVisible="{Binding ShowToolsList}" ScrollViewer.VerticalScrollBarVisibility="Auto" Classes="Bare">
+     <ListBox.ItemTemplate><DataTemplate x:DataType="services:EnvironmentEntry">
+      <Grid>
+       <Button Command="{Binding $parent[UserControl].((vm:PortsViewModel)DataContext).BeginEditVariable}" CommandParameter="{Binding}" HorizontalContentAlignment="Stretch" ToolTip.Tip="{Binding Preview}" Classes="Tile">
+        <Grid Margin="10,6,64,6" ColumnDefinitions="188,*">
+         <TextBlock Text="{Binding Name}" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,10,0"/>
+         <TextBlock Grid.Column="1" Text="{Binding Preview}" FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#8A8A92" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+        </Grid>
+       </Button>
+       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,4,0">
+        <Button Command="{Binding $parent[UserControl].((vm:PortsViewModel)DataContext).BeginEditVariable}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Tools.Edit}" AutomationProperties.Name="{DynamicResource Tools.Edit}" Classes="Nav Small">
+         <TextBlock Text="&#xE70F;" FontSize="11" Foreground="#8A8A90" Classes="Glyph"/>
+        </Button>
+        <Button Command="{Binding $parent[UserControl].((vm:PortsViewModel)DataContext).AskDeleteVariable}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Tools.Delete}" AutomationProperties.Name="{DynamicResource Tools.Delete}" Classes="Nav Small">
+         <TextBlock Text="&#xE74D;" FontSize="11" Foreground="#77777D" Classes="Glyph"/>
+        </Button>
+       </StackPanel>
+      </Grid>
+     </DataTemplate></ListBox.ItemTemplate>
+    </ListBox>
+   </Grid>
+
+   <!-- Section 3: Firewall rules -->
+   <Grid Grid.Row="1" IsVisible="{Binding IsFirewall}" Margin="0,6,0,0">
+    <TextBlock Text="{DynamicResource Tools.Empty}" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding ToolsEmpty}" Classes="Placeholder"/>
+    <ListBox ItemsSource="{Binding Rules}" SelectedItem="{Binding SelectedRule}" IsVisible="{Binding ShowToolsList}" ScrollViewer.VerticalScrollBarVisibility="Auto" Classes="Bare">
+     <ListBox.ItemTemplate><DataTemplate x:DataType="services:FirewallEntry">
+      <Grid Margin="8,0,6,0" Height="36" Background="Transparent" ToolTip.Tip="{Binding Tip}" ColumnDefinitions="*,Auto,60">
+       <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
+        <TextBlock Text="{Binding Name}" FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+        <TextBlock Text="{Binding Detail}" TextTrimming="CharacterEllipsis" Classes="Caption"/>
+       </StackPanel>
+       <Border Grid.Column="1" VerticalAlignment="Center" CornerRadius="9" Padding="8,2" Margin="0,0,6,0" Background="{Binding Enabled, Converter={StaticResource Pick}, ConverterParameter=#1C291E|#242428}">
+        <TextBlock Text="{Binding StateText}" FontSize="11" Foreground="{Binding Enabled, Converter={StaticResource Pick}, ConverterParameter=#88D498|#8A8A92}"/>
+       </Border>
+       <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+        <Button Command="{Binding $parent[UserControl].((vm:PortsViewModel)DataContext).AskToggleRule}" CommandParameter="{Binding}" IsEnabled="{Binding Editable}" ToolTip.Tip="{Binding ToggleText}" AutomationProperties.Name="{Binding ToggleText}" Classes="Nav Small">
+         <TextBlock Text="&#xE7E8;" FontSize="12" Foreground="{Binding Enabled, Converter={StaticResource Pick}, ConverterParameter=#FFAE54|#77777D}" Classes="Glyph"/>
+        </Button>
+        <Button Command="{Binding $parent[UserControl].((vm:PortsViewModel)DataContext).AskDeleteRule}" CommandParameter="{Binding}" IsVisible="{Binding Deletable}" ToolTip.Tip="{DynamicResource Tools.Delete}" AutomationProperties.Name="{DynamicResource Tools.Delete}" Classes="Nav Small">
+         <TextBlock Text="&#xE74D;" FontSize="11" Foreground="#77777D" Classes="Glyph"/>
+        </Button>
+       </StackPanel>
+      </Grid>
+     </DataTemplate></ListBox.ItemTemplate>
+    </ListBox>
    </Grid>
   </Grid>
 
-  <!-- Column captions -->
-  <Grid Grid.Row="1" Margin="14,0,24,0">
-   <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/><ColumnDefinition Width="86"/><ColumnDefinition Width="150"/></Grid.ColumnDefinitions>
-   <TextBlock Grid.Column="1" Text="{DynamicResource Ports.Process}" VerticalAlignment="Center" Classes="Caption"/>
-   <TextBlock Grid.Column="2" Text="{DynamicResource Ports.Port}" VerticalAlignment="Center" Classes="Caption"/>
-   <TextBlock Grid.Column="3" Text="{DynamicResource Ports.Reach}" VerticalAlignment="Center" Classes="Caption"/>
+  <!-- ============ Inline Environment Variable Editor ============ -->
+  <Grid IsVisible="{Binding IsEditingEnv}" RowDefinitions="34,*">
+   <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+    <TextBlock Text="{Binding EditEnvTitle}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Margin="4,0,10,0"/>
+    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="2">
+     <ToggleButton Content="{DynamicResource Tools.User}" IsChecked="{Binding EditEnvUser, Mode=OneWay}" Command="{Binding SetEditEnvScope}" CommandParameter="User" IsEnabled="{Binding EditEnvCanChangeScope}" Classes="Chip"/>
+     <ToggleButton Content="{DynamicResource Tools.Machine}" IsChecked="{Binding EditEnvMachine, Mode=OneWay}" Command="{Binding SetEditEnvScope}" CommandParameter="Machine" IsEnabled="{Binding EditEnvCanChangeScope}" Classes="Chip"/>
+     <ToggleButton Content="{DynamicResource Tools.RevealValue}" IsChecked="{Binding EditEnvReveal}" IsVisible="{Binding EditEnvIsSecret}" Margin="6,0,0,0" Classes="Chip"/>
+     <Button Content="{Binding CleanMissingLabel}" Command="{Binding CleanMissingPaths}" IsVisible="{Binding HasMissingPaths}" Margin="6,0,0,0" Foreground="#FFAE54" Classes="Text"/>
+    </StackPanel>
+    <TextBlock Grid.Column="2" Text="{Binding EditError}" IsVisible="{Binding HasEditError}" Foreground="#FF9A8A" FontSize="11.5" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="8,0,10,0" TextTrimming="CharacterEllipsis"/>
+    <Button Grid.Column="3" Content="{DynamicResource Tools.Cancel}" Command="{Binding CancelOverlay}" IsEnabled="{Binding Ready}" Margin="0,0,6,0" Classes="Text"/>
+    <Button Grid.Column="4" Content="{DynamicResource Tools.Save}" Command="{Binding SaveVariable}" IsEnabled="{Binding Ready}" Classes="SavePill"/>
+   </Grid>
+
+   <!-- Single-line variable editor -->
+   <StackPanel Grid.Row="1" IsVisible="{Binding EditEnvSingleLine}" Spacing="10" Margin="0,12,0,0">
+    <Grid ColumnDefinitions="200,8,*">
+     <Grid>
+      <TextBox MinHeight="34" Text="{Binding EditEnvName}" IsReadOnly="{Binding !EditEnvCanChangeScope}" AutomationProperties.Name="{DynamicResource Tools.Name}" Classes="Quiet Compact"/>
+      <TextBlock Text="{DynamicResource Tools.Name}" Margin="13,0,0,0" Classes="Placeholder" IsVisible="{Binding EditEnvName, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+     </Grid>
+     <Grid Grid.Column="2">
+      <TextBox MinHeight="34" Text="{Binding EditEnvValue}" PasswordChar="{Binding EditEnvMask}" FontFamily="Cascadia Mono, Consolas" AutomationProperties.Name="{DynamicResource Tools.Value}" Classes="Quiet Compact"/>
+      <TextBlock Text="{DynamicResource Tools.Value}" Margin="13,0,0,0" Classes="Placeholder" IsVisible="{Binding EditEnvValue, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+     </Grid>
+    </Grid>
+    <TextBlock Text="{DynamicResource Tools.EnvironmentHint}" Margin="4,0,0,0" TextWrapping="Wrap" Classes="Caption"/>
+   </StackPanel>
+
+   <!-- Multi-line PATH editor (one directory per line) -->
+   <Grid Grid.Row="1" IsVisible="{Binding EditEnvIsPath}" Margin="0,6,0,0">
+    <TextBox Text="{Binding EditEnvValue}" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Cascadia Mono, Consolas" FontSize="12" Padding="12,8" ScrollViewer.VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" AutomationProperties.Name="{DynamicResource Tools.PathLines}" Classes="Quiet"/>
+    <TextBlock Text="{DynamicResource Tools.PathLines}" Margin="13,9,0,0" VerticalAlignment="Top" Classes="Placeholder" IsVisible="{Binding EditEnvValue, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+   </Grid>
   </Grid>
 
-  <TextBlock Grid.Row="2" Text="{DynamicResource Ports.Empty}" HorizontalAlignment="Center" Margin="0,24,0,0" IsVisible="{Binding IsEmpty}" Classes="Placeholder"/>
-  <ListBox Grid.Row="2" ItemsSource="{Binding Items}" ScrollViewer.VerticalScrollBarVisibility="Auto" Classes="Bare">
-   <ListBox.ItemTemplate><DataTemplate x:DataType="vm:PortEntry">
-    <Grid Margin="6,0,10,0" Height="36" Background="Transparent" ToolTip.Tip="{Binding Tip}">
-     <Grid.ColumnDefinitions><ColumnDefinition Width="34"/><ColumnDefinition Width="*"/><ColumnDefinition Width="86"/><ColumnDefinition Width="150"/></Grid.ColumnDefinitions>
-     <Grid Width="26" Height="26" HorizontalAlignment="Left">
-      <Image Source="{Binding Icon}" Width="24" Height="24" IsVisible="{Binding HasIcon}" RenderOptions.BitmapInterpolationMode="HighQuality"/>
-      <TextBlock Text="&#xE71D;" FontSize="17" Foreground="#77777D" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding NoIcon}" Classes="Glyph"/>
-     </Grid>
-     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-      <TextBlock Text="{Binding Process}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-      <TextBlock Text="{Binding Detail}" Classes="Caption"/>
-     </StackPanel>
-     <TextBlock Grid.Column="2" Text="{Binding Port}" FontSize="14" FontWeight="SemiBold" FontFamily="Cascadia Mono, Consolas" Foreground="#FFAE54" VerticalAlignment="Center"/>
-     <Border Grid.Column="3" HorizontalAlignment="Left" VerticalAlignment="Center" CornerRadius="9" Padding="9,2" Background="{Binding Exposed, Converter={StaticResource Pick}, ConverterParameter=#2A1F12|#242428}">
-      <TextBlock Text="{Binding ScopeText}" FontSize="11.5" TextTrimming="CharacterEllipsis" MaxWidth="132" Foreground="{Binding Exposed, Converter={StaticResource Pick}, ConverterParameter=#FFAE54|#B9B9C0}"/>
-     </Border>
+  <!-- ============ Inline Firewall Rule Editor ============ -->
+  <Grid IsVisible="{Binding IsAddingRule}" RowDefinitions="34,Auto,Auto,*">
+   <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+    <TextBlock Text="{DynamicResource Tools.AddRule}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Margin="4,0,0,0"/>
+    <TextBlock Grid.Column="1" Text="{Binding EditError}" IsVisible="{Binding HasEditError}" Foreground="#FF9A8A" FontSize="11.5" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="8,0,10,0" TextTrimming="CharacterEllipsis"/>
+    <Button Grid.Column="2" Content="{DynamicResource Tools.Cancel}" Command="{Binding CancelOverlay}" IsEnabled="{Binding Ready}" Margin="0,0,6,0" Classes="Text"/>
+    <Button Grid.Column="3" Content="{DynamicResource Tools.Create}" Command="{Binding SaveRule}" IsEnabled="{Binding Ready}" Classes="SavePill"/>
+   </Grid>
+   <Grid Grid.Row="1" ColumnDefinitions="*,8,140" Margin="0,8,0,8">
+    <Grid>
+     <TextBox MinHeight="34" Text="{Binding RuleName}" AutomationProperties.Name="{DynamicResource Tools.Name}" Classes="Quiet Compact"/>
+     <TextBlock Text="{DynamicResource Tools.Name}" Margin="13,0,0,0" Classes="Placeholder" IsVisible="{Binding RuleName, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
     </Grid>
-   </DataTemplate></ListBox.ItemTemplate>
-  </ListBox>
+    <Grid Grid.Column="2">
+     <TextBox MinHeight="34" Text="{Binding RulePort}" FontFamily="Cascadia Mono, Consolas" AutomationProperties.Name="{DynamicResource Tools.PortNumber}" Classes="Quiet Compact"/>
+     <TextBlock Text="{DynamicResource Tools.PortNumber}" Margin="13,0,0,0" Classes="Placeholder" IsVisible="{Binding RulePort, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+    </Grid>
+   </Grid>
+   <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="2" Margin="0,0,0,8">
+    <ToggleButton Content="TCP" IsChecked="{Binding RuleTcp, Mode=OneWay}" Command="{Binding SetRuleOption}" CommandParameter="proto:TCP" Classes="Chip"/>
+    <ToggleButton Content="UDP" IsChecked="{Binding RuleUdp, Mode=OneWay}" Command="{Binding SetRuleOption}" CommandParameter="proto:UDP" Classes="Chip"/>
+    <Border Width="1" Height="14" Background="#26262A" Margin="6,0" VerticalAlignment="Center"/>
+    <ToggleButton Content="{DynamicResource Tools.Inbound}" IsChecked="{Binding RuleInbound, Mode=OneWay}" Command="{Binding SetRuleOption}" CommandParameter="dir:Inbound" Classes="Chip"/>
+    <ToggleButton Content="{DynamicResource Tools.Outbound}" IsChecked="{Binding RuleOutbound, Mode=OneWay}" Command="{Binding SetRuleOption}" CommandParameter="dir:Outbound" Classes="Chip"/>
+    <Border Width="1" Height="14" Background="#26262A" Margin="6,0" VerticalAlignment="Center"/>
+    <ToggleButton Content="{DynamicResource Tools.Allow}" IsChecked="{Binding RuleAllow, Mode=OneWay}" Command="{Binding SetRuleOption}" CommandParameter="act:Allow" Classes="Chip"/>
+    <ToggleButton Content="{DynamicResource Tools.Block}" IsChecked="{Binding RuleBlock, Mode=OneWay}" Command="{Binding SetRuleOption}" CommandParameter="act:Block" Classes="Chip"/>
+    <Border Width="1" Height="14" Background="#26262A" Margin="6,0" VerticalAlignment="Center"/>
+    <ToggleButton Content="{DynamicResource Tools.Private}" IsChecked="{Binding RulePrivate, Mode=OneWay}" Command="{Binding SetRuleOption}" CommandParameter="prof:Private" Classes="Chip"/>
+    <ToggleButton Content="{DynamicResource Tools.Public}" IsChecked="{Binding RulePublic, Mode=OneWay}" Command="{Binding SetRuleOption}" CommandParameter="prof:Public" Classes="Chip"/>
+    <ToggleButton Content="{DynamicResource Tools.Domain}" IsChecked="{Binding RuleDomain, Mode=OneWay}" Command="{Binding SetRuleOption}" CommandParameter="prof:Domain" Classes="Chip"/>
+   </StackPanel>
+   <TextBlock Grid.Row="3" Text="{DynamicResource Tools.RuleHint}" Margin="4,0,0,0" TextWrapping="Wrap" Classes="Caption"/>
+  </Grid>
+
+  <!-- ============ Inline Confirmation ============ -->
+  <Border IsVisible="{Binding IsConfirming}" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="480" CornerRadius="14" Padding="20,16" Background="#161618" BorderBrush="#28282D" BorderThickness="1">
+   <StackPanel Spacing="8">
+    <TextBlock Text="{Binding ConfirmTitle}" FontSize="14" FontWeight="SemiBold" Foreground="#F2F2F4"/>
+    <TextBlock Text="{Binding ConfirmDetail}" FontSize="12.5" Foreground="#A9A9AF" TextWrapping="Wrap"/>
+    <TextBlock Text="{Binding EditError}" IsVisible="{Binding HasEditError}" FontSize="12" Foreground="#FF9A8A" TextWrapping="Wrap"/>
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,4,0,0">
+     <Button Content="{DynamicResource Tools.Cancel}" Command="{Binding CancelOverlay}" IsEnabled="{Binding Ready}" Classes="Text"/>
+     <Button Content="{DynamicResource Tools.Confirm}" Command="{Binding AcceptConfirm}" IsEnabled="{Binding Ready}" Classes="SavePill"/>
+    </StackPanel>
+   </StackPanel>
+  </Border>
  </Grid>
 </UserControl>

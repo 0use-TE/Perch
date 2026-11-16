@@ -71,7 +71,7 @@ public sealed class IslandViewModel : Observable
         Ports = new PortsViewModel();
         Dino = new DinoViewModel(store);
         Ai = new AiViewModel(store);
-        Search = new SearchViewModel(store, Todo, Notes, Clipboard, Launcher);
+        Search = new SearchViewModel(store, Todo, Notes, Clipboard, Launcher, Ports);
         Alarm = new AlarmViewModel(store, Alerts);
         Alarm.PropertyChanged += (_, e) => { if (e.PropertyName is nameof(AlarmViewModel.IsRinging) or nameof(AlarmViewModel.CompactText)) UpdateCompact(); };
         Music.PropertyChanged += (_, e) => { if (string.IsNullOrEmpty(e.PropertyName) || e.PropertyName is nameof(MusicViewModel.IsPlaying) or nameof(MusicViewModel.Title) or nameof(MusicViewModel.Artist)) UpdateCompact(); };

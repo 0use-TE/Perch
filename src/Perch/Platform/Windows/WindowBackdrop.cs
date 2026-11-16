@@ -1,12 +1,35 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
+using System.Threading;
 using Avalonia.Controls;
 using Avalonia.Win32;
+using Perch.Views;
 
 namespace Perch.Platform.Windows;
 
 // Windows-only window tweaks: a thin quiet border like the Windows Settings app, and the checks behind the frosted material.
 internal static class WindowBackdrop
 {
+    // Tracks when each HWND was hidden from screen capture, so we never re-apply WDA_EXCLUDEFROMCAPTURE redundantly
+    // and always give DWM one composition frame (~45 ms) to drop the window before sampling the screen behind it.
+    private static readonly ConcurrentDictionary<nint, long> excludedSince = new();
+    private static long lastPopupTick;
+
+    public static void InstallPopupGuard()
+    {
+        // Every popup (ToolTip, ContextMenu, Flyout, ComboBox dropdown) must also be excluded from screen capture,
+        // otherwise the periodic backdrop sampler photographs open tooltips and menus into the blurred glass background.
+        Control.LoadedEvent.AddClassHandler<TopLevel>((top, _) =>
+        {
+            if (top is IslandWindow or SettingsWindow) return;
+            if (top.TryGetPlatformHandle()?.Handle is { } hwnd && hwnd != 0)
+            {
+                SetWindowDisplayAffinity(hwnd, 0x11u);
+                Interlocked.Exchange(ref lastPopupTick, Environment.TickCount64);
+            }
+        });
+    }
+
     public static void SetBorder(Window window, bool light)
     {
         if (window.TryGetPlatformHandle() is not { } handle || Environment.OSVersion.Version.Build < 22000) return;
@@ -15,7 +38,38 @@ internal static class WindowBackdrop
 
     // Keeps a window out of screenshots and screen capture (so it can photograph what is behind itself). Returns false
     // where Windows cannot do that (before Windows 10 2004).
-    public static bool ExcludeFromCapture(nint hwnd, bool on) => SetWindowDisplayAffinity(hwnd, on ? 0x11u : 0u);
+    public static bool ExcludeFromCapture(nint hwnd, bool on, bool force = false)
+    {
+        if (hwnd == 0) return false;
+        if (on)
+        {
+            if (!force && excludedSince.ContainsKey(hwnd)) return true;
+            if (!SetWindowDisplayAffinity(hwnd, 0x11u))
+            {
+                excludedSince.TryRemove(hwnd, out _);
+                return false;
+            }
+            excludedSince[hwnd] = Environment.TickCount64;
+            return true;
+        }
+        if (excludedSince.TryRemove(hwnd, out _) || force)
+            SetWindowDisplayAffinity(hwnd, 0u);
+        return false;
+    }
+
+    // True once DWM has had time to apply WDA_EXCLUDEFROMCAPTURE to this window and any newly opened popup.
+    public static bool ReadyToSample(nint hwnd)
+    {
+        if (!excludedSince.TryGetValue(hwnd, out var since)) return false;
+        var now = Environment.TickCount64;
+        return now - since >= 45 && now - Interlocked.Read(ref lastPopupTick) >= 45;
+    }
+
+    public static void NoteShown(nint hwnd)
+    {
+        if (excludedSince.ContainsKey(hwnd))
+            excludedSince[hwnd] = Environment.TickCount64;
+    }
 
     public static System.Drawing.Rectangle ScreenRect(nint hwnd)
     {

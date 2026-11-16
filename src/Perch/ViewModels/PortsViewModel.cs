@@ -12,28 +12,33 @@ public sealed class PortEntry
 {
     public PortEntry(int port, int pid, string process, string? path, PortScope scope, string address, Bitmap? icon)
     {
-        Port = port; Pid = pid; Process = process; Path = path; Scope = scope; Address = address; Icon = icon;
+        Port = port; Pid = pid; Process = process; Path = path; Scope = scope; Address = address; Icon = icon; StartedUtc = Started(pid);
     }
 
     public int Port { get; }
     public int Pid { get; }
     public string Process { get; }
     public string? Path { get; }
+    public bool HasPath => Path != null;
     public PortScope Scope { get; }
     // The address it listens on: 127.0.0.1, 0.0.0.0, or one interface's address.
     public string Address { get; }
     public Bitmap? Icon { get; }
     public bool HasIcon => Icon != null;
     public bool NoIcon => Icon == null;
+    public DateTime? StartedUtc { get; }
+    public bool CanTerminate => Pid > 4 && Pid != Environment.ProcessId && StartedUtc != null;
     public bool Exposed => Scope != PortScope.Local;
     public string ScopeText => Scope switch { PortScope.Local => Loc.T("Ports.ScopeLocal"), PortScope.All => Loc.T("Ports.ScopeAll"), _ => Address };
     public string Detail => $"PID {Pid}";
     public string Tip => $"{Process}  ·  PID {Pid}  ·  {Address}:{Port}" + (Path != null ? Environment.NewLine + Path : "");
+
+    private static DateTime? Started(int pid) { try { return System.Diagnostics.Process.GetProcessById(pid).StartTime.ToUniversalTime(); } catch { return null; } }
 }
 
 // The ports on this machine that programs are listening on: which process, which port, whether only this computer
 // or every network interface can reach it, and the program's icon. Refreshes while the page is showing.
-public sealed class PortsViewModel : Observable
+public sealed partial class PortsViewModel : Observable
 {
     private readonly DispatcherTimer refresh = new() { Interval = TimeSpan.FromSeconds(3) };
     private List<PortEntry> all = [];
@@ -41,6 +46,7 @@ public sealed class PortsViewModel : Observable
     private bool active;
 
     public ObservableCollection<PortEntry> Items { get; } = [];
+    public IReadOnlyList<PortEntry> AllPorts => all;
     public bool ShowsAll => filter == "all";
     public bool ShowsLocal => filter == "local";
     public bool ShowsExposed => filter == "exposed";
@@ -74,11 +80,13 @@ public sealed class PortsViewModel : Observable
         {
             if (active == value) return;
             active = value;
-            if (value) { Load(); refresh.Start(); } else refresh.Stop();
+            if (value) { if (IsPorts) { Load(); refresh.Start(); } else _ = EnsureToolsLoaded(); } else refresh.Stop();
         }
     }
 
-    public void Relocalize() => Rebuild();
+    public void EnsurePortsLoaded() { if (all.Count == 0) Load(); }
+
+    public void Relocalize() { Rebuild(); RebuildTools(); }
 
     private static void Copy(string text) { if (Ui.Clipboard is { } clipboard) _ = Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, text); }
 

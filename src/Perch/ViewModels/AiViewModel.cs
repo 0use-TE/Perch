@@ -388,8 +388,10 @@ public sealed class AiViewModel : Observable
         SaveSoon();
     }
     public void CancelRename() => IsRenaming = false;
-    // Raised whenever the list should scroll to its end (a message was added or grew).
-    public event Action? Scroll;
+    // Raised whenever the list should scroll to its end (true = new turn or switched chat; false = streaming growth).
+    public event Action<bool>? Scroll;
+    // Raised when a question is sent, so the input box can release its editing lock.
+    public event Action? Sent;
     // The user wants the AI page of the settings window (to add a server or a key).
     public event Action? SettingsRequested;
 
@@ -488,7 +490,7 @@ public sealed class AiViewModel : Observable
         if (line.Text.Length == 0 && line.ThinkingOpen) line.ThinkingOpen = false; // the answer began: fold the thinking away
         line.Text += waiting.ToString(0, count);
         waiting.Remove(0, count);
-        Scroll?.Invoke();
+        Scroll?.Invoke(false);
     }
 
     private void FlushThinking()
@@ -498,7 +500,7 @@ public sealed class AiViewModel : Observable
         {
             if (!line.HasThinking) line.ThinkingOpen = true;
             line.Thinking += thinkWaiting.ToString();
-            Scroll?.Invoke();
+            Scroll?.Invoke(false);
         }
         thinkWaiting.Clear();
     }
@@ -554,7 +556,7 @@ public sealed class AiViewModel : Observable
         foreach (var item in History) item.IsCurrent = item.Record == record;
         Changed(nameof(Title));
         Changed(nameof(CanRename));
-        Scroll?.Invoke();
+        Scroll?.Invoke(true);
     }
 
     private void Delete(ChatRecord record)
@@ -594,7 +596,8 @@ public sealed class AiViewModel : Observable
         Messages.Add(new ChatLine("user", question));
         var answer = new ChatLine("assistant") { Working = true };
         Messages.Add(answer);
-        Scroll?.Invoke();
+        Sent?.Invoke();
+        Scroll?.Invoke(true);
 
         using var cancel = running = new CancellationTokenSource();
         IsBusy = true;
@@ -645,7 +648,7 @@ public sealed class AiViewModel : Observable
             answer.ThinkingOpen = false;
             IsBusy = false;
             if (current != null) { Persist(current); RebuildHistory(); }
-            Scroll?.Invoke();
+            Scroll?.Invoke(false);
         }
     }
 
@@ -699,7 +702,7 @@ public sealed class AiViewModel : Observable
         public object StepStarted(string label)
         {
             var step = new AgentStepLine(label);
-            Dispatcher.UIThread.Post(() => { answer.ThinkingOpen = false; answer.Steps.Add(step); owner.Scroll?.Invoke(); });
+            Dispatcher.UIThread.Post(() => { answer.ThinkingOpen = false; answer.Steps.Add(step); owner.Scroll?.Invoke(false); });
             return step;
         }
         public async Task<bool> ConfirmAsync(string title, string detail, ToolRisk risk, CancellationToken cancel)
@@ -709,7 +712,7 @@ public sealed class AiViewModel : Observable
             {
                 answer.Confirm = new ConfirmRequest(title, detail, risk, decision);
                 owner.ConfirmChanged?.Invoke(true);
-                owner.Scroll?.Invoke();
+                owner.Scroll?.Invoke(false);
             });
             using var stop = cancel.Register(() => decision.TrySetResult(false));
             var allowed = await decision.Task;

@@ -160,7 +160,7 @@ public partial class SettingsWindow : Window
     // ---- frosted window. Windows will not show other windows through this one (its acrylic paints black here), so the
     // frosted look is made the same way as the island's: the window is hidden from screen capture, the screen behind it is
     // photographed a few times a second, blurred, and drawn under the theme tint.
-    private readonly DispatcherTimer backdropTimer = new() { Interval = TimeSpan.FromMilliseconds(120) };
+    private readonly DispatcherTimer backdropTimer = new() { Interval = TimeSpan.FromMilliseconds(80) };
     private bool frostedOn;
 
     private void SetFrosted(bool on)
@@ -172,17 +172,33 @@ public partial class SettingsWindow : Window
         on = false;
 #endif
         frostedOn = on;
-        TintLayer.IsVisible = on;
-        BackdropLayer.IsVisible = on;
-        if (on) { RefreshBackdrop(); backdropTimer.Start(); } else backdropTimer.Stop();
+        if (!on)
+        {
+            backdropTimer.Stop();
+            TintLayer.IsVisible = false;
+            BackdropLayer.IsVisible = false;
+            BackdropLayer.Background = null;
+            return;
+        }
+        if (BackdropLayer.Background != null)
+        {
+            TintLayer.IsVisible = true;
+            BackdropLayer.IsVisible = true;
+        }
+        RefreshBackdrop();
+        backdropTimer.Start();
     }
 
     private void RefreshBackdrop()
     {
 #if WINDOWS
         if (!frostedOn || !IsVisible || WindowState == WindowState.Minimized || TryGetPlatformHandle() is not { } handle) return;
-        var picture = BackdropCapture.Grab(WindowBackdrop.ScreenRect(handle.Handle), 12);
-        if (picture != null) BackdropLayer.Background = new ImageBrush(picture) { Stretch = Stretch.Fill };
+        BackdropCapture.SampleAsync(handle.Handle, WindowBackdrop.ScreenRect(handle.Handle), BackdropLayer, 12, () =>
+        {
+            if (!frostedOn) return;
+            TintLayer.IsVisible = true;
+            BackdropLayer.IsVisible = true;
+        });
 #endif
     }
 
@@ -196,7 +212,7 @@ public partial class SettingsWindow : Window
 
         PreviewOutline.Data = IslandOutline.Create(6, IslandOutline.CompactWidth, IslandOutline.CompactHeight, 0, capsule);
         IslandLook.Apply(PreviewOutline, glass);
-        IslandLook.SetGlassFill(PreviewOutline, settings, 0);
+        IslandLook.SetGlassFill(PreviewOutline, settings, glass ? 1 : 0);
         var top = 9 + (capsule ? IslandOutline.CapsuleGap : 0);
         Canvas.SetTop(PreviewText, top);
         Canvas.SetTop(PreviewTime, top);

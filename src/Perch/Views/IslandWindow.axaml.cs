@@ -66,7 +66,7 @@ public partial class IslandWindow : Window
     private bool menuOpen, flyoutOpen, aiConfirming, dinoEngaged, backdropReady;
     private (double?, double?, bool) appliedWeather;
     private (string, int) appliedCalendar = ("", 10);
-    private const int HotkeyIslandId = 1, HotkeyNoteId = 2, HotkeySearchId = 3;
+    private const int HotkeyIslandId = 1, HotkeyNoteId = 2, HotkeySearchId = 3, HotkeyScreenshotId = 4, HotkeyFullscreenShotId = 5;
     [DllImport("user32.dll")] private static extern nint WindowFromPoint(System.Drawing.Point point);
     [DllImport("user32.dll")] private static extern nint GetAncestor(nint hwnd, uint flags);
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint hwnd, out uint processId);
@@ -843,12 +843,20 @@ public partial class IslandWindow : Window
 #endif
     }
 
-    private async void OnScreenshot(object? sender, RoutedEventArgs e)
+    private async void OnScreenshot(object? sender, RoutedEventArgs e) => await StartScreenshotAsync(fullscreen: false);
+
+    private async Task StartScreenshotAsync(bool fullscreen)
     {
 #if WINDOWS
-        controller.Collapse();
-        await Task.Delay(220);
-        await Perch.Platform.Windows.ScreenCaptureOverlay.CaptureRegionAsync(model.Alerts);
+        if (controller.State != InteractionState.Compact)
+        {
+            controller.Collapse();
+            await Task.Delay(220);
+        }
+        if (fullscreen) await Perch.Platform.Windows.ScreenCaptureOverlay.CaptureFullscreenAsync(model.Alerts);
+        else await Perch.Platform.Windows.ScreenCaptureOverlay.CaptureRegionAsync(model.Alerts);
+#else
+        await Task.CompletedTask;
 #endif
     }
 
@@ -867,6 +875,8 @@ public partial class IslandWindow : Window
         host.UnregisterHotKey(HotkeyIslandId);
         host.UnregisterHotKey(HotkeyNoteId);
         host.UnregisterHotKey(HotkeySearchId);
+        host.UnregisterHotKey(HotkeyScreenshotId);
+        host.UnregisterHotKey(HotkeyFullscreenShotId);
         var s = store.State.Settings;
         var taken = new List<string>();
         var clashes = new List<string>();
@@ -882,6 +892,10 @@ public partial class IslandWindow : Window
             Register(HotkeyIslandId, s.HotkeyIsland);
             Register(HotkeyNoteId, s.HotkeyNote);
             Register(HotkeySearchId, s.HotkeySearch);
+#if WINDOWS
+            Register(HotkeyScreenshotId, s.HotkeyScreenshot);
+            Register(HotkeyFullscreenShotId, s.HotkeyFullscreenShot);
+#endif
         }
         var problem = clashes.Count > 0 ? Loc.F("Set.HotkeyClash", string.Join(", ", clashes)) : taken.Count > 0 ? Loc.F("Set.HotkeyTaken", string.Join(", ", taken)) : "";
         settingsWindow?.ShowHotkeyStatus(problem);
@@ -909,6 +923,8 @@ public partial class IslandWindow : Window
             host?.BeginEditing();
             Dispatcher.UIThread.Post(() => NotesPanel.FocusTitle(), DispatcherPriority.Input);
         }
+        else if (id == HotkeyScreenshotId) _ = StartScreenshotAsync(fullscreen: false);
+        else if (id == HotkeyFullscreenShotId) _ = StartScreenshotAsync(fullscreen: true);
     }
 
     // ---- navigation bar: pinned pages on the bar (the current one always shown), the rest under "More"

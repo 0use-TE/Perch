@@ -479,6 +479,8 @@
  <sys:String x:Key="Set.HotkeyIsland">Open or close the island</sys:String>
  <sys:String x:Key="Set.HotkeyNote">New note</sys:String>
  <sys:String x:Key="Set.HotkeySearch">Search</sys:String>
+ <sys:String x:Key="Set.HotkeyScreenshot">Region screenshot</sys:String>
+ <sys:String x:Key="Set.HotkeyFullscreenShot">Fullscreen screenshot</sys:String>
  <sys:String x:Key="Set.HotkeyHint">Click a box and press the keys. Backspace clears it.</sys:String>
  <sys:String x:Key="Set.HotkeyTaken">Already used by another app: %0</sys:String>
 
@@ -623,6 +625,7 @@ All services in this process will stop and unsaved work may be lost.</sys:String
  <sys:String x:Key="Tool.ColorCopied">Copied %0</sys:String>
  <sys:String x:Key="Tool.Screenshot">Quick screenshot</sys:String>
  <sys:String x:Key="Tool.ShotCopied">Screenshot copied (%0 × %1)</sys:String>
+ <sys:String x:Key="Tool.ShotSaved">Screenshot saved</sys:String>
  <sys:String x:Key="Todo.PinToIsland">Pin to island</sys:String>
  <sys:String x:Key="Todo.UnpinFromIsland">Unpin from island</sys:String>
  <sys:String x:Key="Ai.Replied">AI replied</sys:String>

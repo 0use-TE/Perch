@@ -479,6 +479,8 @@
  <sys:String x:Key="Set.HotkeyIsland">展开或收起灵动岛</sys:String>
  <sys:String x:Key="Set.HotkeyNote">新建笔记</sys:String>
  <sys:String x:Key="Set.HotkeySearch">全局搜索</sys:String>
+ <sys:String x:Key="Set.HotkeyScreenshot">区域截屏</sys:String>
+ <sys:String x:Key="Set.HotkeyFullscreenShot">全屏截屏</sys:String>
  <sys:String x:Key="Set.HotkeyHint">点击输入框后按下组合键，退格键清除。</sys:String>
  <sys:String x:Key="Set.HotkeyTaken">已被其他程序占用：%0</sys:String>
 
@@ -623,6 +625,7 @@
  <sys:String x:Key="Tool.ColorCopied">已复制颜色 %0</sys:String>
  <sys:String x:Key="Tool.Screenshot">快速截屏</sys:String>
  <sys:String x:Key="Tool.ShotCopied">已复制截图（%0 × %1）</sys:String>
+ <sys:String x:Key="Tool.ShotSaved">截图已保存</sys:String>
  <sys:String x:Key="Todo.PinToIsland">钉在灵动岛</sys:String>
  <sys:String x:Key="Todo.UnpinFromIsland">取消钉在灵动岛</sys:String>
  <sys:String x:Key="Ai.Replied">AI 已回复</sys:String>

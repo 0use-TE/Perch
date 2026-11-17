@@ -54,12 +54,89 @@ internal static class ScreenCaptureOverlay
 
     public static async Task CaptureRegionAsync(AlertQueue alerts)
     {
-        var png = await CaptureRegionPngAsync();
-        if (png is not { } result) return;
-        using var ms = new MemoryStream(result.Png);
-        using var av = new AvaloniaBitmap(ms);
-        if (Ui.Clipboard is { } clipboard)
-            await clipboard.SetBitmapAsync(av);
+        await CaptureInteractiveAsync(alerts, startFullscreen: false);
+    }
+
+    public static async Task CaptureFullscreenAsync(AlertQueue alerts)
+    {
+        await CaptureInteractiveAsync(alerts, startFullscreen: true);
+    }
+
+    private static async Task CaptureInteractiveAsync(AlertQueue alerts, bool startFullscreen)
+    {
+        var shot = GrabVirtualScreen();
+        if (shot == null) return;
+        using var gdi = shot.Value.Gdi;
+        using var bmp = shot.Value.Avalonia;
+        var rect = shot.Value.Bounds;
+
+        var result = await ScreenshotEditor.RunAsync(gdi, bmp, rect, startFullscreen, allowSave: true);
+        if (result is not { } res) return;
+
+        SetClipboardImage(res.Png);
+
+        var msg = res.Outcome == CaptureOutcome.Saved
+            ? Loc.T("Tool.ShotSaved")
+            : Loc.F("Tool.ShotCopied", res.Width, res.Height);
+        alerts.Show(AlertQueue.Done, msg, SoundKind.None);
+    }
+
+    private static void SetClipboardImage(byte[] pngBytes)
+    {
+        using var ms = new MemoryStream(pngBytes);
+        using var bmp = new Bitmap(ms);
+        var w = bmp.Width;
+        var h = bmp.Height;
+
+        // Build CF_DIB (40-byte BITMAPINFOHEADER + bottom-up 32bpp BGRA pixels)
+        var rowBytes = w * 4;
+        var dibSize = 40 + rowBytes * h;
+        var dibBytes = new byte[dibSize];
+        BitConverter.TryWriteBytes(dibBytes.AsSpan(0, 4), 40);          // biSize
+        BitConverter.TryWriteBytes(dibBytes.AsSpan(4, 4), w);           // biWidth
+        BitConverter.TryWriteBytes(dibBytes.AsSpan(8, 4), h);           // biHeight (positive = bottom-up)
+        BitConverter.TryWriteBytes(dibBytes.AsSpan(12, 2), (short)1);   // biPlanes
+        BitConverter.TryWriteBytes(dibBytes.AsSpan(14, 2), (short)32);  // biBitCount
+        BitConverter.TryWriteBytes(dibBytes.AsSpan(16, 4), 0);          // biCompression = BI_RGB
+        BitConverter.TryWriteBytes(dibBytes.AsSpan(20, 4), rowBytes * h);
+
+        var data = bmp.LockBits(new Rectangle(0, 0, w, h), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+        try
+        {
+            for (var y = 0; y < h; y++)
+            {
+                var srcRow = data.Scan0 + (h - 1 - y) * data.Stride;
+                Marshal.Copy(srcRow, dibBytes, 40 + y * rowBytes, rowBytes);
+            }
+        }
+        finally
+        {
+            bmp.UnlockBits(data);
+        }
+
+        if (!OpenClipboard(0)) return;
+        try
+        {
+            EmptyClipboard();
+            var pngFmt = RegisterClipboardFormatW("PNG");
+            if (pngFmt != 0) SetClipboardBytes(pngFmt, pngBytes);
+            SetClipboardBytes(8, dibBytes); // CF_DIB = 8
+        }
+        finally
+        {
+            CloseClipboard();
+        }
+    }
+
+    private static void SetClipboardBytes(uint format, byte[] bytes)
+    {
+        var hMem = GlobalAlloc(0x0042, (nuint)bytes.Length); // GMEM_MOVEABLE | GMEM_ZEROINIT
+        if (hMem == 0) return;
+        var ptr = GlobalLock(hMem);
+        if (ptr == 0) { GlobalFree(hMem); return; }
+        try { Marshal.Copy(bytes, 0, ptr, bytes.Length); }
+        finally { GlobalUnlock(hMem); }
+        if (SetClipboardData(format, hMem) == 0) GlobalFree(hMem);
     }
 
     public static async Task<(byte[] Png, int Width, int Height)?> CaptureRegionPngAsync()
@@ -70,19 +147,8 @@ internal static class ScreenCaptureOverlay
         using var bmp = shot.Value.Avalonia;
         var rect = shot.Value.Bounds;
 
-        var done = new TaskCompletionSource<PixelRect?>();
-        var overlay = new RegionCaptureOverlay(bmp, rect, done);
-        overlay.Show();
-        overlay.Activate();
-        var region = await done.Task;
-        if (region is not { Width: >= 4, Height: >= 4 } r) return null;
-
-        using var cropped = new Bitmap(r.Width, r.Height, PixelFormat.Format32bppArgb);
-        using (var g = Graphics.FromImage(cropped))
-            g.DrawImage(gdi, new Rectangle(0, 0, r.Width, r.Height), new Rectangle(r.X, r.Y, r.Width, r.Height), GraphicsUnit.Pixel);
-        using var ms = new MemoryStream();
-        cropped.Save(ms, ImageFormat.Png);
-        return (ms.ToArray(), r.Width, r.Height);
+        var result = await ScreenshotEditor.RunAsync(gdi, bmp, rect, startFullscreen: false, allowSave: false);
+        return result is { } res ? (res.Png, res.Width, res.Height) : null;
     }
 
     private static (Bitmap Gdi, WriteableBitmap Avalonia, PixelRect Bounds)? GrabVirtualScreen()
@@ -215,100 +281,15 @@ internal static class ScreenCaptureOverlay
         private void Finish(AvaloniaColor? result) { done.TrySetResult(result); Close(); }
     }
 
-    private sealed class RegionCaptureOverlay : Window
-    {
-        private readonly PixelRect bounds;
-        private readonly TaskCompletionSource<PixelRect?> done;
-        private readonly RegionCanvas canvas;
-        private AvaloniaPoint? anchor;
-        private AvaloniaRect selection;
-
-        public RegionCaptureOverlay(WriteableBitmap full, PixelRect bounds, TaskCompletionSource<PixelRect?> done)
-        {
-            this.bounds = bounds;
-            this.done = done;
-            WindowDecorations = WindowDecorations.None;
-            Topmost = true;
-            ShowInTaskbar = false;
-            Cursor = new Cursor(StandardCursorType.Cross);
-            Position = new PixelPoint(bounds.X, bounds.Y);
-
-            canvas = new RegionCanvas(full);
-            Content = canvas;
-            Opened += (_, _) =>
-            {
-                var scale = RenderScaling;
-                Width = bounds.Width / scale;
-                Height = bounds.Height / scale;
-                Position = new PixelPoint(bounds.X, bounds.Y);
-            };
-            PointerPressed += (_, e) =>
-            {
-                if (e.GetCurrentPoint(canvas).Properties.IsRightButtonPressed) { Finish(null); return; }
-                if (!e.GetCurrentPoint(canvas).Properties.IsLeftButtonPressed) return;
-                anchor = e.GetPosition(canvas);
-                selection = new AvaloniaRect(anchor.Value, default(AvaloniaSize));
-                canvas.UpdateSelection(selection, RenderScaling);
-            };
-            PointerMoved += (_, e) =>
-            {
-                if (anchor is not { } start) return;
-                var cur = e.GetPosition(canvas);
-                selection = new AvaloniaRect(
-                    Math.Min(start.X, cur.X), Math.Min(start.Y, cur.Y),
-                    Math.Abs(cur.X - start.X), Math.Abs(cur.Y - start.Y));
-                canvas.UpdateSelection(selection, RenderScaling);
-            };
-            PointerReleased += (_, e) =>
-            {
-                if (anchor == null) return;
-                anchor = null;
-                var scale = RenderScaling;
-                var px = new PixelRect(
-                    Math.Clamp((int)Math.Round(selection.X * scale), 0, bounds.Width - 1),
-                    Math.Clamp((int)Math.Round(selection.Y * scale), 0, bounds.Height - 1),
-                    (int)Math.Round(selection.Width * scale),
-                    (int)Math.Round(selection.Height * scale));
-                Finish(px.Width >= 4 && px.Height >= 4 ? px : null);
-            };
-            KeyDown += (_, e) => { if (e.Key == Key.Escape) Finish(null); };
-            Closed += (_, _) => done.TrySetResult(null);
-        }
-
-        private void Finish(PixelRect? result) { done.TrySetResult(result); Close(); }
-
-        private sealed class RegionCanvas(WriteableBitmap full) : Control
-        {
-            private static readonly IBrush Veil = new SolidColorBrush(AvaloniaColor.FromArgb(0x66, 0, 0, 0));
-            private static readonly Pen Rim = new(Brush.Parse("#FFAE54"), 1.5);
-            private AvaloniaRect sel;
-            private double scale = 1;
-
-            public void UpdateSelection(AvaloniaRect rect, double renderScale) { sel = rect; scale = renderScale; InvalidateVisual(); }
-
-            public override void Render(DrawingContext ctx)
-            {
-                var all = new AvaloniaRect(Bounds.Size);
-                ctx.DrawImage(full, all);
-                if (sel.Width < 1 || sel.Height < 1) { ctx.FillRectangle(Veil, all); return; }
-                // Dim only outside the selected rectangle.
-                ctx.FillRectangle(Veil, new AvaloniaRect(0, 0, all.Width, sel.Y));
-                ctx.FillRectangle(Veil, new AvaloniaRect(0, sel.Bottom, all.Width, Math.Max(0, all.Height - sel.Bottom)));
-                ctx.FillRectangle(Veil, new AvaloniaRect(0, sel.Y, sel.X, sel.Height));
-                ctx.FillRectangle(Veil, new AvaloniaRect(sel.Right, sel.Y, Math.Max(0, all.Width - sel.Right), sel.Height));
-                ctx.DrawRectangle(null, Rim, sel);
-                var label = new FormattedText($"{(int)Math.Round(sel.Width * scale)} × {(int)Math.Round(sel.Height * scale)}",
-                    System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-                    new Typeface("Cascadia Mono, Consolas"), 12, Brushes.White);
-                var lx = Math.Max(6, sel.X);
-                var ly = sel.Y >= 26 ? sel.Y - 24 : sel.Bottom + 6;
-                var pill = new AvaloniaRect(lx, ly, label.Width + 12, label.Height + 6);
-                ctx.FillRectangle(Brush.Parse("#CC121215"), pill, 6);
-                ctx.DrawText(label, new AvaloniaPoint(lx + 6, ly + 3));
-            }
-        }
-    }
-
     [DllImport("user32.dll")] private static extern int GetSystemMetrics(int index);
+    [DllImport("user32.dll")] private static extern bool OpenClipboard(nint hWndNewOwner);
+    [DllImport("user32.dll")] private static extern bool EmptyClipboard();
+    [DllImport("user32.dll")] private static extern bool CloseClipboard();
+    [DllImport("user32.dll")] private static extern nint SetClipboardData(uint uFormat, nint hMem);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern uint RegisterClipboardFormatW(string lpszFormat);
+    [DllImport("kernel32.dll")] private static extern nint GlobalAlloc(uint uFlags, nuint dwBytes);
+    [DllImport("kernel32.dll")] private static extern nint GlobalLock(nint hMem);
+    [DllImport("kernel32.dll")] private static extern bool GlobalUnlock(nint hMem);
+    [DllImport("kernel32.dll")] private static extern nint GlobalFree(nint hMem);
     [DllImport("kernel32.dll", EntryPoint = "RtlCopyMemory")] private static extern void CopyMemory(nint dest, nint src, nuint count);
 }

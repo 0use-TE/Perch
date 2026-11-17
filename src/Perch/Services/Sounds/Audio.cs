@@ -1,12 +1,15 @@
+using System.IO;
+
 namespace Perch.Services.Sounds;
 
 // What a sound is for. Each kind has its own sound in the settings.
 public enum SoundKind { None, Reminder, Pomodoro, Alarm }
 
-// Plays a clip of WAV data (and can repeat it until stopped). Windows has one; another platform adds its own.
+// Plays a clip of WAV data or a custom audio file (and can repeat it until stopped).
 public interface ISoundPlayer
 {
     void Play(byte[] wav, bool loop);
+    void PlayFile(string path, double volume, bool loop) { }
     void Stop();
     // The system's own alert sound.
     void SystemBeep();
@@ -55,6 +58,11 @@ public static class Audio
         var volume = (Settings?.SoundVolume ?? 70) / 100.0;
         if (volume <= 0) return;
         if (id == SoundBank.System) { player.SystemBeep(); return; }
+        if (SoundBank.CustomFile(id) is { } file && File.Exists(file))
+        {
+            player.PlayFile(file, volume, loop);
+            return;
+        }
         if (!SoundBank.Exists(id)) id = "gentle";
         player.Play(SoundBank.Wav(id, volume, loop ? LoopPause : 0), loop);
     }

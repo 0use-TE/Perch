@@ -70,13 +70,16 @@ public sealed class IslandViewModel : Observable
         Calendar = new CalendarViewModel(store, Alerts);
         Ports = new PortsViewModel();
         Dino = new DinoViewModel(store);
-        Ai = new AiViewModel(store);
-        Search = new SearchViewModel(store, Todo, Notes, Clipboard, Launcher, Ports);
         Alarm = new AlarmViewModel(store, Alerts);
+        var perch = new Services.Ai.Agent.PerchContext(Todo, Notes, Alarm, Focus, Clipboard, Ports);
+        Ai = new AiViewModel(store, perch);
+        Search = new SearchViewModel(store, Todo, Notes, Clipboard, Launcher, Ports);
         Alarm.PropertyChanged += (_, e) => { if (e.PropertyName is nameof(AlarmViewModel.IsRinging) or nameof(AlarmViewModel.CompactText)) UpdateCompact(); };
         Music.PropertyChanged += (_, e) => { if (string.IsNullOrEmpty(e.PropertyName) || e.PropertyName is nameof(MusicViewModel.IsPlaying) or nameof(MusicViewModel.Title) or nameof(MusicViewModel.Artist)) UpdateCompact(); };
         Alerts.Changed += () => { Changed(nameof(AlertText)); Changed(nameof(HasAlert)); UpdateCompact(); };
         Focus.PropertyChanged += (_, _) => UpdateCompact();
+        Todo.PropertyChanged += (_, e) => { if (string.IsNullOrEmpty(e.PropertyName) || e.PropertyName == nameof(TodoViewModel.PinnedText)) UpdateCompact(); };
+        Ai.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(AiViewModel.IsBusy)) UpdateCompact(); };
         Status.PropertyChanged += (_, _) => { if (store.State.Settings.ShowNetworkSpeed) UpdateCompact(); };
         UpdateClock();
         UpdateCompact();
@@ -111,14 +114,17 @@ public sealed class IslandViewModel : Observable
         var settings = store.State.Settings;
         var showNet = settings.ShowNetworkSpeed;
         var music = settings.ShowMusic && settings.MusicInCompact && Music.IsPlaying;
+        var pinnedTodo = settings.ShowTodo ? Todo.PinnedText : null;
         if (Alarm.IsRinging) { CompactGlyph = "\uE121"; CompactText = Alarm.CompactText; }
         else if (Alerts.Current is { } alert) { CompactGlyph = alert.Glyph; CompactText = alert.Text; }
+        else if (Ai.IsBusy) { CompactGlyph = "\uE8BD"; CompactText = Loc.T("Ai.Working"); }
         else if (Focus.Running) { CompactGlyph = ""; CompactText = $"{Focus.PhaseLabel}  {Focus.Remaining}"; }
         else if (music) { CompactGlyph = "\uE8D6"; CompactText = Music.CompactText; }
+        else if (!string.IsNullOrEmpty(pinnedTodo)) { CompactGlyph = "\uE73A"; CompactText = pinnedTodo; }
         else if (showNet) { CompactGlyph = ""; CompactText = Status.NetText; }
         else { CompactGlyph = ""; CompactText = "Perch"; }
-        CompactActive = Alarm.IsRinging || Alerts.Current != null || Focus.Running;
-        var wide = Alarm.IsRinging || Alerts.Current != null || Focus.Running || music || showNet;
+        CompactActive = Alarm.IsRinging || Alerts.Current != null || Ai.IsBusy || Focus.Running;
+        var wide = Alarm.IsRinging || Alerts.Current != null || Ai.IsBusy || Focus.Running || music || !string.IsNullOrEmpty(pinnedTodo) || showNet;
         if (wide == isWide) return;
         isWide = wide;
         ShapeChanged?.Invoke();

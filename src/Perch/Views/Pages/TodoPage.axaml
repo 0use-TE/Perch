@@ -42,13 +42,16 @@
    <ListBox ItemsSource="{Binding Visible}" IsVisible="{Binding ShowsList}" Classes="Bare">
     <ListBox.ItemTemplate><DataTemplate x:DataType="vm:TodoItem">
      <Grid Margin="4,0">
-      <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
       <CheckBox IsChecked="{Binding Done}" VerticalAlignment="Center" Focusable="False" Margin="0,0,10,0" MinWidth="0" AutomationProperties.Name="{DynamicResource Todo.Complete}"/>
       <TextBlock Grid.Column="1" Text="{Binding Text}" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextDecorations="{Binding Done, Converter={StaticResource Pick}, ConverterParameter=Strikethrough|None}" Opacity="{Binding Done, Converter={StaticResource Pick}, ConverterParameter=0.4|1}"/>
       <Border Grid.Column="2" CornerRadius="8" Padding="7,1" Margin="8,0" Background="#1E1E20" VerticalAlignment="Center" IsVisible="{Binding HasDue}">
        <TextBlock Text="{Binding DueLabel}" FontSize="10.5" Foreground="{Binding IsOverdue, Converter={StaticResource Pick}, ConverterParameter=#FF8A70|#A1A1A7}"/>
       </Border>
-      <Button Grid.Column="3" Command="{Binding $parent[UserControl].((vm:TodoViewModel)DataContext).Delete}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Common.Delete}" Classes="Nav Small">
+      <Button Grid.Column="3" Command="{Binding $parent[UserControl].((vm:TodoViewModel)DataContext).TogglePin}" CommandParameter="{Binding}" IsVisible="{Binding !Done}" ToolTip.Tip="{Binding PinTip}" Classes="Nav Small">
+       <TextBlock Text="&#xE718;" FontSize="11.5" Foreground="{Binding Pinned, Converter={StaticResource Pick}, ConverterParameter=#FFAE54|#6E6E74}" Classes="Glyph"/>
+      </Button>
+      <Button Grid.Column="4" Command="{Binding $parent[UserControl].((vm:TodoViewModel)DataContext).Delete}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Common.Delete}" Classes="Nav Small">
        <TextBlock Text="&#xE74D;" FontSize="12" Foreground="#77777D" Classes="Glyph"/>
       </Button>
      </Grid>

@@ -11,7 +11,9 @@ namespace Perch.Services.Ai;
 // A message of the conversation. An assistant message can ask for tools to be run (ToolCalls); the answer to each such
 // call is a "tool" message naming the call it answers. Reasoning is the thinking that came with an assistant message,
 // which DeepSeek wants passed back while the same turn is still using tools.
-public sealed record ChatMessage(string Role, string Content, IReadOnlyList<ToolCall>? ToolCalls = null, string? ToolCallId = null, string? Reasoning = null);
+public sealed record ChatMessage(string Role, string Content, IReadOnlyList<ToolCall>? ToolCalls = null, string? ToolCallId = null, string? Reasoning = null, string? ImageDataUrl = null);
+
+public sealed record AiUsage(int PromptTokens, int CompletionTokens, int TotalTokens);
 
 // A tool the model asked to run: its call id, the tool's name, and the arguments as a JSON text.
 public sealed record ToolCall(string Id, string Name, string Arguments);
@@ -64,7 +66,7 @@ public static class OpenAiClient
     // offered and it chose to) are returned once the reply is complete. onFinish gets the server's reason for stopping
     // ("stop", "length" when the reply was cut off by a length limit, "tool_calls", ...).
     public static async Task<List<ToolCall>> StreamAsync(string baseUrl, string key, string model, IReadOnlyList<ChatMessage> messages,
-        Action<string> onText, Action<string> onThinking, CancellationToken cancel, IReadOnlyList<ToolSpec>? tools = null, Action<string>? onFinish = null)
+        Action<string> onText, Action<string> onThinking, CancellationToken cancel, IReadOnlyList<ToolSpec>? tools = null, Action<string>? onFinish = null, Action<AiUsage>? onUsage = null)
     {
         var body = Body(model, messages, tools);
         // The watchdog: cancelled when the server has been silent for too long (the user's own Stop is told apart below).
@@ -76,6 +78,7 @@ public static class OpenAiClient
             using var stream = await response.Content.ReadAsStreamAsync(watchdog.Token);
             using var reader = new StreamReader(stream, Encoding.UTF8);
             string? finish = null;
+            AiUsage? usage = null;
             var done = false;
             while (!done)
             {
@@ -91,6 +94,13 @@ public static class OpenAiClient
                     // Some servers (OpenRouter and others) report a failure in the middle of the stream as an event of its own.
                     if (root.TryGetProperty("error", out var failure) && failure.ValueKind is JsonValueKind.Object or JsonValueKind.String)
                         throw new AiException(failure.ValueKind == JsonValueKind.Object ? Text(failure, "message") ?? failure.ToString() : failure.GetString() ?? "");
+                    if (root.TryGetProperty("usage", out var u) && u.ValueKind == JsonValueKind.Object)
+                    {
+                        var pt = u.TryGetProperty("prompt_tokens", out var p1) && p1.TryGetInt32(out var v1) ? v1 : 0;
+                        var ct = u.TryGetProperty("completion_tokens", out var p2) && p2.TryGetInt32(out var v2) ? v2 : 0;
+                        var tt = u.TryGetProperty("total_tokens", out var p3) && p3.TryGetInt32(out var v3) ? v3 : pt + ct;
+                        if (tt > 0) usage = new AiUsage(pt, ct, tt);
+                    }
                     if (!root.TryGetProperty("choices", out var choices) || choices.ValueKind != JsonValueKind.Array || choices.GetArrayLength() == 0) continue;
                     if (Text(choices[0], "finish_reason") is { Length: > 0 } reason) finish = reason;
                     if (!choices[0].TryGetProperty("delta", out var delta)) continue;
@@ -115,6 +125,7 @@ public static class OpenAiClient
             }
             // A stream that just stops, with no "[DONE]" and no stop reason, was cut off (connection lost, server restarted).
             if (!done && finish == null) throw new AiException(Loc.T("Ai.ErrCut"));
+            if (usage != null) onUsage?.Invoke(usage);
             onFinish?.Invoke(finish ?? "");
             return calls.Values.Where(c => c.Name.Length > 0)
                 .Select((c, k) => new ToolCall(c.Id.Length > 0 ? c.Id : "call_" + k, c.Name, c.Arguments.Length > 0 ? c.Arguments.ToString() : "{}")).ToList();
@@ -199,7 +210,28 @@ public static class OpenAiClient
             {
                 json.WriteStartObject();
                 json.WriteString("role", message.Role);
-                json.WriteString("content", message.Content);
+                if (!string.IsNullOrEmpty(message.ImageDataUrl))
+                {
+                    json.WriteStartArray("content");
+                    if (!string.IsNullOrEmpty(message.Content))
+                    {
+                        json.WriteStartObject();
+                        json.WriteString("type", "text");
+                        json.WriteString("text", message.Content);
+                        json.WriteEndObject();
+                    }
+                    json.WriteStartObject();
+                    json.WriteString("type", "image_url");
+                    json.WriteStartObject("image_url");
+                    json.WriteString("url", message.ImageDataUrl);
+                    json.WriteEndObject();
+                    json.WriteEndObject();
+                    json.WriteEndArray();
+                }
+                else
+                {
+                    json.WriteString("content", message.Content);
+                }
                 if (message.ToolCallId != null) json.WriteString("tool_call_id", message.ToolCallId);
                 if (!string.IsNullOrEmpty(message.Reasoning)) json.WriteString("reasoning_content", message.Reasoning);
                 if (message.ToolCalls is { Count: > 0 } calls)

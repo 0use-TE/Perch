@@ -29,13 +29,13 @@
     <SolidColorBrush x:Key="Ui.MenuText" Color="#F2F2F4"/>
     </ResourceDictionary>
     <ResourceDictionary x:Key="Light">
-    <SolidColorBrush x:Key="Ui.Tint" Color="#E8F4F4F6"/>
-    <SolidColorBrush x:Key="Ui.Fallback" Color="#FFF3F3F6"/>
-    <SolidColorBrush x:Key="Ui.Sidebar" Color="#30FFFFFF"/>
+    <SolidColorBrush x:Key="Ui.Tint" Color="#80F4F4F8"/>
+    <SolidColorBrush x:Key="Ui.Fallback" Color="#FFF4F4F6"/>
+    <SolidColorBrush x:Key="Ui.Sidebar" Color="#16000000"/>
     <SolidColorBrush x:Key="Ui.Text" Color="#16161A"/>
     <SolidColorBrush x:Key="Ui.Muted" Color="#6A6A74"/>
     <SolidColorBrush x:Key="Ui.Desc" Color="#7A7A84"/>
-    <SolidColorBrush x:Key="Ui.Card" Color="#A8FFFFFF"/>
+    <SolidColorBrush x:Key="Ui.Card" Color="#92FFFFFF"/>
     <SolidColorBrush x:Key="Ui.CardBorder" Color="#14000000"/>
     <SolidColorBrush x:Key="Ui.Divider" Color="#14000000"/>
     <SolidColorBrush x:Key="Ui.Seg" Color="#14000000"/>
@@ -52,7 +52,7 @@
     <SolidColorBrush x:Key="Ui.MenuBg" Color="#F2FAFAFB"/>
     <SolidColorBrush x:Key="Ui.MenuBorder" Color="#1A000000"/>
     <SolidColorBrush x:Key="Ui.MenuHover" Color="#16000000"/>
-    <SolidColorBrush x:Key="Ui.MenuSep" Color="#18000000"/>
+    <SolidColorBrush x:Key="Ui.MenuSep" Color="#2E000000"/>
     <SolidColorBrush x:Key="Ui.MenuText" Color="#16161A"/>
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>

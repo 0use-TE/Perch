@@ -112,7 +112,24 @@ public sealed class PowerShellTool : ITool
 
     public ToolRisk Risk => ToolRisk.Dangerous;
     public string Describe(JsonElement arguments) => Loc.T("Ai.StepScript");
-    public string Detail(JsonElement arguments) => Agent.Str(arguments, "script") ?? "";
+    public string Detail(JsonElement arguments)
+    {
+        var script = Agent.Str(arguments, "script") ?? "";
+        var warning = DetectDanger(script);
+        return warning == null ? script : $"⚠ {warning}\n\n{script}";
+    }
+
+    private static string? DetectDanger(string script)
+    {
+        var flags = new List<string>();
+        if (System.Text.RegularExpressions.Regex.IsMatch(script, @"\b(Remove-Item|ri|del|rd|rmdir)\b.*(-Recurse|-Force|/s)|rm\s+-rf", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            flags.Add("递归/强制删除");
+        if (System.Text.RegularExpressions.Regex.IsMatch(script, @"\b(Invoke-Expression|iex|DownloadString|DownloadFile)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            flags.Add("动态/远程脚本执行");
+        if (System.Text.RegularExpressions.Regex.IsMatch(script, @"\b(reg\s+delete|bcdedit|Format-Volume|Clear-Disk|Stop-Computer|Restart-Computer)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            flags.Add("系统/注册表/电源修改");
+        return flags.Count == 0 ? null : Loc.F("Ai.DangerHint", string.Join(" · ", flags));
+    }
 
     public async Task<ToolResult> RunAsync(JsonElement arguments, CancellationToken cancel)
     {
@@ -191,7 +208,12 @@ public sealed class PowerShellTool : ITool
     {
         body = body.Trim();
         if (body.Length == 0) return;
-        if (body.Length > MaxOutput) body = body[..MaxOutput] + "\n…(truncated)";
+        if (body.Length > MaxOutput)
+        {
+            var spill = Path.Combine(Path.GetTempPath(), $"perch-out-{Guid.NewGuid():N}.log");
+            try { File.WriteAllText(spill, body, Encoding.UTF8); } catch { spill = ""; }
+            body = body[..MaxOutput] + (spill.Length > 0 ? $"\n…(truncated; full {body.Length} chars saved to {spill} — use read_file to inspect)" : "\n…(truncated)");
+        }
         text.AppendLine("--- " + title + " ---").AppendLine(body);
     }
 }

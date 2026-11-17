@@ -162,7 +162,6 @@ public sealed class ClipboardViewModel : Observable
                     ownCopy = null;
                     return;
             }
-            alerts.Show(AlertQueue.Done, Loc.T("Clip.Copied"), SoundKind.None);
         }
         catch (Exception) { ownCopy = null; }
     }

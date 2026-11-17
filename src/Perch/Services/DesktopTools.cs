@@ -157,11 +157,14 @@ public static class DesktopTools
     {
         if (!Supported) return [];
         const string script = """
-            $ports=@{}; Get-NetFirewallPortFilter -PolicyStore PersistentStore -ErrorAction SilentlyContinue | ForEach-Object {$ports[$_.InstanceID]=$_}
+            $ports=@{}; Get-NetFirewallPortFilter -PolicyStore ActiveStore -ErrorAction SilentlyContinue | ForEach-Object {$ports[$_.InstanceID]=$_}
+            if ($ports.Count -eq 0) { Get-NetFirewallPortFilter -PolicyStore PersistentStore -ErrorAction SilentlyContinue | ForEach-Object {$ports[$_.InstanceID]=$_} }
             $rows=@(Get-NetFirewallRule -PolicyStore ActiveStore | ForEach-Object {
                 $p=$ports[$_.InstanceID]
-                if ($_.PolicyStoreSourceType -ne 'Local' -or $null -eq $p) { try {$p=$_ | Get-NetFirewallPortFilter} catch {$p=$null} }
-                [pscustomobject]@{Id=$_.Name;Name=$_.DisplayName;Enabled=([string]$_.Enabled -eq 'True');Direction=[string]$_.Direction;Action=[string]$_.Action;Protocol=$(if ($null -eq $p) {'—'} else {[string]$p.Protocol});Ports=($(if ([string]$_.Direction -eq 'Outbound') {$p.RemotePort} else {$p.LocalPort}) -join ',');Profile=[string]$_.Profile;Source=[string]$_.PolicyStoreSourceType;Managed=($_.Name.StartsWith('Perch-') -and $_.Group -eq 'Perch')}
+                if ($null -eq $p) { try {$p=$_ | Get-NetFirewallPortFilter} catch {$p=$null} }
+                $portText=($(if ([string]$_.Direction -eq 'Outbound') {$p.RemotePort} else {$p.LocalPort}) -join ',')
+                if ([string]::IsNullOrWhiteSpace($portText) -and $null -ne $p -and $null -ne $p.IcmpType) { $portText=($p.IcmpType -join ',') }
+                [pscustomobject]@{Id=$_.Name;Name=$_.DisplayName;Enabled=([string]$_.Enabled -eq 'True');Direction=[string]$_.Direction;Action=[string]$_.Action;Protocol=$(if ($null -eq $p) {'—'} else {[string]$p.Protocol});Ports=$portText;Profile=[string]$_.Profile;Source=[string]$_.PolicyStoreSourceType;Managed=($_.Name.StartsWith('Perch-') -and $_.Group -eq 'Perch')}
             }); ConvertTo-Json -InputObject $rows -Compress -Depth 3
             """;
         using var json = JsonDocument.Parse(await PowerShell(script));

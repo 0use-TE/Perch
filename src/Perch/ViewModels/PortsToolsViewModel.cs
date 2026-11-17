@@ -389,7 +389,7 @@ public sealed partial class PortsViewModel
             "perch" => r.Managed,
             _ => true,
         });
-        foreach (var item in filteredRules.Where(r => Matches(r.Name) || Matches(r.Ports) || Matches(r.Protocol)))
+        foreach (var item in filteredRules.Where(r => Matches(r.Name) || Matches(r.Id) || Matches(r.Ports) || Matches(r.Protocol) || Matches(r.Detail)))
             Rules.Add(item);
         Changed(string.Empty);
     }

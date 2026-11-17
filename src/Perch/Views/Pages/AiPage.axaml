@@ -1,4 +1,4 @@
-<UserControl x:Class="Perch.Views.Pages.AiPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:Perch.ViewModels" xmlns:views="using:Perch.Views" x:DataType="vm:AiViewModel">
+<UserControl x:Class="Perch.Views.Pages.AiPage" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:Perch.ViewModels" xmlns:views="using:Perch.Views" xmlns:platform="using:Perch.Platform" x:DataType="vm:AiViewModel">
  <!-- DataContext is the AI chat view model. This is the one page that is taller than the others (see IslandWindow). -->
  <UserControl.Styles>
   <!-- The message box lives inside a rounded card, so the box itself has no frame, background or focus line. -->
@@ -31,8 +31,59 @@
   <Style Selector="ToggleButton.Think:checked /template/ Border#Body"><Setter Property="Background" Value="#2A2118"/><Setter Property="BorderBrush" Value="#5A4226"/></Style>
  </UserControl.Styles>
 
- <Grid>
-  <Grid.RowDefinitions><RowDefinition Height="40"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+ <Grid ColumnDefinitions="Auto,*">
+  <!-- Codex-style collapsible Projects & History sidebar -->
+  <Border Grid.Column="0" Width="180" IsVisible="{Binding HistoryOpen}" Margin="0,0,8,0" CornerRadius="14" Padding="6,6" Background="#0F0F12" BorderBrush="#222228" BorderThickness="1">
+   <Grid RowDefinitions="Auto,Auto,*">
+    <Button Command="{Binding NewChat}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,7" Margin="0,0,0,6" Background="#1A1A20" CornerRadius="9" Classes="Tile">
+     <StackPanel Orientation="Horizontal" Spacing="8">
+      <TextBlock Text="&#xE710;" FontSize="12" Foreground="#FFAE54" VerticalAlignment="Center" Classes="Glyph"/>
+      <TextBlock Text="{DynamicResource Ai.New}" FontSize="12.5" FontWeight="SemiBold" Foreground="#ECECF0" VerticalAlignment="Center"/>
+     </StackPanel>
+    </Button>
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="8,4,4,4">
+     <TextBlock Text="{DynamicResource Ai.Workspace}" FontSize="11.5" FontWeight="SemiBold" Foreground="#7A7A84" VerticalAlignment="Center"/>
+     <Button Grid.Column="1" Click="OnAddWorkspace" ToolTip.Tip="{DynamicResource Ai.WorkspacePick}" AutomationProperties.Name="{DynamicResource Ai.WorkspacePick}" Classes="Nav Small">
+      <TextBlock Text="&#xE710;" FontSize="11" Foreground="#9A9AA4" Classes="Glyph"/>
+     </Button>
+    </Grid>
+
+    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Focusable="False">
+     <ItemsControl ItemsSource="{Binding HistoryGroups}">
+      <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:HistoryGroup">
+       <StackPanel Margin="0,2,0,4">
+        <Grid ColumnDefinitions="*,Auto">
+         <Button Command="{Binding Toggle}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="6,5" Background="Transparent" Classes="Tile">
+          <StackPanel Orientation="Horizontal" Spacing="6" ToolTip.Tip="{Binding WorkspacePath}">
+           <TextBlock Text="{Binding ChevronGlyph}" FontSize="8.5" Foreground="#6E6E78" VerticalAlignment="Center" Classes="Glyph"/>
+           <TextBlock Text="&#xE8B7;" FontSize="11.5" Foreground="#FFAE54" VerticalAlignment="Center" Classes="Glyph"/>
+           <TextBlock Text="{Binding WorkspaceName}" FontSize="12" FontWeight="SemiBold" Foreground="#D4D4DC" TextTrimming="CharacterEllipsis" MaxWidth="96" VerticalAlignment="Center"/>
+          </StackPanel>
+         </Button>
+         <Button Grid.Column="1" Command="{Binding $parent[UserControl].((vm:AiViewModel)DataContext).NewChatInWorkspace}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Ai.New}" AutomationProperties.Name="{DynamicResource Ai.New}" Classes="Nav Small">
+          <TextBlock Text="&#xE710;" FontSize="10.5" Foreground="#9A9AA4" Classes="Glyph"/>
+         </Button>
+        </Grid>
+        <ItemsControl ItemsSource="{Binding Items}" IsVisible="{Binding IsExpanded}" Margin="8,1,0,0">
+         <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:ConversationItem">
+          <Button Margin="0,1" Command="{Binding $parent[UserControl].((vm:AiViewModel)DataContext).OpenChat}" CommandParameter="{Binding}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="8,6" Background="{Binding IsCurrent, Converter={StaticResource Pick}, ConverterParameter=#26262B|Transparent}" Classes="Tile">
+           <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="{Binding Title}" FontSize="12" Foreground="#DCDCE2" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="1" Text="{Binding TimeLabel}" FontSize="10.5" Foreground="#6E6E78" Margin="6,0,0,0" VerticalAlignment="Center"/>
+           </Grid>
+          </Button>
+         </DataTemplate></ItemsControl.ItemTemplate>
+        </ItemsControl>
+       </StackPanel>
+      </DataTemplate></ItemsControl.ItemTemplate>
+     </ItemsControl>
+    </ScrollViewer>
+   </Grid>
+  </Border>
+
+  <Grid Grid.Column="1">
+   <Grid.RowDefinitions><RowDefinition Height="40"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
 
   <!-- Header: history, the conversation's title, new chat -->
   <Grid Margin="0,0,0,2">
@@ -40,8 +91,8 @@
    <Button Command="{Binding ToggleHistory}" ToolTip.Tip="{DynamicResource Ai.History}" AutomationProperties.Name="{DynamicResource Ai.History}" Classes="Nav">
     <TextBlock Text="&#xE81C;" FontSize="16" Foreground="#C9C9CE" Classes="Glyph"/>
    </Button>
-   <Grid Grid.Column="1" Margin="6,0,10,0">
-    <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding NotRenaming}">
+   <Grid Grid.Column="1" Margin="6,0,10,0" Background="Transparent">
+    <StackPanel x:Name="TitleHeader" Orientation="Horizontal" Spacing="4" IsVisible="{Binding NotRenaming}" Background="Transparent">
      <TextBlock Text="{Binding Title}" FontSize="13.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" MaxWidth="560" Background="Transparent" DoubleTapped="OnTitleDoubleTapped"/>
      <Button Command="{Binding BeginRename}" IsVisible="{Binding CanRename}" ToolTip.Tip="{DynamicResource Ai.Rename}" AutomationProperties.Name="{DynamicResource Ai.Rename}" Classes="Nav Small">
       <TextBlock Text="&#xE70F;" FontSize="12" Foreground="#8A8A92" Classes="Glyph"/>
@@ -70,7 +121,13 @@
       <Grid Margin="0,7">
        <!-- You: a quiet bubble on the right -->
        <Border IsVisible="{Binding IsUser}" HorizontalAlignment="Right" MaxWidth="500" CornerRadius="16,16,4,16" Padding="14,9" Background="#2A2A2F">
-        <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="13.5" LineHeight="20" Foreground="#F2F2F4"/>
+        <StackPanel Spacing="4">
+         <StackPanel Orientation="Horizontal" Spacing="5" IsVisible="{Binding HasImage}">
+          <TextBlock Text="&#xE158;" FontSize="11" Foreground="#FFAE54" VerticalAlignment="Center" Classes="Glyph"/>
+          <TextBlock Text="{DynamicResource Ai.ImageAttached}" FontSize="11.5" Foreground="#C9C9CE" VerticalAlignment="Center"/>
+         </StackPanel>
+         <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="13.5" LineHeight="20" Foreground="#F2F2F4"/>
+        </StackPanel>
        </Border>
        <!-- The assistant: no bubble, a small mark on the left -->
        <Grid IsVisible="{Binding IsAssistant}" ColumnDefinitions="30,*">
@@ -85,21 +142,40 @@
            <SelectableTextBlock Text="{Binding ThinkingShown}" IsVisible="{Binding ThinkingOpen}" TextWrapping="Wrap" FontSize="12" LineHeight="18" Foreground="#80808A" Margin="0,5,0,2"/>
           </StackPanel>
          </Border>
-         <!-- What the agent did: one quiet line per search or page read -->
+         <!-- What the agent did: one quiet line per search or tool call; click to inspect args & output -->
          <ItemsControl ItemsSource="{Binding Steps}" IsVisible="{Binding HasSteps}">
           <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:AgentStepLine">
-           <StackPanel Orientation="Horizontal" Spacing="7" Margin="0,2">
-            <TextBlock Text="&#xE73E;" IsVisible="{Binding Done}" FontSize="10" Foreground="#6E9B6E" VerticalAlignment="Center" Classes="Glyph"/>
-            <TextBlock Text="&#xE895;" IsVisible="{Binding Running}" FontSize="10" Foreground="#FFAE54" VerticalAlignment="Center" Classes="Glyph"/>
-            <TextBlock Text="{Binding Label}" FontSize="12" Foreground="#9A9AA2" TextTrimming="CharacterEllipsis" MaxWidth="420"/>
-            <TextBlock Text="{Binding Summary}" IsVisible="{Binding HasSummary}" FontSize="12" Foreground="#6A6A72" TextTrimming="CharacterEllipsis" MaxWidth="260"/>
+           <StackPanel Margin="0,1">
+            <Button Command="{Binding Toggle}" HorizontalAlignment="Left" Padding="4,2" Background="Transparent" BorderThickness="0" Cursor="{Binding HasPayload, Converter={StaticResource Pick}, ConverterParameter=Hand|Arrow}" Classes="Tile">
+             <StackPanel Orientation="Horizontal" Spacing="7">
+              <TextBlock Text="&#xE73E;" IsVisible="{Binding Done}" FontSize="10" Foreground="{Binding Failed, Converter={StaticResource Pick}, ConverterParameter=#FF8A7A|#6E9B6E}" VerticalAlignment="Center" Classes="Glyph"/>
+              <TextBlock Text="&#xE895;" IsVisible="{Binding Running}" FontSize="10" Foreground="#FFAE54" VerticalAlignment="Center" Classes="Glyph"/>
+              <TextBlock Text="{Binding Label}" FontSize="12" Foreground="#9A9AA2" TextTrimming="CharacterEllipsis" MaxWidth="420"/>
+              <TextBlock Text="{Binding Summary}" IsVisible="{Binding HasSummary}" FontSize="12" Foreground="#6A6A72" TextTrimming="CharacterEllipsis" MaxWidth="220"/>
+              <TextBlock Text="{Binding ChevronGlyph}" IsVisible="{Binding HasPayload}" FontSize="9" Foreground="#6A6A72" VerticalAlignment="Center" Classes="Glyph"/>
+             </StackPanel>
+            </Button>
+            <Border IsVisible="{Binding Open}" CornerRadius="8" Padding="9,6" Margin="16,2,0,4" Background="#0F0F12" BorderBrush="#232328" BorderThickness="1">
+             <StackPanel Spacing="4">
+              <SelectableTextBlock Text="{Binding Args}" IsVisible="{Binding HasArgs}" TextWrapping="Wrap" FontFamily="Cascadia Mono, Consolas" FontSize="11" Foreground="#9A9AA2"/>
+              <Border Height="1" Background="#202026" IsVisible="{Binding HasArgs}"/>
+              <ScrollViewer MaxHeight="110" VerticalScrollBarVisibility="Auto" IsVisible="{Binding HasOutput}">
+               <SelectableTextBlock Text="{Binding Output}" TextWrapping="Wrap" FontFamily="Cascadia Mono, Consolas" FontSize="11" Foreground="#D4D4DC"/>
+              </ScrollViewer>
+             </StackPanel>
+            </Border>
            </StackPanel>
           </DataTemplate></ItemsControl.ItemTemplate>
          </ItemsControl>
-         <!-- An action waiting for the user's OK -->
-         <Border IsVisible="{Binding HasConfirm}" CornerRadius="12" Padding="12,10" Background="#1B1710" BorderBrush="#4A3A22" BorderThickness="1" Classes="Ask">
+         <!-- An action waiting for the user's OK (crimson border for Dangerous scripts, amber for Change) -->
+         <Border IsVisible="{Binding HasConfirm}" CornerRadius="12" Padding="12,10" Background="{Binding Confirm.Danger, Converter={StaticResource Pick}, ConverterParameter=#221214|#1B1710}" BorderBrush="{Binding Confirm.Danger, Converter={StaticResource Pick}, ConverterParameter=#7A2E34|#4A3A22}" BorderThickness="1" Classes="Ask">
           <StackPanel Spacing="8">
-           <TextBlock Text="{Binding Confirm.Title}" TextWrapping="Wrap" FontSize="13" FontWeight="SemiBold" Foreground="#F0E4D0"/>
+           <StackPanel Orientation="Horizontal" Spacing="8">
+            <Border IsVisible="{Binding Confirm.Danger}" CornerRadius="6" Padding="6,2" Background="#4A1A1E" VerticalAlignment="Center">
+             <TextBlock Text="{DynamicResource Ai.DangerBadge}" FontSize="11" FontWeight="SemiBold" Foreground="#FF9A9A"/>
+            </Border>
+            <TextBlock Text="{Binding Confirm.Title}" TextWrapping="Wrap" FontSize="13" FontWeight="SemiBold" Foreground="#F0E4D0" VerticalAlignment="Center"/>
+           </StackPanel>
            <Border IsVisible="{Binding Confirm.HasDetail}" CornerRadius="8" Background="#0C0C0E" BorderBrush="#26262A" BorderThickness="1" Padding="10,8">
             <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
              <SelectableTextBlock Text="{Binding Confirm.Detail}" TextWrapping="Wrap" FontFamily="Cascadia Mono, Consolas" FontSize="12" LineHeight="17" Foreground="#E6E6EA"/>
@@ -109,6 +185,28 @@
             <Button Content="{DynamicResource Ai.Deny}" Command="{Binding Confirm.Deny}" Classes="Deny"/>
             <Button Content="{DynamicResource Ai.Allow}" Command="{Binding Confirm.Allow}" Classes="Allow"/>
            </StackPanel>
+          </StackPanel>
+         </Border>
+         <!-- Interactive plan / option picker from ask_user tool -->
+         <Border IsVisible="{Binding HasChoice}" CornerRadius="12" Padding="12,10" Background="#16161B" BorderBrush="#363228" BorderThickness="1">
+          <StackPanel Spacing="8">
+           <TextBlock Text="{Binding Choice.Question}" TextWrapping="Wrap" FontSize="13" FontWeight="SemiBold" Foreground="#F0E8DC"/>
+           <ItemsControl ItemsSource="{Binding Choice.Options}">
+            <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:ChoiceOption">
+             <Button Command="{Binding Pick}" CommandParameter="{Binding}" IsEnabled="{Binding $parent[ItemsControl].((vm:ChatLine)DataContext).Choice.Pending}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Margin="0,2" Padding="10,7" CornerRadius="9" Background="{Binding Selected, Converter={StaticResource Pick}, ConverterParameter=#2A2116|#1E1E24}" BorderBrush="{Binding Selected, Converter={StaticResource Pick}, ConverterParameter=#FFAE54|#2E2E36}" BorderThickness="1" Classes="Tile">
+              <Grid ColumnDefinitions="*,Auto">
+               <TextBlock Text="{Binding Label}" TextWrapping="Wrap" FontSize="12.5" Foreground="#ECECF0" VerticalAlignment="Center"/>
+               <TextBlock Grid.Column="1" Text="&#xE73E;" IsVisible="{Binding Selected}" FontSize="11" Foreground="#FFAE54" VerticalAlignment="Center" Margin="8,0,0,0" Classes="Glyph"/>
+              </Grid>
+             </Button>
+            </DataTemplate></ItemsControl.ItemTemplate>
+           </ItemsControl>
+           <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,0" IsVisible="{Binding Choice.Pending}">
+            <TextBox Text="{Binding Choice.CustomText}" PlaceholderText="{DynamicResource Ai.Placeholder}" MinHeight="30" FontSize="12" Classes="Quiet Compact Field"/>
+            <Button Grid.Column="1" Command="{Binding Choice.SubmitCustom}" Margin="6,0,0,0" Padding="10,4" Classes="Allow">
+             <TextBlock Text="&#xE74A;" FontSize="11" Foreground="#1A1208" Classes="Glyph"/>
+            </Button>
+           </Grid>
           </StackPanel>
          </Border>
          <TextBlock Text="{DynamicResource Ai.Working}" IsVisible="{Binding IsPending}" FontSize="13" Foreground="#80808A"/>
@@ -138,6 +236,7 @@
            </Grid>
           </DataTemplate></ItemsControl.ItemTemplate>
          </ItemsControl>
+         <TextBlock Text="{Binding Stats}" IsVisible="{Binding HasStats}" FontSize="11" Foreground="#666670" Margin="0,2,0,0"/>
         </StackPanel>
        </Grid>
       </Grid>
@@ -153,43 +252,38 @@
     </StackPanel>
    </Border>
 
-   <!-- History: slides over the left of the conversation -->
-   <Border HorizontalAlignment="Left" Width="280" CornerRadius="14" Padding="10,8" Background="#131315" BorderBrush="#27272B" BorderThickness="1" IsVisible="{Binding HistoryOpen}" BoxShadow="0 8 24 0 #90000000">
-    <Grid RowDefinitions="Auto,*">
-     <Grid Margin="4,0,0,6">
-      <TextBlock Text="{DynamicResource Ai.History}" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
-      <Button Content="{DynamicResource Ai.ClearAll}" Command="{Binding ClearHistory}" HorizontalAlignment="Right" IsVisible="{Binding !NoHistory}" Classes="Text"/>
-     </Grid>
-     <TextBlock Grid.Row="1" Text="{DynamicResource Ai.NoHistory}" HorizontalAlignment="Center" Margin="0,24,0,0" IsVisible="{Binding NoHistory}" Classes="Placeholder"/>
-     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Focusable="False" IsVisible="{Binding !NoHistory}">
-      <ItemsControl ItemsSource="{Binding History}">
-       <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:ConversationItem">
-        <Grid Margin="0,1">
-         <Button Command="{Binding $parent[UserControl].((vm:AiViewModel)DataContext).OpenChat}" CommandParameter="{Binding}" HorizontalContentAlignment="Stretch" Padding="10,7,34,7" Background="{Binding IsCurrent, Converter={StaticResource Pick}, ConverterParameter=#26262B|Transparent}" Classes="Tile">
-          <StackPanel>
-           <TextBlock Text="{Binding Title}" FontSize="12.5" TextTrimming="CharacterEllipsis"/>
-           <TextBlock Text="{Binding TimeLabel}" Classes="Caption"/>
-          </StackPanel>
-         </Button>
-         <Button HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,4,0" Command="{Binding $parent[UserControl].((vm:AiViewModel)DataContext).DeleteChat}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource Common.Delete}" AutomationProperties.Name="{DynamicResource Common.Delete}" Classes="Nav Small">
-          <TextBlock Text="&#xE74D;" FontSize="11" Foreground="#77777D" Classes="Glyph"/>
-         </Button>
-        </Grid>
-       </DataTemplate></ItemsControl.ItemTemplate>
-      </ItemsControl>
-     </ScrollViewer>
-    </Grid>
+   <!-- Slash commands popup -->
+   <Border VerticalAlignment="Bottom" HorizontalAlignment="Left" MinWidth="310" CornerRadius="12" Padding="5" Margin="0,0,0,4" Background="#161619" BorderBrush="#2C2C32" BorderThickness="1" IsVisible="{Binding SlashOpen}" BoxShadow="0 8 20 0 #80000000">
+    <ItemsControl ItemsSource="{Binding SlashChoices}">
+     <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:SlashItem">
+      <Button Command="{Binding $parent[UserControl].((vm:AiViewModel)DataContext).ApplySlash}" CommandParameter="{Binding}" Classes="MenuRow">
+       <StackPanel Orientation="Horizontal" Spacing="10">
+        <TextBlock Text="{Binding Command}" FontFamily="Cascadia Mono, Consolas" FontSize="12.5" FontWeight="SemiBold" Foreground="#FFAE54" Width="74"/>
+        <TextBlock Text="{Binding Description}" FontSize="12" Foreground="#B4B4BC" VerticalAlignment="Center"/>
+       </StackPanel>
+      </Button>
+     </DataTemplate></ItemsControl.ItemTemplate>
+    </ItemsControl>
    </Border>
   </Grid>
 
-  <!-- Input card: the message, the model, send -->
+  <!-- Input card: optional attachment, the message, the model, send -->
   <Border Grid.Row="2" Margin="0,6,0,0" CornerRadius="18" Background="#161618" BorderBrush="#2B2B30" BorderThickness="1" Padding="12,4,8,6">
-   <Grid RowDefinitions="Auto,Auto">
-    <Grid>
+   <Grid RowDefinitions="Auto,Auto,Auto">
+    <Border IsVisible="{Binding HasAttachedImage}" HorizontalAlignment="Left" CornerRadius="10" Padding="8,3" Margin="0,4,0,2" Background="#24201A" BorderBrush="#4A3A22" BorderThickness="1">
+     <StackPanel Orientation="Horizontal" Spacing="6">
+      <TextBlock Text="&#xE158;" FontSize="11" Foreground="#FFAE54" VerticalAlignment="Center" Classes="Glyph"/>
+      <TextBlock Text="{Binding AttachedImageLabel}" FontSize="11.5" Foreground="#E4E4E8" VerticalAlignment="Center"/>
+      <Button Command="{Binding ClearAttachment}" Padding="2" MinWidth="0" MinHeight="0" Background="Transparent" BorderThickness="0" Cursor="Hand">
+       <TextBlock Text="&#xE711;" FontSize="10" Foreground="#9A9AA2" Classes="Glyph"/>
+      </Button>
+     </StackPanel>
+    </Border>
+    <Grid Grid.Row="1">
      <TextBox x:Name="Input" MinHeight="34" MaxHeight="92" AcceptsReturn="True" TextWrapping="Wrap" Text="{Binding Draft}" AutomationProperties.Name="{DynamicResource Ai.Placeholder}" Classes="Chat"/>
      <TextBlock Text="{DynamicResource Ai.Placeholder}" Margin="4,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" Classes="Placeholder" IsVisible="{Binding Draft, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
     </Grid>
-    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,2,0,0">
+    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,2,0,0">
      <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasChoices}">
       <!-- The model: a quiet pill that opens a menu of every model, grouped by service. -->
       <Button x:Name="ModelButton" AutomationProperties.Name="{DynamicResource Ai.Model}" Classes="Pill">
@@ -236,6 +330,51 @@
         <TextBlock Text="{DynamicResource Ai.Local}" FontSize="12.5" VerticalAlignment="Center"/>
        </StackPanel>
       </ToggleButton>
+      <!-- Workspace / repo picker (locked once conversation starts) -->
+      <Button x:Name="WorkspaceButton" IsEnabled="{Binding CanChangeWorkspace}" ToolTip.Tip="{Binding WorkspaceTip}" AutomationProperties.Name="{DynamicResource Ai.Workspace}" Classes="Pill">
+       <StackPanel Orientation="Horizontal" Spacing="5">
+        <TextBlock Text="&#xE8B7;" FontSize="12" Foreground="#FFAE54" VerticalAlignment="Center" Classes="Glyph"/>
+        <TextBlock Text="{Binding WorkspaceName}" FontSize="12.5" Foreground="#E4E4E8" VerticalAlignment="Center" MaxWidth="110" TextTrimming="CharacterEllipsis"/>
+        <TextBlock Text="&#xE70D;" FontSize="9" Foreground="#8A8A92" VerticalAlignment="Center" Margin="0,1,0,0" IsVisible="{Binding CanChangeWorkspace}" Classes="Glyph"/>
+       </StackPanel>
+       <Button.Flyout>
+        <Flyout Placement="TopEdgeAlignedLeft" FlyoutPresenterClasses="ModelMenu">
+         <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto">
+          <StackPanel MinWidth="220" Spacing="2">
+           <Button Click="OnPickNoRepo" Classes="MenuRow">
+            <Grid ColumnDefinitions="*,Auto">
+             <TextBlock Text="{DynamicResource Ai.NoRepo}" FontSize="13" Foreground="#ECECF0" VerticalAlignment="Center"/>
+             <TextBlock Grid.Column="1" Text="&#xE73E;" FontSize="12" Foreground="#FFAE54" VerticalAlignment="Center" Margin="12,0,0,0" IsVisible="{Binding NoRepo}" Classes="Glyph"/>
+            </Grid>
+           </Button>
+           <Border Height="1" Background="#26262C" Margin="6,3" IsVisible="{Binding HasRememberedWorkspaces}"/>
+           <ItemsControl ItemsSource="{Binding RememberedWorkspaces}" IsVisible="{Binding HasRememberedWorkspaces}">
+            <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:WorkspaceChoice">
+             <Grid ColumnDefinitions="*,Auto">
+              <Button Command="{Binding $parent[UserControl].((vm:AiViewModel)DataContext).SelectWorkspace}" CommandParameter="{Binding Path}" Click="OnPickedWorkspace" ToolTip.Tip="{Binding Path}" Classes="MenuRow">
+               <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="{Binding Name}" FontSize="13" Foreground="#ECECF0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Grid.Column="1" Text="&#xE73E;" FontSize="12" Foreground="#FFAE54" VerticalAlignment="Center" Margin="10,0,0,0" IsVisible="{Binding IsCurrent}" Classes="Glyph"/>
+               </Grid>
+              </Button>
+              <Button Grid.Column="1" Command="{Binding $parent[UserControl].((vm:AiViewModel)DataContext).RemoveWorkspace}" CommandParameter="{Binding}" Padding="6,4" MinWidth="0" MinHeight="0" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip.Tip="{DynamicResource Common.Remove}">
+               <TextBlock Text="&#xE711;" FontSize="9" Foreground="#6E6E78" Classes="Glyph"/>
+              </Button>
+             </Grid>
+            </DataTemplate></ItemsControl.ItemTemplate>
+           </ItemsControl>
+           <Border Height="1" Background="#26262C" Margin="6,3"/>
+           <Button Click="OnPickWorkspace" Classes="MenuRow">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+             <TextBlock Text="&#xE8E5;" FontSize="12" Foreground="#C9C9CE" VerticalAlignment="Center" Classes="Glyph"/>
+             <TextBlock Text="{DynamicResource Ai.WorkspacePick}" FontSize="13" Foreground="#ECECF0" VerticalAlignment="Center"/>
+            </StackPanel>
+           </Button>
+          </StackPanel>
+         </ScrollViewer>
+        </Flyout>
+       </Button.Flyout>
+      </Button>
      </StackPanel>
      <TextBlock Text="{DynamicResource Ai.NoModels}" IsVisible="{Binding NoChoices}" FontSize="12" Foreground="#80808A" VerticalAlignment="Center" Margin="6,0,0,0"/>
      <Button Grid.Column="1" Command="{Binding Send}" IsVisible="{Binding IsIdle}" ToolTip.Tip="{DynamicResource Ai.Send}" AutomationProperties.Name="{DynamicResource Ai.Send}" Classes="Round">
@@ -247,5 +386,6 @@
     </Grid>
    </Grid>
   </Border>
+  </Grid>
  </Grid>
 </UserControl>

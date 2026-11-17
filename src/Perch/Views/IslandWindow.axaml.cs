@@ -38,6 +38,9 @@ public partial class IslandWindow : Window
     private readonly ScaleTransform moreScale = new(1, 1);
     private IslandHost? host;
     private FullscreenWatcher? fullscreen;
+#if WINDOWS
+    private Perch.Platform.Windows.SystemNotifications? sysNotifications;
+#endif
     private SettingsWindow? settingsWindow;
     private TrayIcon? tray;
     private NativeMenuItem? hoverItem, motionItem, menuShowHide, menuSettings, menuLayout, menuExit;
@@ -101,6 +104,18 @@ public partial class IslandWindow : Window
         model.ShapeChanged += UpdateShape;
         model.Ai.SettingsRequested += OpenAiSettings;
         model.Ai.Sent += ReleaseTextFocus;
+        model.Ai.CaptureRequested += async () =>
+        {
+#if WINDOWS
+            controller.Collapse();
+            await Task.Delay(220);
+            var shot = await Perch.Platform.Windows.ScreenCaptureOverlay.CaptureRegionPngAsync();
+            if (shot is { } s) model.Ai.AttachPng(s.Png, s.Width, s.Height);
+            controller.Open();
+            SelectPage(AiPage);
+#endif
+        };
+        model.Ai.ReplyFinished += () => { if (controller.State == InteractionState.Compact || pages[page] != AiPanel) model.Alerts.Show(AlertQueue.Done, Loc.T("Ai.Replied"), Perch.Services.Sounds.SoundKind.None); };
         model.Alarm.RingingChanged += OnAlarmRinging;
         model.Ai.ConfirmChanged += OnAiConfirm;
         model.Search.Navigate += id => SelectPage(Array.IndexOf(NavIds, id));
@@ -110,6 +125,12 @@ public partial class IslandWindow : Window
             flyout.Opened += (_, _) => { flyoutOpen = true; UpdateEditing(); };
             flyout.Closed += (_, _) => { flyoutOpen = false; UpdateEditing(); };
         }
+        if (AiPanel.WorkspaceFlyout is { } wsFlyout)
+        {
+            wsFlyout.Opened += (_, _) => { flyoutOpen = true; UpdateEditing(); };
+            wsFlyout.Closed += (_, _) => { flyoutOpen = false; UpdateEditing(); };
+        }
+        AiPanel.PickingFolderChanged += picking => { flyoutOpen = picking; UpdateEditing(); };
         Program.SecondInstance += () => Dispatcher.UIThread.Post(() => { userHidden = false; ApplyVisibility(); controller.Open(); }); // started again: show the island
         animator.Frame += Draw;
         dragWatch.Tick += (_, _) => { if (!CursorOverIsland()) { dragWatch.Stop(); pointerOver = false; controller.Pointer(false); } };
@@ -163,6 +184,9 @@ public partial class IslandWindow : Window
         RegisterHotkeys();
         fullscreen = new FullscreenWatcher(host.Handle);
         fullscreen.Changed += ApplyVisibility;
+#if WINDOWS
+        sysNotifications = new Perch.Platform.Windows.SystemNotifications(store, model.Alerts);
+#endif
         ApplySlide(animate: false);
         ApplyLook();
         PlaceHost();
@@ -546,11 +570,12 @@ public partial class IslandWindow : Window
             return group;
         }
         var menu = new ContextMenu();
+        menu.Classes.Add("PerchMenu");
         // The island window is always dark, so the menu takes its colours from the chosen theme explicitly.
         var light = ThemeManager.IsLight(s.Theme);
         IBrush Brush(string dark, string lightColor) => new SolidColorBrush(Color.Parse(light ? lightColor : dark));
-        menu.Resources["MenuFlyoutPresenterBackground"] = Brush("#F0060607", "#F2FAFAFB");
-        menu.Resources["MenuFlyoutPresenterBorderBrush"] = Brush("#24FFFFFF", "#1A000000");
+        menu.Resources["MenuFlyoutPresenterBackground"] = Brush("#F4141418", "#F4FAFAFB");
+        menu.Resources["MenuFlyoutPresenterBorderBrush"] = Brush("#2EFFFFFF", "#28000000");
         menu.Resources["MenuFlyoutItemForeground"] = Brush("#F2F2F4", "#16161A");
         menu.Resources["MenuFlyoutItemForegroundPointerOver"] = Brush("#F2F2F4", "#16161A");
         menu.Resources["MenuFlyoutItemForegroundPressed"] = Brush("#F2F2F4", "#16161A");
@@ -563,39 +588,41 @@ public partial class IslandWindow : Window
         menu.Resources["MenuFlyoutSubItemBackgroundPointerOver"] = Brush("#2EFFFFFF", "#16000000");
         menu.Resources["MenuFlyoutSubItemBackgroundPressed"] = Brush("#2EFFFFFF", "#16000000");
         menu.Resources["MenuFlyoutSubItemBackgroundPointerOver"] = Brush("#2EFFFFFF", "#16000000");
-        menu.Resources["MenuFlyoutSeparatorBackground"] = Brush("#26FFFFFF", "#18000000");
-        if (AddPageItems(menu, e.GetPosition(this))) menu.Items.Add(new Separator());
-        menu.Items.Add(Item("Menu.Settings", OpenSettings));
-        menu.Items.Add(new Separator());
-        menu.Items.Add(Group("Menu.Form",
-            Item("Menu.FormStandard", () => { s.Shape = "standard"; ApplyLook(); }, s.Shape != "capsule"),
-            Item("Menu.FormCapsule", () => { s.Shape = "capsule"; ApplyLook(); }, s.Shape == "capsule")));
-        MenuItem GlassItem()
+        menu.Resources["MenuFlyoutSeparatorBackground"] = Brush("#2EFFFFFF", "#38000000");
+        if (!AddPageItems(menu, e.GetPosition(this)))
         {
-            var item = Item("Menu.AppearanceGlass", () => { s.Appearance = "glass"; ApplyLook(); }, s.Appearance == "glass");
-            item.IsEnabled = Translucency.Supported;
-            return item;
+            menu.Items.Add(Item("Menu.Settings", OpenSettings));
+            menu.Items.Add(new Separator());
+            menu.Items.Add(Group("Menu.Form",
+                Item("Menu.FormStandard", () => { s.Shape = "standard"; ApplyLook(); }, s.Shape != "capsule"),
+                Item("Menu.FormCapsule", () => { s.Shape = "capsule"; ApplyLook(); }, s.Shape == "capsule")));
+            MenuItem GlassItem()
+            {
+                var item = Item("Menu.AppearanceGlass", () => { s.Appearance = "glass"; ApplyLook(); }, s.Appearance == "glass");
+                item.IsEnabled = Translucency.Supported;
+                return item;
+            }
+            menu.Items.Add(Group("Menu.Appearance",
+                Item("Menu.AppearanceBlack", () => { s.Appearance = "black"; ApplyLook(); }, s.Appearance != "glass"),
+                GlassItem()));
+            menu.Items.Add(Group("Menu.Expand",
+                Item("Menu.ExpandHover", () => SetHover(true), s.HoverExpand),
+                Item("Menu.ExpandClick", () => SetHover(false), !s.HoverExpand)));
+            menu.Items.Add(Group("Menu.Collapse",
+                Item("Menu.CollapseLeave", () => SetCollapse(true), s.CollapseOnLeave),
+                Item("Menu.CollapseClick", () => SetCollapse(false), !s.CollapseOnLeave)));
+            var languages = new List<MenuItem> { Item("Settings.LanguageSystem", () => ChangeLanguage(""), s.Language == "") };
+            foreach (var option in Loc.Available)
+            {
+                var code = option.Code;
+                var item = new MenuItem { Header = option.Name, ToggleType = MenuItemToggleType.CheckBox, IsChecked = s.Language == code };
+                item.Click += (_, _) => { ChangeLanguage(code); settingsWindow?.Refresh(); };
+                languages.Add(item);
+            }
+            menu.Items.Add(Group("Menu.Language", languages.ToArray()));
+            menu.Items.Add(new Separator());
+            menu.Items.Add(Item("Menu.Exit", App.Quit));
         }
-        menu.Items.Add(Group("Menu.Appearance",
-            Item("Menu.AppearanceBlack", () => { s.Appearance = "black"; ApplyLook(); }, s.Appearance != "glass"),
-            GlassItem()));
-        menu.Items.Add(Group("Menu.Expand",
-            Item("Menu.ExpandHover", () => SetHover(true), s.HoverExpand),
-            Item("Menu.ExpandClick", () => SetHover(false), !s.HoverExpand)));
-        menu.Items.Add(Group("Menu.Collapse",
-            Item("Menu.CollapseLeave", () => SetCollapse(true), s.CollapseOnLeave),
-            Item("Menu.CollapseClick", () => SetCollapse(false), !s.CollapseOnLeave)));
-        var languages = new List<MenuItem> { Item("Settings.LanguageSystem", () => ChangeLanguage(""), s.Language == "") };
-        foreach (var option in Loc.Available)
-        {
-            var code = option.Code;
-            var item = new MenuItem { Header = option.Name, ToggleType = MenuItemToggleType.CheckBox, IsChecked = s.Language == code };
-            item.Click += (_, _) => { ChangeLanguage(code); settingsWindow?.Refresh(); };
-            languages.Add(item);
-        }
-        menu.Items.Add(Group("Menu.Language", languages.ToArray()));
-        menu.Items.Add(new Separator());
-        menu.Items.Add(Item("Menu.Exit", App.Quit));
         // While the menu is open the island must not collapse under it.
         menu.Opened += (_, _) => { menuOpen = true; openMenu = menu; menuWatch.Start(); UpdateEditing(); };
         menu.Closed += (_, _) => { menuOpen = false; openMenu = null; menuWatch.Stop(); UpdateEditing(); };
@@ -609,8 +636,13 @@ public partial class IslandWindow : Window
     {
         if (controller.State == InteractionState.Compact) return false;
         object? hit = null;
+        var hitTitle = false;
         for (var visual = this.InputHitTest(point) as Visual; visual != null && hit == null; visual = visual.GetVisualParent())
-            if (visual is StyledElement { DataContext: NoteItem or TodoItem or ClipItem or TrayFile or CommandItem or PortEntry or EnvironmentEntry or FirewallEntry or ChatLine } element) hit = element.DataContext;
+        {
+            if (visual is StyledElement { Name: "TitleHeader" }) hitTitle = true;
+            if (visual is StyledElement { DataContext: NoteItem or TodoItem or ClipItem or TrayFile or CommandItem or PortEntry or EnvironmentEntry or FirewallEntry or ChatLine or ConversationItem or HistoryGroup } element)
+                hit = element.DataContext;
+        }
 
         var first = menu.Items.Count;
         void Act(string key, Action action, bool? check = null)
@@ -639,6 +671,7 @@ public partial class IslandWindow : Window
             if (hit is TodoItem todo)
             {
                 Act(todo.Done ? "Menu.MarkNotDone" : "Menu.MarkDone", () => todo.Done = !todo.Done);
+                if (!todo.Done) Act(todo.Pinned ? "Todo.UnpinFromIsland" : "Todo.PinToIsland", () => model.Todo.TogglePin.Execute(todo));
                 Act("Common.Delete", () => model.Todo.Delete.Execute(todo));
                 menu.Items.Add(new Separator());
             }
@@ -668,8 +701,27 @@ public partial class IslandWindow : Window
         }
         else if (current == AiPanel)
         {
-            if (hit is ChatLine { Text.Length: > 0 } line) Act("Menu.Copy", () => Copy(line.Text));
-            Act("Ai.New", () => model.Ai.NewChat.Execute(null));
+            if (hit is ConversationItem chat)
+            {
+                Act("Common.Delete", () => model.Ai.DeleteChat.Execute(chat));
+            }
+            else if (hit is HistoryGroup group)
+            {
+                Act("Ai.New", () => model.Ai.NewChatInWorkspace.Execute(group));
+                if (!string.IsNullOrEmpty(group.WorkspacePath))
+                    Act("Common.Remove", () => model.Ai.RemoveWorkspace.Execute(group));
+            }
+            else if (hitTitle && model.Ai.CanRename)
+            {
+                Act("Ai.Rename", () => model.Ai.BeginRename.Execute(null));
+                Act("Ai.New", () => model.Ai.NewChat.Execute(null));
+                if (model.Ai.History.FirstOrDefault(h => h.IsCurrent) is { } active)
+                    Act("Common.Delete", () => model.Ai.DeleteChat.Execute(active));
+            }
+            else if (hit is ChatLine { Text.Length: > 0 } line)
+            {
+                Act("Menu.Copy", () => Copy(line.Text));
+            }
         }
         else if (current == PortsPanel && model.Ports.IsPorts && hit is PortEntry port)
         {
@@ -781,6 +833,24 @@ public partial class IslandWindow : Window
 
     private void OnPin(object? sender, RoutedEventArgs e) => controller.TogglePin();
     private void OnSettings(object? sender, RoutedEventArgs e) => OpenSettings();
+
+    private async void OnColorPicker(object? sender, RoutedEventArgs e)
+    {
+#if WINDOWS
+        controller.Collapse();
+        await Task.Delay(220);
+        await Perch.Platform.Windows.ScreenCaptureOverlay.PickColorAsync(model.Alerts);
+#endif
+    }
+
+    private async void OnScreenshot(object? sender, RoutedEventArgs e)
+    {
+#if WINDOWS
+        controller.Collapse();
+        await Task.Delay(220);
+        await Perch.Platform.Windows.ScreenCaptureOverlay.CaptureRegionAsync(model.Alerts);
+#endif
+    }
 
     private void OnTab(object? sender, RoutedEventArgs e)
     {
@@ -1441,6 +1511,9 @@ public partial class IslandWindow : Window
         menuWatch.Stop(); menuWatch.Tick -= OnMenuWatch;
         reminders.Dispose();
         fullscreen?.Dispose();
+#if WINDOWS
+        sysNotifications?.Dispose();
+#endif
         settingsWindow?.Close();
         model.ShapeChanged -= UpdateShape;
         controller.Dispose();

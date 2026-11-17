@@ -9,7 +9,7 @@ namespace Perch.ViewModels;
 
 public sealed class TodoItem : Observable
 {
-    private bool done;
+    private bool done, pinned;
     private DateTime? due;
     public TodoItem(string text, DateTime created) { Text = text; Created = created; }
     public string Text { get; }
@@ -18,8 +18,14 @@ public sealed class TodoItem : Observable
     public bool Done
     {
         get => done;
-        set { if (Set(ref done, value)) { Completed = value ? DateTime.Now : null; Changed(nameof(IsOverdue)); } }
+        set { if (Set(ref done, value)) { Completed = value ? DateTime.Now : null; if (value) Pinned = false; Changed(nameof(IsOverdue)); } }
     }
+    public bool Pinned
+    {
+        get => pinned;
+        set { if (Set(ref pinned, value)) Changed(nameof(PinTip)); }
+    }
+    public string PinTip => Loc.T(pinned ? "Todo.UnpinFromIsland" : "Todo.PinToIsland");
     public DateTime? Due
     {
         get => due;
@@ -79,9 +85,11 @@ public sealed class TodoViewModel : Observable
 
     public string CountText => All.Count(t => !t.Done).ToString("00");
     public string Summary => All.Where(t => !t.Done).OrderBy(t => t.Due ?? DateTime.MaxValue).ThenByDescending(t => t.Created).FirstOrDefault()?.Text ?? Loc.T("Todo.Empty");
+    public string? PinnedText => All.FirstOrDefault(t => t.Pinned && !t.Done)?.Text;
 
     public ICommand Add { get; }
     public ICommand Delete { get; }
+    public ICommand TogglePin { get; }
     public ICommand ClearDone { get; }
     public ICommand SetFilter { get; }
     public ICommand ToggleSort { get; }
@@ -97,7 +105,7 @@ public sealed class TodoViewModel : Observable
         this.store = store;
         foreach (var data in store.State.Todos)
         {
-            var item = new TodoItem(data.Text, data.Created == default ? DateTime.Now : data.Created) { Due = data.Due, Done = data.Done };
+            var item = new TodoItem(data.Text, data.Created == default ? DateTime.Now : data.Created) { Due = data.Due, Done = data.Done, Pinned = data.Pinned && !data.Done };
             item.Completed = data.Completed;
             Hook(item);
             All.Add(item);
@@ -107,7 +115,7 @@ public sealed class TodoViewModel : Observable
             if (e.OldItems != null) foreach (TodoItem item in e.OldItems) item.PropertyChanged -= ItemChanged;
             Changed_();
         };
-        store.Saving += () => store.State.Todos = All.Select(t => new TodoData { Text = t.Text, Done = t.Done, Due = t.Due, Created = t.Created, Completed = t.Completed }).ToList();
+        store.Saving += () => store.State.Todos = All.Select(t => new TodoData { Text = t.Text, Done = t.Done, Pinned = t.Pinned, Due = t.Due, Created = t.Created, Completed = t.Completed }).ToList();
 
         Add = new RelayCommand(_ =>
         {
@@ -119,6 +127,13 @@ public sealed class TodoViewModel : Observable
             draftDue = null;
         });
         Delete = new RelayCommand(p => { if (p is TodoItem item) All.Remove(item); });
+        TogglePin = new RelayCommand(p =>
+        {
+            if (p is not TodoItem item || item.Done) return;
+            var next = !item.Pinned;
+            foreach (var other in All) if (other != item) other.Pinned = false;
+            item.Pinned = next;
+        });
         ClearDone = new RelayCommand(_ => { foreach (var item in All.Where(t => t.Done).ToList()) All.Remove(item); });
         SetFilter = new RelayCommand(p => { filter = p as string ?? "all"; Refresh(); });
         ToggleSort = new RelayCommand(_ => { sort = sort == "due" ? "created" : "due"; Refresh(); });

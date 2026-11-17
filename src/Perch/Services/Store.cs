@@ -23,6 +23,7 @@ public sealed class Settings
     public bool BedtimeReminder { get; set; }
     public string Bedtime { get; set; } = "23:30";
     public bool BatteryAlerts { get; set; } = true;
+    public bool SystemNotifications { get; set; } = OperatingSystem.IsWindows();
     public bool AlertSound { get; set; } = true;
     // Which built-in sound each kind of reminder plays (ids from SoundBank), and how loud (0-100).
     public string SoundReminder { get; set; } = "gentle";
@@ -84,6 +85,15 @@ public sealed class Settings
     public bool AiLocalTools { get; set; } = OperatingSystem.IsWindows();
     // When an action asks first: "ask" = every one, "script" = only scripts (the dangerous ones), "none" = never.
     public string AiApproval { get; set; } = "ask";
+    public string AiWorkspace { get; set; } = "";
+    public List<string> AiWorkspaces { get; set; } = [];
+    public bool AiWorkspaceOnly { get; set; }
+    // Granular per-capability permissions: "allow", "ask", or "deny".
+    public string AiPermFiles { get; set; } = "allow";
+    public string AiPermPerch { get; set; } = "ask";
+    public string AiPermApps { get; set; } = "ask";
+    public string AiPermUi { get; set; } = "ask";
+    public string AiPermShell { get; set; } = "ask";
     public string SearchEngine { get; set; } = "local"; // "local" (no key), "tavily", "bocha" or "searxng"
     public string SearchKey { get; set; } = "";
     public string SearchUrl { get; set; } = "";
@@ -126,6 +136,7 @@ public sealed class TodoData
 {
     public string Text { get; set; } = "";
     public bool Done { get; set; }
+    public bool Pinned { get; set; }
     public DateTime? Due { get; set; }
     public DateTime Created { get; set; }
     public DateTime? Completed { get; set; }

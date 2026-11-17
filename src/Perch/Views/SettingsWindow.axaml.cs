@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
@@ -51,6 +52,8 @@ public partial class SettingsWindow : Window
         backdropTimer.Tick += (_, _) => RefreshBackdrop();
         ShowLog();
         ShowSearchFields();
+        ShowWorkspace();
+        LoadMemory();
         Log.Added += OnLogLine;
         Closed += (_, _) => Log.Added -= OnLogLine;
         PositionChanged += (_, _) => RefreshBackdrop();
@@ -245,9 +248,13 @@ public partial class SettingsWindow : Window
     {
         void Setup(ComboBox box, Func<string> read, Action<string> write)
         {
-            box.ItemsSource = SoundList;
-            box.SelectedItem = SoundList.FirstOrDefault(o => o.Id == read()) ?? SoundList[0];
-            box.SelectionChanged += (_, _) => { if (box.SelectedItem is SoundOption o && o.Id != read()) { write(o.Id); Audio.Preview(o.Id); } };
+            var current = read();
+            var list = SoundList.ToList();
+            if (SoundBank.CustomFile(current) is { } file)
+                list.Add(new SoundOption(current, "", System.IO.Path.GetFileName(file)));
+            box.ItemsSource = list;
+            box.SelectedItem = list.FirstOrDefault(o => o.Id == current) ?? list[0];
+            box.SelectionChanged += (_, _) => { if (box.SelectedItem is SoundOption o && o.Id != read()) { write(o.Id); Audio.Preview(o.Id); Changed(); } };
         }
         Setup(SoundReminderBox, () => settings.SoundReminder, id => settings.SoundReminder = id);
         Setup(SoundPomodoroBox, () => settings.SoundPomodoro, id => settings.SoundPomodoro = id);
@@ -261,21 +268,130 @@ public partial class SettingsWindow : Window
         if (box.SelectedItem is SoundOption option) Audio.Preview(option.Id);
     }
 
-    // ---- AI servers
+    private async void OnPickSound(object? sender, RoutedEventArgs e)
+    {
+        var tag = (sender as Control)?.Tag as string;
+        var box = tag switch { "pomodoro" => SoundPomodoroBox, "alarm" => SoundAlarmBox, _ => SoundReminderBox };
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = Loc.T("Set.SoundCustom"),
+            AllowMultiple = false,
+            FileTypeFilter = [new FilePickerFileType("Audio") { Patterns = ["*.wav", "*.mp3", "*.m4a", "*.wma", "*.aac", "*.flac"] }],
+        });
+        if (files.Count == 0 || files[0].TryGetLocalPath() is not { } path) return;
+        var id = SoundBank.FilePrefix + path;
+        if (tag == "pomodoro") settings.SoundPomodoro = id;
+        else if (tag == "alarm") settings.SoundAlarm = id;
+        else settings.SoundReminder = id;
+        var list = SoundList.ToList();
+        var custom = new SoundOption(id, "", System.IO.Path.GetFileName(path));
+        list.Add(custom);
+        box.ItemsSource = list;
+        box.SelectedItem = custom;
+        Audio.Preview(id);
+        Changed();
+    }
+
+    // ---- AI servers, Harness permissions, workspace & memory
     private CancellationTokenSource? fetching;
 
     private void BuildProviders()
     {
         if (settings.AiProviders.Count == 0) settings.AiProviders.Add(AiProvider.DeepSeek());
-        // A fresh copy each time: handing the list back after changing it in place left the item panel counting the old
-        // number of cards, and clearing it then ran past the end (the crash on "Add server").
         ProviderList.ItemsSource = settings.AiProviders.ToList();
     }
 
-    // Jumps to the AI page (the chat page's "open settings" button).
     public void ShowAiPage() { if (Sidebar.Children.ElementAtOrDefault(4) is RadioButton ai) ai.IsChecked = true; }
 
-    // "Add server" lists the well-known services; picking one fills in its address and models, leaving only the key.
+    private void OnToggleSection(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string name } btn) return;
+        Control? target = name switch
+        {
+            "PermBody" => PermBody,
+            "MemoryBody" => MemoryBody,
+            "SearchBody" => SearchBody,
+            _ => null
+        };
+        if (target == null) return;
+        target.IsVisible = !target.IsVisible;
+        if (btn.Content is Grid g && g.Children.OfType<TextBlock>().LastOrDefault() is { } chevron)
+            chevron.Text = target.IsVisible ? "\uE70E" : "\uE70D";
+    }
+
+    private void OnToggleProviderCard(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn || btn.Parent is not StackPanel sp || sp.Children.Count < 2) return;
+        var body = sp.Children[1];
+        body.IsVisible = !body.IsVisible;
+        if (btn.Content is Grid g && g.Children.OfType<TextBlock>().LastOrDefault() is { } chevron)
+            chevron.Text = body.IsVisible ? "\uE70E" : "\uE70D";
+    }
+
+    private void ShowWorkspace()
+    {
+        var has = !string.IsNullOrWhiteSpace(settings.AiWorkspace) && Directory.Exists(settings.AiWorkspace);
+        var sandbox = Perch.ViewModels.AiViewModel.EnsureSandboxWorkspace();
+        WorkspacePathText.Text = has ? settings.AiWorkspace : Loc.T("Ai.NoRepo");
+        ClearWorkspaceBtn.IsVisible = has;
+        Perch.Services.Ai.Agent.SafePathGuard.DefaultWorkspace = has ? settings.AiWorkspace : sandbox;
+        Perch.Services.Ai.Agent.SafePathGuard.WorkspaceOnly = settings.AiWorkspaceOnly;
+    }
+
+    private async void OnPickWorkspace(object? sender, RoutedEventArgs e)
+    {
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = Loc.T("Ai.WorkspacePick"), AllowMultiple = false });
+        if (folders.Count == 0 || folders[0].TryGetLocalPath() is not { } path) return;
+        settings.AiWorkspace = path;
+        ShowWorkspace();
+        Changed();
+    }
+
+    private void OnClearWorkspace(object? sender, RoutedEventArgs e)
+    {
+        settings.AiWorkspace = "";
+        ShowWorkspace();
+        Changed();
+    }
+
+    private void OnWorkspaceOnlyClick(object? sender, RoutedEventArgs e)
+    {
+        Perch.Services.Ai.Agent.SafePathGuard.WorkspaceOnly = settings.AiWorkspaceOnly;
+        Changed();
+    }
+
+    private void LoadMemory()
+    {
+        try
+        {
+            var path = Perch.Services.Ai.Agent.MemoryTool.FilePath;
+            MemoryBox.Text = File.Exists(path) ? File.ReadAllText(path) : "";
+        }
+        catch { MemoryBox.Text = ""; }
+    }
+
+    private void OnSaveMemory(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var path = Perch.Services.Ai.Agent.MemoryTool.FilePath;
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, MemoryBox.Text ?? "");
+        }
+        catch { }
+    }
+
+    private void OnClearMemory(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var path = Perch.Services.Ai.Agent.MemoryTool.FilePath;
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch { }
+        MemoryBox.Text = "";
+    }
+
     private void OnAddProvider(object? sender, RoutedEventArgs e)
     {
         var menu = new MenuFlyout { Placement = PlacementMode.BottomEdgeAlignedLeft };
@@ -299,7 +415,6 @@ public partial class SettingsWindow : Window
         Changed();
     }
 
-    // The search service: the fields change with the engine (SearXNG has an address instead of a key).
     private void OnSearchEngine(object? sender, RoutedEventArgs e)
     {
         OnSegment(sender, e);
@@ -314,7 +429,6 @@ public partial class SettingsWindow : Window
         SearchFieldsDivider.IsVisible = engine != "local";
     }
 
-    // Enter adds the typed model name to the provider's list.
     private void OnModelAddKey(object? sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter || sender is not TextBox box || box.DataContext is not AiProvider provider) return;
@@ -324,10 +438,8 @@ public partial class SettingsWindow : Window
         Changed();
     }
 
-    // A saved key shows as stars; the first keystroke replaces them all.
     private void OnKeyFocus(object? sender, RoutedEventArgs e) { if (sender is TextBox box) box.SelectAll(); }
 
-    // Once a key is typed in, the service is asked for its models (which also shows at once whether the key works).
     private void OnKeyEntered(object? sender, RoutedEventArgs e)
     {
         if ((sender as Control)?.DataContext is AiProvider provider && provider.ApiKey.Length > 0 && provider.BaseUrl.Length > 0) _ = FetchModels(provider);
@@ -338,6 +450,33 @@ public partial class SettingsWindow : Window
         if ((sender as Control)?.DataContext is not AiProvider provider) return;
         settings.AiProviders.Remove(provider);
         BuildProviders();
+        Changed();
+    }
+
+    private void OnFetchModels(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is AiProvider provider) _ = FetchModels(provider);
+    }
+
+    private async Task FetchModels(AiProvider provider)
+    {
+        fetching?.Cancel();
+        using var cancel = fetching = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        provider.Status = Loc.T("Set.AiFetching");
+        try
+        {
+            var key = provider.ApiKey;
+            if (key.Length == 0 && provider.Id == AiProvider.DeepSeekId) key = Perch.Services.Ai.AiConfig.Key ?? "";
+            var models = await Perch.Services.Ai.OpenAiClient.ListModelsAsync(Perch.Services.Ai.OpenAiClient.Normalize(provider.BaseUrl), key, cancel.Token);
+            if (models.Count > 0) provider.SetModels(models);
+            provider.Status = Loc.F("Set.AiFetched", models.Count);
+        }
+        catch (Exception ex)
+        {
+            provider.Status = Loc.F("Set.AiFetchFailed", ex is OperationCanceledException ? "timeout" : ex.Message);
+            Log.Warn($"Fetching the models of {provider.Name} ({provider.BaseUrl}) failed", ex);
+        }
+        Changed();
     }
 
     // ---- log: the newest lines of Perch's log, live while the window is open
@@ -364,33 +503,6 @@ public partial class SettingsWindow : Window
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = Log.Folder, UseShellExecute = true });
         }
         catch (Exception ex) { Log.Warn("Could not open the log folder", ex); }
-    }
-
-    // Asks the server which models it offers (GET /models); this doubles as a test of the address and the key.
-    private void OnFetchModels(object? sender, RoutedEventArgs e)
-    {
-        if ((sender as Control)?.DataContext is AiProvider provider) _ = FetchModels(provider);
-    }
-
-    private async Task FetchModels(AiProvider provider)
-    {
-        fetching?.Cancel();
-        using var cancel = fetching = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-        provider.Status = Loc.T("Set.AiFetching");
-        try
-        {
-            var key = provider.ApiKey;
-            if (key.Length == 0 && provider.Id == AiProvider.DeepSeekId) key = Perch.Services.Ai.AiConfig.Key ?? "";
-            var models = await Perch.Services.Ai.OpenAiClient.ListModelsAsync(Perch.Services.Ai.OpenAiClient.Normalize(provider.BaseUrl), key, cancel.Token);
-            if (models.Count > 0) provider.SetModels(models);
-            provider.Status = Loc.F("Set.AiFetched", models.Count);
-        }
-        catch (Exception ex)
-        {
-            provider.Status = Loc.F("Set.AiFetchFailed", ex is OperationCanceledException ? "timeout" : ex.Message);
-            Log.Warn($"Fetching the models of {provider.Name} ({provider.BaseUrl}) failed", ex);
-        }
-        Changed();
     }
 
     private async void OnPickFolder(object? sender, RoutedEventArgs e)

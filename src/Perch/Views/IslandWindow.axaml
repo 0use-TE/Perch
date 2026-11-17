@@ -1,6 +1,24 @@
-<Window x:Class="Perch.Views.IslandWindow" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:pages="using:Perch.Views.Pages" xmlns:vm="using:Perch.ViewModels" x:DataType="vm:IslandViewModel"
+<Window x:Class="Perch.Views.IslandWindow" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:pages="using:Perch.Views.Pages" xmlns:vm="using:Perch.ViewModels" xmlns:platform="using:Perch.Platform" x:DataType="vm:IslandViewModel"
  Title="{DynamicResource App.Title}" Width="872" Height="464" WindowDecorations="None" CanResize="False" TransparencyLevelHint="Transparent" Background="Transparent" Topmost="True" ShowInTaskbar="False" ShowActivated="False" Focusable="False" UseLayoutRounding="True"
  RequestedThemeVariant="Dark" Foreground="#F5F5F5" FontFamily="Segoe UI Variable Text, Microsoft YaHei UI">
+ <Window.Styles>
+  <Style Selector="ContextMenu.PerchMenu">
+   <Setter Property="CornerRadius" Value="12"/>
+   <Setter Property="Padding" Value="5"/>
+   <Setter Property="MinWidth" Value="150"/>
+  </Style>
+  <Style Selector="ContextMenu.PerchMenu MenuItem">
+   <Setter Property="CornerRadius" Value="8"/>
+   <Setter Property="Padding" Value="10,7"/>
+   <Setter Property="Margin" Value="0,1"/>
+   <Setter Property="FontSize" Value="12.5"/>
+   <Setter Property="MinHeight" Value="30"/>
+  </Style>
+  <Style Selector="ContextMenu.PerchMenu Separator">
+   <Setter Property="Margin" Value="8,4"/>
+   <Setter Property="Height" Value="1"/>
+  </Style>
+ </Window.Styles>
  <Canvas x:Name="Stage" Background="Transparent">
   <Grid x:Name="Shell" Width="872" Height="464" Canvas.Left="0" Canvas.Top="0">
    <Border x:Name="ShellBackdrop" IsHitTestVisible="False" IsVisible="False"/>
@@ -10,10 +28,10 @@
    <Grid x:Name="ShellContent">
     <Grid x:Name="CompactHeader" Height="35" Width="176" VerticalAlignment="Top" HorizontalAlignment="Center" Background="Transparent">
      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+     <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
       <TextBlock Text="{Binding CompactGlyph}" FontFamily="Segoe Fluent Icons" FontSize="12" Foreground="{DynamicResource IslandAccent}" VerticalAlignment="Center" Margin="0,0,7,0" IsVisible="{Binding HasCompactGlyph}"/>
-      <TextBlock Text="{Binding CompactText}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-     </StackPanel>
+      <TextBlock Grid.Column="1" Text="{Binding CompactText}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+     </Grid>
      <TextBlock Grid.Column="1" Text="{Binding Time}" FontSize="12" Foreground="#ABABB0" VerticalAlignment="Center" Margin="10,0,0,0"/>
     </Grid>
     <Canvas x:Name="ExpandedContent" Opacity="0" IsHitTestVisible="False">
@@ -44,6 +62,8 @@
        <TextBlock Text="{Binding AlertText}" FontSize="11.5" Foreground="{DynamicResource IslandAccent}" TextTrimming="CharacterEllipsis"/>
       </Border>
       <StackPanel Grid.Column="2" Orientation="Horizontal">
+       <Button Click="OnColorPicker" IsVisible="{x:Static platform:PlatformFeatures.WindowsIntegration}" ToolTip.Tip="{DynamicResource Tool.ColorPicker}" AutomationProperties.Name="{DynamicResource Tool.ColorPicker}" Classes="Nav Icon"><TextBlock Text="&#xEF3C;" FontFamily="Segoe Fluent Icons" FontSize="15" Foreground="{DynamicResource IslandMuted}"/></Button>
+       <Button Click="OnScreenshot" IsVisible="{x:Static platform:PlatformFeatures.WindowsIntegration}" ToolTip.Tip="{DynamicResource Tool.Screenshot}" AutomationProperties.Name="{DynamicResource Tool.Screenshot}" Classes="Nav Icon"><TextBlock Text="&#xE722;" FontFamily="Segoe Fluent Icons" FontSize="15" Foreground="{DynamicResource IslandMuted}"/></Button>
        <Button Click="OnSettings" ToolTip.Tip="{DynamicResource Nav.Settings}" AutomationProperties.Name="{DynamicResource Nav.Settings}" Classes="Nav Icon"><TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons" FontSize="15" Foreground="{DynamicResource IslandMuted}"/></Button>
        <Button x:Name="PinButton" Click="OnPin" ToolTip.Tip="{DynamicResource Nav.Pin}" AutomationProperties.Name="{DynamicResource Nav.Pin}" Classes="Nav Icon"><TextBlock x:Name="PinGlyph" Text="&#xE718;" FontFamily="Segoe Fluent Icons" FontSize="15" Foreground="{DynamicResource IslandMuted}"/></Button>
       </StackPanel>

@@ -105,11 +105,23 @@ public sealed class ConfirmRequest : Observable
 // A step the agent took while answering (a search, a page it read), shown above the answer.
 public sealed class AgentStepLine : Observable
 {
-    private string summary = "";
-    private bool done, failed;
-    public AgentStepLine(string label, string summary = "", bool done = false, bool failed = false) { Label = label; this.summary = summary; this.done = done; this.failed = failed; }
+    private string summary = "", args = "", output = "";
+    private bool done, failed, open;
+    public AgentStepLine(string label, string summary = "", bool done = false, bool failed = false)
+    {
+        Label = label; this.summary = summary; this.done = done; this.failed = failed;
+        Toggle = new RelayCommand(_ => { if (HasPayload) Open = !Open; });
+    }
     public string Label { get; }
     public string Summary { get => summary; set { if (Set(ref summary, value)) Changed(nameof(HasSummary)); } }
+    public string Args { get => args; set { if (Set(ref args, value)) { Changed(nameof(HasPayload)); Changed(nameof(HasArgs)); } } }
+    public string Output { get => output; set { if (Set(ref output, value)) { Changed(nameof(HasPayload)); Changed(nameof(HasOutput)); } } }
+    public bool HasArgs => args.Length > 0 && args != "{}";
+    public bool HasOutput => output.Length > 0;
+    public bool HasPayload => HasArgs || HasOutput;
+    public bool Open { get => open; set { if (Set(ref open, value)) Changed(nameof(ChevronGlyph)); } }
+    public string ChevronGlyph => open ? "" : "";
+    public ICommand Toggle { get; }
     public bool HasSummary => summary.Length > 0;
     public bool Done { get => done; set { if (Set(ref done, value)) Changed(nameof(Running)); } }
     public bool Running => !done;
@@ -123,22 +135,77 @@ public sealed class AgentStepLine : Observable
     }
 }
 
+public sealed record SlashItem(string Command, string Description);
+
+public sealed class ChoiceOption(string label, ICommand pick) : Observable
+{
+    private bool selected;
+    public string Label { get; } = label;
+    public bool Selected { get => selected; set => Set(ref selected, value); }
+    public ICommand Pick { get; } = pick;
+}
+
+public sealed class UserChoiceCard : Observable
+{
+    private readonly TaskCompletionSource<string> result = new();
+    private bool answered;
+    private string customText = "";
+
+    public UserChoiceCard(string question, IReadOnlyList<string> options)
+    {
+        Question = question;
+        PickOption = new RelayCommand(p => { if (p is ChoiceOption opt) Choose(opt.Label, opt); });
+        SubmitCustom = new RelayCommand(_ =>
+        {
+            var text = customText.Trim();
+            if (text.Length > 0) Choose(text, null);
+        });
+        foreach (var label in options) Options.Add(new ChoiceOption(label, PickOption));
+    }
+
+    public string Question { get; }
+    public ObservableCollection<ChoiceOption> Options { get; } = [];
+    public ICommand PickOption { get; }
+    public ICommand SubmitCustom { get; }
+    public bool Answered { get => answered; private set { if (Set(ref answered, value)) Changed(nameof(Pending)); } }
+    public bool Pending => !answered;
+    public string CustomText { get => customText; set => Set(ref customText, value ?? ""); }
+
+    public Task<string> WaitAsync(CancellationToken cancel)
+    {
+        cancel.Register(() => result.TrySetCanceled(cancel));
+        return result.Task;
+    }
+
+    private void Choose(string answer, ChoiceOption? selected)
+    {
+        if (answered) return;
+        Answered = true;
+        foreach (var opt in Options) opt.Selected = opt == selected;
+        result.TrySetResult(answer);
+    }
+}
+
 // One message in the conversation. The assistant's text (and its thinking, for models that think) grows while the
 // answer is being written.
 public sealed class ChatLine : Observable
 {
-    private string text = "", thinking = "";
+    private string text = "", thinking = "", stats = "";
     private bool isError, thinkingOpen, working, caret;
 
-    public ChatLine(string role, string text = "", string thinking = "", bool error = false)
+    public ChatLine(string role, string text = "", string thinking = "", bool error = false, string? imageUrl = null)
     {
-        Role = role; this.text = text; this.thinking = thinking; isError = error;
+        Role = role; this.text = text; this.thinking = thinking; isError = error; ImageUrl = imageUrl;
         ToggleThinking = new RelayCommand(_ => ThinkingOpen = !ThinkingOpen);
         Steps.CollectionChanged += (_, _) => { Changed(nameof(HasSteps)); Changed(nameof(IsPending)); };
         Refresh();
     }
 
     public bool HasSteps => Steps.Count > 0;
+    public string? ImageUrl { get; }
+    public bool HasImage => !string.IsNullOrEmpty(ImageUrl);
+    public string Stats { get => stats; set { if (Set(ref stats, value)) Changed(nameof(HasStats)); } }
+    public bool HasStats => stats.Length > 0;
 
     public string Role { get; }
     public bool IsUser => Role == "user";
@@ -153,6 +220,10 @@ public sealed class ChatLine : Observable
     private ConfirmRequest? confirm;
     public ConfirmRequest? Confirm { get => confirm; set { if (Set(ref confirm, value)) Changed(nameof(HasConfirm)); } }
     public bool HasConfirm => confirm != null;
+
+    private UserChoiceCard? choice;
+    public UserChoiceCard? Choice { get => choice; set { if (Set(ref choice, value)) Changed(nameof(HasChoice)); } }
+    public bool HasChoice => choice != null;
 
     public string Text { get => text; set { if (Set(ref text, value)) { Refresh(); Changed(nameof(HasText)); Changed(nameof(IsPending)); } } }
     public string Thinking { get => thinking; set { if (Set(ref thinking, value)) { Changed(nameof(HasThinking)); Changed(nameof(IsPending)); Changed(nameof(ThinkingShown)); } } }
@@ -231,12 +302,38 @@ public sealed class ConversationItem : Observable
     public bool IsCurrent { get => isCurrent; set => Set(ref isCurrent, value); }
 }
 
+public sealed class HistoryGroup : Observable
+{
+    private bool expanded = true;
+    public HistoryGroup(string workspaceName, string workspacePath)
+    {
+        WorkspaceName = workspaceName;
+        WorkspacePath = workspacePath;
+        Toggle = new RelayCommand(_ => IsExpanded = !IsExpanded);
+    }
+    public string WorkspaceName { get; }
+    public string WorkspacePath { get; }
+    public ObservableCollection<ConversationItem> Items { get; } = [];
+    public bool IsExpanded { get => expanded; set { if (Set(ref expanded, value)) Changed(nameof(ChevronGlyph)); } }
+    public string ChevronGlyph => expanded ? "\uE70D" : "\uE76C";
+    public ICommand Toggle { get; }
+}
+
 // AI chat with any OpenAI-compatible server: pick a model, keep a history of conversations, watch a thinking model
 // think. The servers, and their keys, are set in Settings (the keys are stored protected on this computer only).
+public sealed class WorkspaceChoice(string path, string name, bool isCurrent) : Observable
+{
+    private bool current = isCurrent;
+    public string Path { get; } = path;
+    public string Name { get; } = name;
+    public bool IsCurrent { get => current; set => Set(ref current, value); }
+}
+
 public sealed class AiViewModel : Observable
 {
     private const int HistoryLimit = 20; // messages sent back with each question
     private readonly Store store;
+    private readonly PerchContext? perch;
     private readonly DispatcherTimer saveTimer = new() { Interval = TimeSpan.FromMilliseconds(700) };
     private readonly List<ChatRecord> records;
     private CancellationTokenSource? running;
@@ -261,12 +358,120 @@ public sealed class AiViewModel : Observable
     private TaskCompletionSource? drained;
     private string greetingFull = "", greeting = "";
     private int greetingAt;
+    private string? attachedImageUrl;
+    private string attachedImageLabel = "";
+    private string memoryText = MemoryTool.Load();
 
     public ObservableCollection<ChatLine> Messages { get; } = [];
     public ObservableCollection<ConversationItem> History { get; } = [];
+    public ObservableCollection<HistoryGroup> HistoryGroups { get; } = [];
     public ObservableCollection<ModelChoice> Choices { get; } = [];
+    public ObservableCollection<SlashItem> SlashChoices { get; } = [];
+    public ObservableCollection<AgentStepLine> LiveSteps { get; } = [];
+    public ObservableCollection<string> WorkspaceEntries { get; } = [];
 
-    public string Draft { get => draft; set => Set(ref draft, value); }
+    public static string DefaultSandboxWorkspace => System.IO.Path.Combine(Store.DataFolder, "workspace");
+
+    public static string EnsureSandboxWorkspace()
+    {
+        var dir = DefaultSandboxWorkspace;
+        try { System.IO.Directory.CreateDirectory(dir); } catch { }
+        return dir;
+    }
+
+    public string WorkspacePath
+    {
+        get => S.AiWorkspace;
+        set
+        {
+            if (!CanChangeWorkspace) return;
+            ApplyWorkspace(value ?? "", remember: true);
+        }
+    }
+
+    private void ApplyWorkspace(string next, bool remember)
+    {
+        if (remember && !string.IsNullOrWhiteSpace(next) && System.IO.Directory.Exists(next))
+        {
+            S.AiWorkspaces.RemoveAll(p => string.Equals(p, next, StringComparison.OrdinalIgnoreCase));
+            S.AiWorkspaces.Insert(0, next);
+            if (S.AiWorkspaces.Count > 12) S.AiWorkspaces.RemoveRange(12, S.AiWorkspaces.Count - 12);
+        }
+        var changed = S.AiWorkspace != next;
+        S.AiWorkspace = next;
+        SafePathGuard.DefaultWorkspace = EffectiveWorkspace;
+        if (changed || remember) store.Touch();
+        RefreshWorkspaceEntries();
+        RebuildWorkspaces();
+        Changed(nameof(WorkspacePath));
+        Changed(nameof(WorkspaceName));
+        Changed(nameof(WorkspaceTip));
+        Changed(nameof(HasWorkspace));
+        Changed(nameof(NoRepo));
+    }
+
+    public bool CanChangeWorkspace => current == null && Messages.Count == 0;
+    public ObservableCollection<WorkspaceChoice> RememberedWorkspaces { get; } = [];
+    public bool HasRememberedWorkspaces => RememberedWorkspaces.Count > 0;
+    public bool HasWorkspace => !string.IsNullOrWhiteSpace(S.AiWorkspace) && System.IO.Directory.Exists(S.AiWorkspace);
+    public bool NoRepo => !HasWorkspace;
+    public string EffectiveWorkspace => HasWorkspace ? S.AiWorkspace : EnsureSandboxWorkspace();
+    public string WorkspaceName => HasWorkspace ? System.IO.Path.GetFileName(S.AiWorkspace.TrimEnd('\\', '/')) : Loc.T("Ai.NoRepo");
+    public string WorkspaceTip => HasWorkspace ? S.AiWorkspace : Loc.T("Ai.NoRepo");
+    public bool WorkspaceOnly
+    {
+        get => S.AiWorkspaceOnly;
+        set
+        {
+            if (S.AiWorkspaceOnly == value) return;
+            S.AiWorkspaceOnly = value;
+            SafePathGuard.WorkspaceOnly = value;
+            store.Touch();
+            Changed();
+        }
+    }
+    public bool ApprovalAsk => S.AiApproval is not ("script" or "none");
+    public bool ApprovalScript => S.AiApproval == "script";
+    public bool ApprovalNone => S.AiApproval == "none";
+
+    // Granular Harness capability permissions ("allow" | "ask" | "deny")
+    public bool PermFilesAllow => S.AiPermFiles == "allow";
+    public bool PermFilesAsk => S.AiPermFiles is not ("allow" or "deny");
+    public bool PermFilesDeny => S.AiPermFiles == "deny";
+
+    public bool PermPerchAllow => S.AiPermPerch == "allow";
+    public bool PermPerchAsk => S.AiPermPerch is not ("allow" or "deny");
+    public bool PermPerchDeny => S.AiPermPerch == "deny";
+
+    public bool PermAppsAllow => S.AiPermApps == "allow";
+    public bool PermAppsAsk => S.AiPermApps is not ("allow" or "deny");
+    public bool PermAppsDeny => S.AiPermApps == "deny";
+
+    public bool PermUiAllow => S.AiPermUi == "allow";
+    public bool PermUiAsk => S.AiPermUi is not ("allow" or "deny");
+    public bool PermUiDeny => S.AiPermUi == "deny";
+
+    public bool PermShellAllow => S.AiPermShell == "allow";
+    public bool PermShellAsk => S.AiPermShell is not ("allow" or "deny");
+    public bool PermShellDeny => S.AiPermShell == "deny";
+
+    public Settings AppSettings => S;
+    public void SaveSettings() => store.Touch();
+
+    public string Draft
+    {
+        get => draft;
+        set
+        {
+            if (!Set(ref draft, value)) return;
+            UpdateSlashChoices();
+        }
+    }
+    public bool SlashOpen => SlashChoices.Count > 0;
+    public bool HasLiveSteps => LiveSteps.Count > 0;
+    public string MemoryText { get => memoryText; set => Set(ref memoryText, value ?? ""); }
+    public bool HasAttachedImage => !string.IsNullOrEmpty(attachedImageUrl);
+    public string AttachedImageLabel => attachedImageLabel;
     public string GreetingText { get => greeting; private set => Set(ref greeting, value); }
     public bool IsBusy { get => busy; private set { if (Set(ref busy, value)) Changed(nameof(IsIdle)); } }
     public bool IsIdle => !busy;
@@ -366,6 +571,19 @@ public sealed class AiViewModel : Observable
     public ICommand ClearHistory { get; }
     public ICommand OpenSettings { get; }
     public ICommand BeginRename { get; }
+    public ICommand ClearAttachment { get; }
+    public ICommand CaptureAttachment { get; }
+    public ICommand ApplySlash { get; }
+    public ICommand SaveMemory { get; }
+    public ICommand ClearMemory { get; }
+    public ICommand SetApproval { get; }
+    public ICommand SetPerm { get; }
+    public ICommand ClearWorkspace { get; }
+    public ICommand SelectWorkspace { get; }
+    public ICommand RemoveWorkspace { get; }
+    public ICommand NewChatInWorkspace { get; }
+    // Raised when the user wants to capture a screen region into the chat.
+    public event Action? CaptureRequested;
     // Raised when the title box opens, so the page can focus it.
     public event Action? RenameStarted;
     private bool renaming;
@@ -394,15 +612,18 @@ public sealed class AiViewModel : Observable
     public event Action? Sent;
     // The user wants the AI page of the settings window (to add a server or a key).
     public event Action? SettingsRequested;
+    // Raised when a reply completes (used by the compact island to notify if collapsed).
+    public event Action? ReplyFinished;
 
-    public AiViewModel(Store store)
+    public AiViewModel(Store store, PerchContext? perch = null)
     {
         this.store = store;
+        this.perch = perch;
         records = ChatHistory.Load();
         saveTimer.Tick += (_, _) => { saveTimer.Stop(); var snapshot = records.ToList(); Task.Run(() => ChatHistory.Save(snapshot)); };
         typeTimer.Tick += (_, _) => Reveal();
         thinkTimer.Tick += (_, _) => FlushThinking();
-        caretTimer.Tick += (_, _) => { if (writing != null) writing.Caret = !writing.Caret; };
+        caretTimer.Tick += (_, _) => { if (writing != null && writing.Text.Length > 0) writing.Caret = !writing.Caret; };
         greetTimer.Tick += (_, _) => GreetStep();
         Send = new RelayCommand(_ => _ = AskAsync());
         Stop = new RelayCommand(_ => running?.Cancel());
@@ -412,6 +633,93 @@ public sealed class AiViewModel : Observable
         DeleteChat = new RelayCommand(p => { if (p is ConversationItem item) Delete(item.Record); });
         ClearHistory = new RelayCommand(_ => { records.Clear(); StartNew(); SaveSoon(); RebuildHistory(); });
         OpenSettings = new RelayCommand(_ => SettingsRequested?.Invoke());
+        ClearAttachment = new RelayCommand(_ => { attachedImageUrl = null; attachedImageLabel = ""; Changed(nameof(HasAttachedImage)); Changed(nameof(AttachedImageLabel)); });
+        CaptureAttachment = new RelayCommand(_ => CaptureRequested?.Invoke());
+        ApplySlash = new RelayCommand(p =>
+        {
+            if (p is not SlashItem item) return;
+            Draft = item.Command;
+            SlashChoices.Clear();
+            Changed(nameof(SlashOpen));
+            if (item.Command is "/new" or "/daily" or "/ports" or "/memory") _ = AskAsync();
+        });
+        SaveMemory = new RelayCommand(_ =>
+        {
+            try
+            {
+                System.IO.Directory.CreateDirectory(Store.DataFolder);
+                var text = memoryText.Trim();
+                if (text.Length > 2500) text = text[..2500];
+                System.IO.File.WriteAllText(MemoryTool.FilePath, text);
+                memoryText = text;
+                Changed(nameof(MemoryText));
+            }
+            catch { }
+        });
+        ClearMemory = new RelayCommand(_ =>
+        {
+            try { if (System.IO.File.Exists(MemoryTool.FilePath)) System.IO.File.Delete(MemoryTool.FilePath); } catch { }
+            MemoryText = "";
+        });
+        LiveSteps.CollectionChanged += (_, _) => Changed(nameof(HasLiveSteps));
+        SetApproval = new RelayCommand(p =>
+        {
+            if (p is not string mode || mode is not ("ask" or "script" or "none")) return;
+            S.AiApproval = mode;
+            store.Touch();
+            Changed(nameof(ApprovalAsk)); Changed(nameof(ApprovalScript)); Changed(nameof(ApprovalNone));
+        });
+        SetPerm = new RelayCommand(p =>
+        {
+            if (p is not string spec) return;
+            var parts = spec.Split('|', 2);
+            if (parts.Length != 2 || parts[1] is not ("allow" or "ask" or "deny")) return;
+            switch (parts[0])
+            {
+                case "files": S.AiPermFiles = parts[1]; Changed(nameof(PermFilesAllow)); Changed(nameof(PermFilesAsk)); Changed(nameof(PermFilesDeny)); break;
+                case "perch": S.AiPermPerch = parts[1]; Changed(nameof(PermPerchAllow)); Changed(nameof(PermPerchAsk)); Changed(nameof(PermPerchDeny)); break;
+                case "apps": S.AiPermApps = parts[1]; Changed(nameof(PermAppsAllow)); Changed(nameof(PermAppsAsk)); Changed(nameof(PermAppsDeny)); break;
+                case "ui": S.AiPermUi = parts[1]; Changed(nameof(PermUiAllow)); Changed(nameof(PermUiAsk)); Changed(nameof(PermUiDeny)); break;
+                case "shell": S.AiPermShell = parts[1]; Changed(nameof(PermShellAllow)); Changed(nameof(PermShellAsk)); Changed(nameof(PermShellDeny)); break;
+                default: return;
+            }
+            store.Touch();
+        });
+        ClearWorkspace = new RelayCommand(_ => WorkspacePath = "");
+        SelectWorkspace = new RelayCommand(p => { if (p is string path) WorkspacePath = path; });
+        NewChatInWorkspace = new RelayCommand(p =>
+        {
+            var path = p is HistoryGroup g ? g.WorkspacePath : p as string ?? "";
+            StartNew();
+            ApplyWorkspace(path, remember: false);
+        });
+        RemoveWorkspace = new RelayCommand(p =>
+        {
+            var path = p switch
+            {
+                WorkspaceChoice wc => wc.Path,
+                HistoryGroup hg => hg.WorkspacePath,
+                string s => s,
+                _ => null
+            };
+            if (string.IsNullOrEmpty(path)) return;
+            S.AiWorkspaces.RemoveAll(x => string.Equals(x, path, StringComparison.OrdinalIgnoreCase));
+            if (CanChangeWorkspace && string.Equals(S.AiWorkspace, path, StringComparison.OrdinalIgnoreCase))
+                ApplyWorkspace("", remember: false);
+            else
+            {
+                store.Touch();
+                RebuildWorkspaces();
+            }
+            RebuildHistory();
+        });
+        if (!string.IsNullOrWhiteSpace(S.AiWorkspace) && System.IO.Directory.Exists(S.AiWorkspace)
+            && !S.AiWorkspaces.Any(x => string.Equals(x, S.AiWorkspace, StringComparison.OrdinalIgnoreCase)))
+            S.AiWorkspaces.Insert(0, S.AiWorkspace);
+        SafePathGuard.DefaultWorkspace = EffectiveWorkspace;
+        SafePathGuard.WorkspaceOnly = S.AiWorkspaceOnly;
+        RefreshWorkspaceEntries();
+        RebuildWorkspaces();
         PickModel = new RelayCommand(p =>
         {
             if (p is not ModelRow row) return;
@@ -536,14 +844,17 @@ public sealed class AiViewModel : Observable
         Messages.Clear();
         StartGreeting();
         foreach (var item in History) item.IsCurrent = false;
+        foreach (var g in HistoryGroups) foreach (var item in g.Items) item.IsCurrent = false;
         Changed(nameof(Title));
         Changed(nameof(CanRename));
+        Changed(nameof(CanChangeWorkspace));
     }
 
     private void Open(ChatRecord record)
     {
         running?.Cancel();
         current = record;
+        ApplyWorkspace(record.Workspace, remember: false);
         Messages.Clear();
         foreach (var m in record.Messages)
         {
@@ -554,8 +865,10 @@ public sealed class AiViewModel : Observable
         if (Choices.FirstOrDefault(c => c.ProviderId == record.ProviderId && c.Model == record.Model) is { } choice) Selected = choice;
         HistoryOpen = false;
         foreach (var item in History) item.IsCurrent = item.Record == record;
+        foreach (var g in HistoryGroups) foreach (var item in g.Items) item.IsCurrent = item.Record == record;
         Changed(nameof(Title));
         Changed(nameof(CanRename));
+        Changed(nameof(CanChangeWorkspace));
         Scroll?.Invoke(true);
     }
 
@@ -567,48 +880,119 @@ public sealed class AiViewModel : Observable
         RebuildHistory();
     }
 
+    public void AddWorkspace(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !System.IO.Directory.Exists(path)) return;
+        S.AiWorkspaces.RemoveAll(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase));
+        S.AiWorkspaces.Insert(0, path);
+        if (S.AiWorkspaces.Count > 12) S.AiWorkspaces.RemoveRange(12, S.AiWorkspaces.Count - 12);
+        if (CanChangeWorkspace)
+            ApplyWorkspace(path, remember: false);
+        else
+        {
+            store.Touch();
+            RebuildWorkspaces();
+        }
+        RebuildHistory();
+    }
+
     private void RebuildHistory()
     {
         History.Clear();
-        foreach (var record in records.OrderByDescending(r => r.Updated)) History.Add(new ConversationItem(record) { IsCurrent = record == current });
+        HistoryGroups.Clear();
+        var byWs = new Dictionary<string, HistoryGroup>(StringComparer.OrdinalIgnoreCase);
+
+        HistoryGroup EnsureGroup(string key)
+        {
+            if (byWs.TryGetValue(key, out var g)) return g;
+            var name = string.IsNullOrWhiteSpace(key) ? Loc.T("Ai.NoRepo") : System.IO.Path.GetFileName(key.TrimEnd('\\', '/'));
+            if (string.IsNullOrEmpty(name)) name = key;
+            g = new HistoryGroup(name, key);
+            byWs[key] = g;
+            HistoryGroups.Add(g);
+            return g;
+        }
+
+        foreach (var record in records.OrderByDescending(r => r.Updated))
+        {
+            var item = new ConversationItem(record) { IsCurrent = record == current };
+            History.Add(item);
+            EnsureGroup(record.Workspace ?? "").Items.Add(item);
+        }
+
+        foreach (var ws in S.AiWorkspaces.Where(System.IO.Directory.Exists))
+            EnsureGroup(ws);
     }
 
     private void SaveSoon() { saveTimer.Stop(); saveTimer.Start(); }
 
+    public void AttachPng(byte[] png, int width, int height)
+    {
+        attachedImageUrl = "data:image/png;base64," + Convert.ToBase64String(png);
+        attachedImageLabel = $"{Loc.T("Ai.ImageAttached")} ({width}×{height})";
+        Changed(nameof(HasAttachedImage));
+        Changed(nameof(AttachedImageLabel));
+    }
+
     private async Task AskAsync()
     {
         var question = draft.Trim();
-        if (question.Length == 0 || busy || selected == null) return;
+        var imageUrl = attachedImageUrl;
+        if (question.Length == 0 && imageUrl == null) return;
+        if (busy || selected == null) return;
+
+        // Lightweight built-in slash commands
+        if (imageUrl == null && question.StartsWith('/'))
+        {
+            var cmd = question.Split(' ', 2)[0].ToLowerInvariant();
+            if (cmd is "/new" or "/clear") { Draft = ""; StartNew(); HistoryOpen = false; return; }
+            if (cmd == "/ports") question = "Use perch_read(kind='ports') to inspect current listening ports and summarize what is running.";
+            else if (cmd == "/daily") question = "Use perch_read to check my todos, notes, and alarms, then give me a concise summary of today's plan.";
+            else if (cmd == "/memory") question = "Use memory(action='read') to show what you currently remember about me and my environment.";
+        }
+        if (question.Length == 0 && imageUrl != null) question = "请查看这张截图并说明或分析其中的内容。";
+
         var choice = selected;
         var provider = Provider(choice);
         var key = KeyFor(choice);
         if (provider == null || NeedsSetup) { Changed(nameof(NeedsSetup)); return; } // the page already says where to set it up
 
         Draft = "";
+        attachedImageUrl = null;
+        attachedImageLabel = "";
+        Changed(nameof(HasAttachedImage));
+        Changed(nameof(AttachedImageLabel));
         if (current == null)
         {
-            current = new ChatRecord { Title = question.Length > 30 ? question[..30] + "…" : question };
+            current = new ChatRecord
+            {
+                Title = question.Length > 30 ? question[..30] + "…" : question,
+                Workspace = HasWorkspace ? S.AiWorkspace : ""
+            };
             records.Add(current);
             Changed(nameof(Title));
-        Changed(nameof(CanRename));
+            Changed(nameof(CanRename));
+            Changed(nameof(CanChangeWorkspace));
         }
         current.ProviderId = choice.ProviderId; current.Model = choice.Model;
-        Messages.Add(new ChatLine("user", question));
+        Messages.Add(new ChatLine("user", question, imageUrl: imageUrl));
         var answer = new ChatLine("assistant") { Working = true };
         Messages.Add(answer);
+        LiveSteps.Clear();
         Sent?.Invoke();
         Scroll?.Invoke(true);
 
         using var cancel = running = new CancellationTokenSource();
         IsBusy = true;
         writing = answer; waiting.Clear(); streamEnded = false; drained = new TaskCompletionSource();
-        answer.Caret = true; caretTimer.Start();
+        caretTimer.Start();
         try
         {
-            var tools = Tools();
+            var tools = Tools(answer);
             await Agent.RunAsync(OpenAiClient.Normalize(provider.BaseUrl), key, choice.Model, Conversation(answer, tools), tools,
                 new AnswerObserver(this, answer), cancel.Token,
-                risk => S.AiApproval switch { "none" => false, "script" => risk == ToolRisk.Dangerous, _ => risk != ToolRisk.Safe });
+                risk => S.AiApproval switch { "none" => false, "script" => risk == ToolRisk.Dangerous, _ => risk != ToolRisk.Safe },
+                ToolNeedsConfirm);
             streamEnded = true;
             typeTimer.Start();
             await drained.Task.WaitAsync(cancel.Token); // the rest of the answer is typed out before the turn counts as finished
@@ -649,6 +1033,7 @@ public sealed class AiViewModel : Observable
             IsBusy = false;
             if (current != null) { Persist(current); RebuildHistory(); }
             Scroll?.Invoke(false);
+            ReplyFinished?.Invoke();
         }
     }
 
@@ -672,17 +1057,80 @@ public sealed class AiViewModel : Observable
     // Raised while an action waits for the user's OK (true) and when it has been answered (false): the island stays open meanwhile.
     public event Action<bool>? ConfirmChanged;
 
-    // The tools offered for this answer: web tools when "Web" is on, computer tools when allowed in Settings.
-    private List<ITool> Tools()
+    // The tools offered for this answer: web tools when "Web" is on, computer/Perch/UIA tools when allowed in Settings.
+    private List<ITool> Tools(ChatLine? answer = null)
     {
         var tools = new List<ITool>();
+        if (answer != null)
+            tools.Add(new AskUserTool((q, opts, ct) => AskUserChoiceAsync(answer, q, opts, ct)));
         if (S.WebSearch)
         {
             if (WebSearchTool.Configured(S)) tools.Add(new WebSearchTool(S));
             tools.Add(new ReadPageTool());
         }
-        if (S.AiLocalTools && OperatingSystem.IsWindows()) tools.AddRange([new CreateFolderTool(), new OpenAppTool(), new PowerShellTool()]);
+        if (S.AiLocalTools)
+        {
+            if (S.AiPermFiles != "deny")
+                tools.AddRange([new ReadFileTool(), new ListDirTool(), new SearchFilesTool()]);
+            tools.Add(new MemoryTool());
+            if (perch != null)
+            {
+                tools.Add(new PerchReadTool(perch));
+                if (S.AiPermPerch != "deny") tools.Add(new PerchActionTool(perch));
+            }
+#if WINDOWS
+            if (S.AiPermApps != "deny") tools.AddRange([new CreateFolderTool(), new OpenAppTool()]);
+            if (S.AiPermShell != "deny") tools.Add(new PowerShellTool());
+            if (S.AiPermUi != "deny") tools.AddRange([new Perch.Platform.Windows.UiInspectTool(), new Perch.Platform.Windows.UiInteractTool()]);
+#endif
+        }
         return tools;
+    }
+
+    private bool ToolNeedsConfirm(ITool tool)
+    {
+        if (S.AiApproval == "none") return false;
+        var name = tool.Spec.Name;
+        var policy = name switch
+        {
+            "read_file" or "list_dir" or "grep_files" => S.AiPermFiles,
+            "perch_action" => S.AiPermPerch,
+            "open_app" or "create_folder" => S.AiPermApps,
+            "ui_interact" => S.AiPermUi,
+            "run_powershell" => S.AiPermShell,
+            _ => null
+        };
+        if (policy == "allow") return false;
+        if (policy == "ask") return S.AiApproval switch
+        {
+            "script" => tool.Risk == ToolRisk.Dangerous || name is "perch_action" or "open_app" or "create_folder" or "ui_interact" or "run_powershell",
+            _ => true
+        };
+        return S.AiApproval switch
+        {
+            "script" => tool.Risk == ToolRisk.Dangerous,
+            _ => tool.Risk != ToolRisk.Safe
+        };
+    }
+
+    private async Task<string> AskUserChoiceAsync(ChatLine answer, string question, IReadOnlyList<string> options, CancellationToken cancel)
+    {
+        var card = new UserChoiceCard(question, options);
+        Dispatcher.UIThread.Post(() =>
+        {
+            answer.ThinkingOpen = false;
+            answer.Choice = card;
+            ConfirmChanged?.Invoke(true);
+            Scroll?.Invoke(false);
+        });
+        try
+        {
+            return await card.WaitAsync(cancel);
+        }
+        finally
+        {
+            Dispatcher.UIThread.Post(() => ConfirmChanged?.Invoke(false));
+        }
     }
 
     // Reports from the agent go into the answer being written: text is typed out, thinking and steps appear as they come.
@@ -702,9 +1150,15 @@ public sealed class AiViewModel : Observable
         public object StepStarted(string label)
         {
             var step = new AgentStepLine(label);
-            Dispatcher.UIThread.Post(() => { answer.ThinkingOpen = false; answer.Steps.Add(step); owner.Scroll?.Invoke(false); });
+            Dispatcher.UIThread.Post(() => { answer.ThinkingOpen = false; answer.Steps.Add(step); owner.LiveSteps.Add(step); owner.Scroll?.Invoke(false); });
             return step;
         }
+        public void StepPayload(object step, string args, string output) => Dispatcher.UIThread.Post(() =>
+        {
+            if (step is not AgentStepLine line) return;
+            line.Args = args.Length > 600 ? args[..600] + "…" : args;
+            line.Output = output.Length > 1800 ? output[..1800] + "…" : output;
+        });
         public async Task<bool> ConfirmAsync(string title, string detail, ToolRisk risk, CancellationToken cancel)
         {
             var decision = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -735,6 +1189,34 @@ public sealed class AiViewModel : Observable
             if (step is not AgentStepLine line) return;
             line.Summary = summary; line.Failed = failed; line.Done = true;
         });
+
+        public void Finished(TimeSpan elapsed, int toolCalls, int totalTokens) => Dispatcher.UIThread.Post(() =>
+        {
+            var parts = new List<string> { $"{elapsed.TotalSeconds:0.1}s" };
+            if (toolCalls > 0) parts.Add($"{toolCalls} tools");
+            if (totalTokens > 0) parts.Add($"{totalTokens:N0} tok");
+            answer.Stats = string.Join(" · ", parts);
+            owner.MemoryText = MemoryTool.Load();
+        });
+    }
+
+    private void UpdateSlashChoices()
+    {
+        SlashChoices.Clear();
+        if (draft.StartsWith('/') && !draft.Contains(' ') && !draft.Contains('\n'))
+        {
+            SlashItem[] all =
+            [
+                new("/daily", Loc.T("Ai.SlashDaily")),
+                new("/ports", Loc.T("Ai.SlashPorts")),
+                new("/memory", Loc.T("Ai.SlashMemory")),
+                new("/new", Loc.T("Ai.SlashNew")),
+            ];
+            foreach (var item in all)
+                if (item.Command.StartsWith(draft, StringComparison.OrdinalIgnoreCase))
+                    SlashChoices.Add(item);
+        }
+        Changed(nameof(SlashOpen));
     }
 
     private List<ChatMessage> Conversation(ChatLine pending, List<ITool> tools)
@@ -745,16 +1227,78 @@ public sealed class AiViewModel : Observable
             prompt += " You can use tools: web_search to look things up and read_webpage to open a page. Use them when the question "
                 + "needs current, local or specific facts; skip them when you already know the answer. After using them, answer "
                 + "from what you found and end with the sources you relied on, one link per line.";
+        if (tools.Any(t => t is PerchReadTool))
+            prompt += " You can inspect and control Perch itself using perch_read (todos, notes, alarms, focus timer, clipboard, listening ports, environment variables) and perch_action (add/complete todo, create note, add alarm, control focus timer).";
+        if (tools.Any(t => t is ReadFileTool))
+            prompt += " Prefer read_file, list_dir, grep_files and memory (persistent cross-session user memory) before falling back to run_powershell.";
         if (tools.Any(t => t is CreateFolderTool))
-            prompt += " You can also act on the user's Windows computer: create_folder, open_app and run_powershell. The user is asked to allow "
+            prompt += " You can also act on the user's Windows computer: create_folder, open_app, run_powershell, ui_inspect (Windows UI Automation accessibility tree), and ui_interact (click/type in accessible apps). The user is asked to allow "
                 + "each action before it runs; if they decline, do not try again, just say what you could not do. Use full paths. "
                 + $"Home: {Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)}; Desktop: {Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)}; "
                 + $"Documents: {Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}; Downloads: {System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads")}. "
-                + "Prefer the simplest tool: open_app for opening things, create_folder for folders, run_powershell only for what they cannot do. "
+                + "Prefer the simplest tool: perch_read/perch_action for Perch items, read_file/list_dir/grep_files for files, open_app for opening things, create_folder for folders, ui_inspect/ui_interact for UI automation, run_powershell only for what they cannot do. "
                 + "Afterwards say briefly what you did.";
+        var memory = MemoryTool.Load();
+        if (memory.Length > 0)
+            prompt += "\n\nPersistent user memory:\n" + memory;
+        if (HasWorkspace)
+            prompt += $"\n\nActive workspace directory: {S.AiWorkspace} (relative paths in read_file/list_dir/grep_files resolve from here).";
+
         var list = new List<ChatMessage> { new("system", prompt) };
-        var history = Messages.Where(m => m != pending && !m.IsError && m.Text.Length > 0).TakeLast(HistoryLimit);
-        list.AddRange(history.Select(m => new ChatMessage(m.Role, m.Text)));
+        var valid = Messages.Where(m => m != pending && !m.IsError && (m.Text.Length > 0 || m.HasImage)).ToList();
+        var totalChars = valid.Sum(m => m.Text.Length);
+        if (valid.Count > HistoryLimit || totalChars > 24_000)
+        {
+            var keep = Math.Min(12, valid.Count);
+            var older = valid.Take(valid.Count - keep);
+            var summary = string.Join("\n", older.Select(m =>
+            {
+                var snippet = m.Text.Replace('\r', ' ').Replace('\n', ' ').Trim();
+                if (snippet.Length > 140) snippet = snippet[..140] + "…";
+                return $"{m.Role}: {snippet}";
+            }));
+            if (summary.Length > 3000) summary = summary[^3000..];
+            if (summary.Length > 0)
+                list.Add(new ChatMessage("system", "Earlier conversation summary:\n" + summary));
+            valid = valid.Skip(valid.Count - keep).ToList();
+        }
+        // Only send the latest image as multimodal payload so older turns don't bloat requests.
+        var lastImgIndex = valid.FindLastIndex(m => m.HasImage);
+        for (var i = 0; i < valid.Count; i++)
+        {
+            var m = valid[i];
+            list.Add(new ChatMessage(m.Role, m.Text, ImageDataUrl: i == lastImgIndex ? m.ImageUrl : null));
+        }
         return list;
+    }
+
+    public void RefreshWorkspaceEntries()
+    {
+        WorkspaceEntries.Clear();
+        if (!HasWorkspace) return;
+        try
+        {
+            foreach (var dir in System.IO.Directory.EnumerateDirectories(S.AiWorkspace).OrderBy(d => d, StringComparer.OrdinalIgnoreCase).Take(25))
+            {
+                var name = System.IO.Path.GetFileName(dir);
+                if (name.StartsWith('.') && name != ".github") continue;
+                WorkspaceEntries.Add("📁 " + name);
+            }
+            foreach (var file in System.IO.Directory.EnumerateFiles(S.AiWorkspace).OrderBy(f => f, StringComparer.OrdinalIgnoreCase).Take(35))
+                WorkspaceEntries.Add("📄 " + System.IO.Path.GetFileName(file));
+        }
+        catch { }
+    }
+
+    private void RebuildWorkspaces()
+    {
+        RememberedWorkspaces.Clear();
+        foreach (var dir in S.AiWorkspaces.Where(System.IO.Directory.Exists))
+        {
+            var name = System.IO.Path.GetFileName(dir.TrimEnd('\\', '/'));
+            if (string.IsNullOrEmpty(name)) name = dir;
+            RememberedWorkspaces.Add(new WorkspaceChoice(dir, name, string.Equals(dir, S.AiWorkspace, StringComparison.OrdinalIgnoreCase)));
+        }
+        Changed(nameof(HasRememberedWorkspaces));
     }
 }

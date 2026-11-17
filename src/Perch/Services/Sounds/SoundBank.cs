@@ -1,17 +1,19 @@
+using System.IO;
+
 namespace Perch.Services.Sounds;
 
-// One choice in a sound list: an id stored in the settings and the key of its display name.
-public sealed record SoundOption(string Id, string NameKey)
+// One choice in a sound list: an id stored in the settings and the key of its display name (or a custom file label).
+public sealed record SoundOption(string Id, string NameKey, string? CustomLabel = null)
 {
-    public string Name => Loc.T(NameKey);
+    public string Name => CustomLabel ?? Loc.T(NameKey);
 }
 
-// The built-in sounds. They are made of simple tones (sine waves with a few overtones and a decay) when first needed,
-// so Perch ships no audio files; every sound is a short clip of 16-bit mono PCM at 44.1 kHz.
+// The built-in sounds. They are synthesized cleanly with soft cosine attacks, warm detuned harmonics, and subtle
+// room tails, so Perch ships no audio files; every sound is a 16-bit mono PCM clip at 44.1 kHz.
 public static class SoundBank
 {
     public const int Rate = 44100;
-    public const string System = "system", Off = "off", Default = "";
+    public const string System = "system", Off = "off", Default = "", FilePrefix = "file:";
 
     // The ids, in the order the lists show them.
     public static readonly SoundOption[] Options =
@@ -26,7 +28,9 @@ public static class SoundBank
     // The tick when the island clings to the centre; not one of the choices in the lists.
     public const string Snap = "snap";
 
-    public static bool Exists(string id) => id == Snap || Options.Any(o => o.Id == id);
+    public static bool IsCustom(string? id) => !string.IsNullOrEmpty(id) && (id.StartsWith(FilePrefix, StringComparison.OrdinalIgnoreCase) || Path.IsPathRooted(id));
+    public static string? CustomFile(string? id) => string.IsNullOrEmpty(id) ? null : id.StartsWith(FilePrefix, StringComparison.OrdinalIgnoreCase) ? id[FilePrefix.Length..] : Path.IsPathRooted(id) ? id : null;
+    public static bool Exists(string id) => id == Snap || Options.Any(o => o.Id == id) || (CustomFile(id) is { } p && File.Exists(p));
 
     // The clip as samples in -1..1, followed by `tail` seconds of silence (so a looping clip breathes between repeats).
     public static float[] Samples(string id, double tail = 0)
@@ -64,65 +68,119 @@ public static class SoundBank
     {
         switch (id)
         {
-            case "chime": // two bright bell notes
-                return Mix(1.3, (0.00, Note(1318.5, 1.1, 0.30, 0.004, 0.55, 0.30, 0.12)), (0.17, Note(1760.0, 1.1, 0.30, 0.004, 0.55, 0.30, 0.12)));
-            case "bell": // a struck bell: inharmonic partials that die away slowly
-                return Mix(2.6, (0.0, Bell(523.25, 2.5)));
-            case "marimba": // four quick wooden notes
-                return Mix(1.1, (0.00, Note(523.25, 0.7, 0.13, 0.002, 0.0, 0.0, 0.35)), (0.13, Note(659.25, 0.7, 0.13, 0.002, 0.0, 0.0, 0.35)),
-                    (0.26, Note(783.99, 0.7, 0.13, 0.002, 0.0, 0.0, 0.35)), (0.39, Note(1046.5, 0.8, 0.16, 0.002, 0.0, 0.0, 0.35)));
-            case "drop": // a water drop: a short falling tone, then a softer one
-                return Mix(0.9, (0.0, Drop(1300, 520, 0.22, 0.07, 0.9)), (0.34, Drop(1000, 430, 0.22, 0.08, 0.45)));
-            case "digital": // three short electronic beeps
-                return Mix(0.75, (0.00, Beep(1000, 0.09)), (0.16, Beep(1000, 0.09)), (0.32, Beep(1000, 0.09)));
-            case "pulse": // three soft low pulses
-                return Mix(1.0, (0.00, Note(330, 0.3, 0.14, 0.015, 0.0, 0.25, 0.0)), (0.30, Note(330, 0.3, 0.14, 0.015, 0.0, 0.25, 0.0)), (0.60, Note(392, 0.3, 0.14, 0.015, 0.0, 0.25, 0.0)));
-            case Snap: // a small soft "tick": a very short falling tone over a faint high click, kept quiet
+            case "chime": // shimmering crystal wind chime (fifth + airy sparkle)
+                return Tail(Mix(1.9,
+                    (0.00, WarmNote(1046.50, 1.4, 0.42, 0.014, 0.18, 0.06, 0.8)),
+                    (0.09, WarmNote(1567.98, 1.4, 0.44, 0.014, 0.16, 0.05, 0.8)),
+                    (0.22, WarmNote(1318.51, 1.5, 0.48, 0.014, 0.18, 0.06, 0.8)),
+                    (0.32, WarmNote(2093.00, 1.5, 0.50, 0.016, 0.10, 0.03, 0.6))));
+            case "bell": // warm singing bowl / soft temple bell with gentle beating
+                return Tail(Mix(2.8,
+                    (0.00, Bowl(440.0, 2.7)),
+                    (0.03, WarmNote(880.0, 1.8, 0.55, 0.025, 0.10, 0.02, 0.5))));
+            case "marimba": // soft wooden mallet triad (Fmaj7)
+                return Tail(Mix(1.3,
+                    (0.00, Mallet(349.23, 0.55, 0.14)),
+                    (0.11, Mallet(440.00, 0.55, 0.14)),
+                    (0.22, Mallet(523.25, 0.60, 0.15)),
+                    (0.33, Mallet(659.25, 0.85, 0.22))));
+            case "drop": // round, crisp water droplet (upward bubble resonance)
+                return Tail(Mix(0.85,
+                    (0.00, Bubble(620, 1180, 0.16, 0.045, 0.9)),
+                    (0.22, Bubble(780, 1420, 0.14, 0.040, 0.42))));
+            case "digital": // clean modern UI two-note chime (softened, non-harsh)
+                return Tail(Mix(0.95,
+                    (0.00, WarmNote(659.25, 0.24, 0.09, 0.008, 0.14, 0.04, 0.5)),
+                    (0.14, WarmNote(880.00, 0.45, 0.16, 0.008, 0.14, 0.04, 0.5))));
+            case "pulse": // deep warm ambient fifth swell
+                return Tail(Mix(1.35,
+                    (0.00, Swell(220.00, 0.42, 0.12)),
+                    (0.00, Swell(329.63, 0.42, 0.12)),
+                    (0.45, Swell(246.94, 0.60, 0.16)),
+                    (0.45, Swell(369.99, 0.60, 0.16))));
+            case Snap: // subtle tactile wooden tick
             {
-                var tick = Mix(0.08, (0.0, Drop(1500, 700, 0.06, 0.012, 1.0)), (0.0, Note(3200, 0.02, 0.004, 0.0005, 0.0, 0.0, 0.0)));
-                for (var i = 0; i < tick.Length; i++) tick[i] *= 0.55f;
+                var tick = Mix(0.06, (0.0, Mallet(980, 0.045, 0.010)));
+                for (var i = 0; i < tick.Length; i++) tick[i] *= 0.45f;
                 return tick;
             }
-            case "alarm": // the classic alarm: two alternating urgent tones, repeated
-                return Alarm();
-            default: // "gentle": a soft rising arpeggio
-                return Mix(1.8, (0.00, Note(783.99, 0.6, 0.45, 0.012, 0.0, 0.2, 0.0)), (0.13, Note(987.77, 0.6, 0.45, 0.012, 0.0, 0.2, 0.0)),
-                    (0.26, Note(1174.7, 0.6, 0.45, 0.012, 0.0, 0.2, 0.0)), (0.39, Note(1568.0, 0.7, 0.55, 0.012, 0.0, 0.2, 0.0)));
+            case "alarm": // pleasant, clear rising marimba-bell alarm motif
+                return Tail(Mix(2.2,
+                    (0.00, Mallet(523.25, 0.40, 0.14)),
+                    (0.18, Mallet(659.25, 0.40, 0.14)),
+                    (0.36, Mallet(783.99, 0.40, 0.15)),
+                    (0.54, WarmNote(1046.50, 0.65, 0.25, 0.006, 0.22, 0.08, 0.7)),
+                    (1.05, Mallet(523.25, 0.40, 0.14)),
+                    (1.23, Mallet(659.25, 0.40, 0.14)),
+                    (1.41, Mallet(783.99, 0.40, 0.15)),
+                    (1.59, WarmNote(1046.50, 0.65, 0.25, 0.006, 0.22, 0.08, 0.7))));
+            default: // "gentle": warm Rhodes-like Cmaj9 rising arpeggio
+                return Tail(Mix(1.9,
+                    (0.00, WarmNote(523.25, 0.90, 0.34, 0.016, 0.18, 0.04, 0.9)),
+                    (0.11, WarmNote(659.25, 0.90, 0.34, 0.016, 0.16, 0.04, 0.9)),
+                    (0.22, WarmNote(783.99, 0.95, 0.36, 0.016, 0.16, 0.04, 0.9)),
+                    (0.33, WarmNote(987.77, 1.05, 0.40, 0.016, 0.14, 0.03, 0.9)),
+                    (0.45, WarmNote(1174.66, 1.25, 0.48, 0.018, 0.12, 0.02, 0.9))));
         }
     }
 
-    // A note: a sine wave with up to three overtones, a fast attack and an exponential decay (time constant `decay`).
-    private static float[] Note(double frequency, double length, double decay, double attack, double second, double third, double fourth)
+    // Soft cosine attack + warm detuned unison + faster-decaying upper harmonics for an acoustic feel.
+    private static float[] WarmNote(double freq, double length, double decay, double attack, double h2, double h3, double detune)
     {
         var count = (int)(length * Rate);
         var wave = new float[count];
         for (var i = 0; i < count; i++)
         {
             var t = i / (double)Rate;
-            var envelope = Math.Min(1, t / Math.Max(attack, 1e-4)) * Math.Exp(-t / decay);
-            var phase = 2 * Math.PI * frequency * t;
-            var value = Math.Sin(phase) + second * Math.Sin(2 * phase) + third * Math.Sin(3 * phase) + fourth * Math.Sin(4 * phase);
-            wave[i] = (float)(value * envelope);
+            var att = t < attack ? 0.5 * (1 - Math.Cos(Math.PI * t / attack)) : 1.0;
+            var release = i > count - 400 ? (count - i) / 400.0 : 1.0;
+            var p1 = 2 * Math.PI * (freq - detune) * t;
+            var p2 = 2 * Math.PI * (freq + detune) * t;
+            var fund = 0.5 * (Math.Sin(p1) + Math.Sin(p2)) * Math.Exp(-t / decay);
+            var over = h2 * Math.Sin(2 * 2 * Math.PI * freq * t) * Math.Exp(-t / (decay * 0.55))
+                     + h3 * Math.Sin(3 * 2 * Math.PI * freq * t) * Math.Exp(-t / (decay * 0.32));
+            wave[i] = (float)((fund + over) * att * release);
         }
         return wave;
     }
 
-    private static float[] Bell(double frequency, double length)
+    // Singing bowl: warm fundamental with gentle beating partials.
+    private static float[] Bowl(double freq, double length)
     {
-        double[] ratio = [1.0, 2.0, 2.76, 5.4, 8.93], level = [1.0, 0.55, 0.45, 0.22, 0.12], decay = [1.1, 0.8, 0.6, 0.35, 0.2];
         var count = (int)(length * Rate);
         var wave = new float[count];
         for (var i = 0; i < count; i++)
         {
             var t = i / (double)Rate;
-            double value = 0;
-            for (var p = 0; p < ratio.Length; p++) value += level[p] * Math.Sin(2 * Math.PI * frequency * ratio[p] * t) * Math.Exp(-t / decay[p]);
-            wave[i] = (float)(value * Math.Min(1, t / 0.003));
+            var att = t < 0.035 ? 0.5 * (1 - Math.Cos(Math.PI * t / 0.035)) : 1.0;
+            var release = i > count - 800 ? (count - i) / 800.0 : 1.0;
+            var v = Math.Sin(2 * Math.PI * freq * t) * Math.Exp(-t / 1.25)
+                  + 0.35 * Math.Sin(2 * Math.PI * (freq * 1.0035) * t) * Math.Exp(-t / 1.15)
+                  + 0.22 * Math.Sin(2 * Math.PI * (freq * 2.756) * t) * Math.Exp(-t / 0.55)
+                  + 0.08 * Math.Sin(2 * Math.PI * (freq * 5.404) * t) * Math.Exp(-t / 0.25);
+            wave[i] = (float)(v * att * release);
         }
         return wave;
     }
 
-    private static float[] Drop(double from, double to, double length, double decay, double level)
+    // Woody marimba mallet: clean fundamental + short soft woody transient.
+    private static float[] Mallet(double freq, double length, double decay)
+    {
+        var count = (int)(length * Rate);
+        var wave = new float[count];
+        for (var i = 0; i < count; i++)
+        {
+            var t = i / (double)Rate;
+            var att = t < 0.003 ? 0.5 * (1 - Math.Cos(Math.PI * t / 0.003)) : 1.0;
+            var v = Math.Sin(2 * Math.PI * freq * t) * Math.Exp(-t / decay)
+                  + 0.28 * Math.Sin(2 * Math.PI * (freq * 4.0) * t) * Math.Exp(-t / 0.018);
+            wave[i] = (float)(v * att);
+        }
+        return wave;
+    }
+
+    // Natural water droplet: rising pitch sweep as the air bubble resonates.
+    private static float[] Bubble(double from, double to, double length, double decay, double level)
     {
         var count = (int)(length * Rate);
         var wave = new float[count];
@@ -130,37 +188,42 @@ public static class SoundBank
         for (var i = 0; i < count; i++)
         {
             var t = i / (double)Rate;
-            var frequency = to + (from - to) * Math.Exp(-t / 0.05); // glides down quickly
-            phase += 2 * Math.PI * frequency / Rate;
-            wave[i] = (float)(Math.Sin(phase) * Math.Exp(-t / decay) * level * Math.Min(1, t / 0.002));
+            var freq = to - (to - from) * Math.Exp(-t / 0.028);
+            phase += 2 * Math.PI * freq / Rate;
+            var env = Math.Min(1, t / 0.003) * Math.Exp(-t / decay);
+            wave[i] = (float)(Math.Sin(phase) * env * level);
         }
         return wave;
     }
 
-    // A flat electronic beep with a trace of the third overtone.
-    private static float[] Beep(double frequency, double length)
+    // Soft ambient swell.
+    private static float[] Swell(double freq, double length, double attack)
     {
         var count = (int)(length * Rate);
         var wave = new float[count];
         for (var i = 0; i < count; i++)
         {
             var t = i / (double)Rate;
-            var edge = Math.Min(Math.Min(1, t / 0.004), Math.Min(1, (length - t) / 0.006));
-            var phase = 2 * Math.PI * frequency * t;
-            wave[i] = (float)((Math.Sin(phase) + 0.33 * Math.Sin(3 * phase)) * 0.75 * edge);
+            var env = Math.Sin(Math.PI * Math.Min(1, t / length));
+            var att = t < attack ? 0.5 * (1 - Math.Cos(Math.PI * t / attack)) : 1.0;
+            var v = Math.Sin(2 * Math.PI * freq * t) + 0.15 * Math.Sin(4 * Math.PI * freq * t);
+            wave[i] = (float)(v * env * att);
         }
         return wave;
     }
 
-    private static float[] Alarm()
+    // Subtle multi-tap room reflection so notes sit in space instead of sounding dry.
+    private static float[] Tail(float[] dry)
     {
-        var parts = new List<(double At, float[] Wave)>();
-        for (var round = 0; round < 4; round++)
-        {
-            parts.Add((round * 0.52, Beep(880, 0.13)));
-            parts.Add((round * 0.52 + 0.19, Beep(1175, 0.13)));
-        }
-        return Mix(2.3, parts.ToArray());
+        var wet = new float[dry.Length];
+        dry.CopyTo(wet, 0);
+        ReadOnlySpan<(int Delay, float Gain)> taps = [(1500, 0.18f), (3200, 0.11f), (5400, 0.06f)];
+        foreach (var (delay, gain) in taps)
+            for (var i = delay; i < wet.Length; i++)
+                wet[i] += dry[i - delay] * gain;
+        var peak = wet.Length == 0 ? 0 : wet.Max(Math.Abs);
+        if (peak > 0.85f) { var s = 0.85f / peak; for (var i = 0; i < wet.Length; i++) wet[i] *= s; }
+        return wet;
     }
 
     // Lays the parts on a timeline (start time in seconds) and keeps the peak below clipping.

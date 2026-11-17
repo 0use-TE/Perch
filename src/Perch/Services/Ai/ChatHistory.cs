@@ -21,6 +21,7 @@ public sealed class ChatRecord
     public DateTime Updated { get; set; } = DateTime.Now;
     public string ProviderId { get; set; } = "";
     public string Model { get; set; } = "";
+    public string Workspace { get; set; } = "";
     public List<ChatMessageRecord> Messages { get; set; } = [];
 }
 
